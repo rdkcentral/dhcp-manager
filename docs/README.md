@@ -44,6 +44,7 @@ The DHCP Client Manager follows a modular, event-driven architecture with the fo
 ```
 docs/
 ├── README.md                    # This overview document
+├── configuration-guide.md       # Comprehensive PSM configuration guide
 ├── architecture/
 │   ├── component-diagram.md     # Detailed component relationships
 │   ├── data-flow.md            # Data flow and message passing
@@ -88,6 +89,108 @@ The component is configured through TR-181 Data Model entries:
 - **IPC Address**: `tcp://127.0.0.1:50324` (for lease monitoring)
 - **Configuration Files**: Dynamic creation based on TR-181 settings
 - **Log Output**: Standard RDK logging framework
+
+## Configuration
+
+The DHCP Client Manager is configured through PSM (Persistent Storage Manager) parameters and TR-181 Data Model entries. Configuration covers both DHCPv4 and DHCPv6 clients with support for custom options, vendor-specific information, and WAN Manager integration.
+
+### Configuration Structure
+
+```
+dmsb.dhcpmanager
+├── ClientNoOfEntries                    # Number of DHCPv4 clients
+├── Client.{i}                          # DHCPv4 client instances
+│   ├── Alias                           # Client alias/name
+│   ├── ReqOptionNoOfEntries            # Number of requested options
+│   ├── ReqOption.{i}.Tag               # DHCP option tag
+│   ├── ReqOption.{i}.Order             # Option request order
+│   ├── SendOptionNoOfEntries           # Number of sent options
+│   ├── SendOption.{i}.Tag              # DHCP option tag
+│   └── SendOption.{i}.Value            # Option value (hex-encoded)
+└── dhcpv6
+    ├── ClientNoOfEntries               # Number of DHCPv6 clients
+    └── Client.{i}                      # DHCPv6 client instances
+        ├── Alias                       # Client alias/name
+        ├── ReqAddr                     # Request IPv6 address (IANA)
+        ├── ReqPrefix                   # Request prefix delegation (IAPD)
+        ├── RequestedOptions            # Comma-separated option list
+        ├── SentOptNoOfEntries          # Number of sent options
+        ├── SentOption.{i}.Tag          # DHCPv6 option tag
+        └── SentOption.{i}.Value        # Option value (hex-encoded)
+```
+
+### Quick Configuration Examples
+
+#### Basic DHCPv4 Client
+```xml
+<!-- Single DHCPv4 client for WAN interface -->
+<Record name="dmsb.dhcpmanager.ClientNoOfEntries" type="astr">1</Record>
+<Record name="dmsb.dhcpmanager.Client.1.Alias" type="astr">WAN_CLIENT</Record>
+
+<!-- Request standard options -->
+<Record name="dmsb.dhcpmanager.Client.1.ReqOptionNoOfEntries" type="astr">3</Record>
+<Record name="dmsb.dhcpmanager.Client.1.ReqOption.1.Tag" type="astr">1</Record>  <!-- Subnet Mask -->
+<Record name="dmsb.dhcpmanager.Client.1.ReqOption.1.Order" type="astr">1</Record>
+<Record name="dmsb.dhcpmanager.Client.1.ReqOption.2.Tag" type="astr">3</Record>  <!-- Router -->
+<Record name="dmsb.dhcpmanager.Client.1.ReqOption.2.Order" type="astr">2</Record>
+<Record name="dmsb.dhcpmanager.Client.1.ReqOption.3.Tag" type="astr">6</Record>  <!-- DNS Server -->
+<Record name="dmsb.dhcpmanager.Client.1.ReqOption.3.Order" type="astr">3</Record>
+
+<!-- Send vendor class identifier -->
+<Record name="dmsb.dhcpmanager.Client.1.SendOptionNoOfEntries" type="astr">1</Record>
+<Record name="dmsb.dhcpmanager.Client.1.SendOption.1.Tag" type="astr">60</Record>
+<Record name="dmsb.dhcpmanager.Client.1.SendOption.1.Value" type="astr">526F757465725F763100</Record>
+```
+
+#### Basic DHCPv6 Client
+```xml
+<!-- Single DHCPv6 client with address request -->
+<Record name="dmsb.dhcpmanager.dhcpv6.ClientNoOfEntries" type="astr">1</Record>
+<Record name="dmsb.dhcpmanager.dhcpv6.Client.1.Alias" type="astr">WAN_IPV6</Record>
+<Record name="dmsb.dhcpmanager.dhcpv6.Client.1.ReqAddr" type="astr">TRUE</Record>
+<Record name="dmsb.dhcpmanager.dhcpv6.Client.1.ReqPrefix" type="astr">FALSE</Record>
+<Record name="dmsb.dhcpmanager.dhcpv6.Client.1.RequestedOptions" type="astr">23,24</Record> <!-- DNS, Domain -->
+```
+
+#### WAN Manager Integration
+```xml
+<!-- Bind DHCP clients to WAN interfaces -->
+<Record name="dmsb.wanmanager.if.1.VirtualInterface.1.IP.DHCPV4Interface" type="astr">Device.DHCPv4.Client.1</Record>
+<Record name="dmsb.wanmanager.if.1.VirtualInterface.1.IP.DHCPV6Interface" type="astr">Device.DHCPv6.Client.1</Record>
+```
+
+### Custom Options Support
+
+The DHCP Manager supports custom vendor-specific options through:
+
+- **PSM Configuration**: Direct hex-encoded values in PSM parameters
+- **Custom APIs**: Dynamic value generation through custom libraries
+- **Weak/Strong Implementation**: Override default behavior with custom functions
+
+### Advanced Configuration
+
+For complex scenarios including:
+- Multiple WAN interfaces (Cable, Ethernet, LTE)
+- Vendor-specific option processing
+- MAP-T configuration
+- Enterprise deployments
+
+Refer to the comprehensive [Configuration Guide](configuration-guide.md) for detailed examples and best practices.
+
+### Configuration Validation
+
+```bash
+# Verify DHCP client configuration
+dmcli eRT getv Device.DHCPv4.Client.
+dmcli eRT getv Device.DHCPv6.Client.
+
+# Check WAN Manager bindings
+dmcli eRT getv Device.X_RDK_WanManager.Interface.
+
+# Validate option configuration
+dmcli eRT getv Device.DHCPv4.Client.1.ReqOption.
+dmcli eRT getv Device.DHCPv6.Client.1.SentOption.
+```
 
 ## Core Components
 
