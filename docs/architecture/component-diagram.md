@@ -66,7 +66,11 @@ graph TB
     CONTROLLER --> WAN
 ```
 
+
 ## Component Responsibilities
+![DHCP Manager Block Diagram](../Images/DHCP_mgr_block_diagram.png)
+
+*Figure 1: DHCP Manager Component Block Diagram - Shows the main components and their interactions within the RDK-B DHCP Management system*
 
 ### Main Controller
 - **Central Coordination**: Orchestrates all DHCP client operations
@@ -321,58 +325,41 @@ graph TB
     CONTROLLER --> FILESYSTEM
 ```
 
-### Security Considerations
+## DHCP Protocol Sequences
 
-#### Process Security
-- **Privilege Separation**: Different components run with minimal required privileges
-- **Process Isolation**: DHCP clients run as separate processes
-- **Plugin Sandboxing**: Plugins have limited system access
+### DHCPv4 Sequence Flow
 
-#### Communication Security
-- **Local IPC**: All communication uses local IPC mechanisms
-- **Message Validation**: All messages are validated before processing
-- **Error Isolation**: Errors in one component don't affect others
+![DHCPv4 Sequence Diagram](../Images/DHCP_v4_sequence.png)
 
-#### File System Security
-- **Temporary Storage**: Recovery files stored in secure temporary directory
-- **Permission Control**: Appropriate file permissions for lease data
-- **Atomic Operations**: Atomic file operations prevent corruption
+*Figure 2: DHCPv4 Sequence Diagram - Shows the complete DHCPv4 lease acquisition and processing flow from client startup through network configuration*
 
-## Performance Architecture
+The DHCPv4 sequence illustrates the interaction between the DHCP Manager, udhcpc client, and the udhcpc plugin during lease acquisition:
 
-### Optimization Strategies
+1. **Client Initialization**: Main controller starts udhcpc client based on TR-181 configuration
+2. **DHCP Discovery**: udhcpc performs standard DHCP discovery process (DISCOVER/OFFER/REQUEST/ACK)
+3. **Plugin Execution**: Upon lease acquisition, udhcpc executes the plugin with lease information
+4. **IPC Communication**: Plugin sends lease data to the lease monitor via IPC
+5. **Lease Processing**: Controller processes the lease and updates system configuration
+6. **Network Configuration**: Interface is configured with IP address, routes, and DNS settings
+7. **Status Update**: TR-181 data model is updated with current lease information
 
-#### Memory Management
-- **Static Allocation**: Prefer stack allocation over dynamic allocation
-- **Memory Pooling**: Reuse common data structures
-- **Lazy Loading**: Load data only when needed
-- **Garbage Collection**: Timely cleanup of unused resources
+### DHCPv6 Sequence Flow
 
-#### Processing Optimization
-- **Asynchronous Processing**: Non-blocking lease processing
-- **Batch Operations**: Group related operations
-- **Caching**: Cache frequently accessed data
-- **Fast Path**: Optimize common operation paths
+![DHCPv6 Sequence Diagram](../Images/DHCP_v6_sequence.png)
 
-#### I/O Optimization
-- **Buffered I/O**: Use appropriate buffer sizes
-- **Async I/O**: Non-blocking file operations where possible
-- **Minimal Syscalls**: Reduce system call overhead
-- **Efficient Protocols**: Use binary protocols for IPC
+*Figure 3: DHCPv6 Sequence Diagram - Shows the complete DHCPv6 lease acquisition and processing flow including IANA and IAPD handling*
 
-## Scalability Considerations
+The DHCPv6 sequence demonstrates the more complex IPv6 lease acquisition process:
 
-### Multi-Interface Support
-- **Parallel Processing**: Handle multiple interfaces concurrently
-- **Resource Scaling**: Scale resources based on interface count
-- **State Isolation**: Isolate state between interfaces
-- **Load Distribution**: Distribute processing across available cores
-
-### Performance Limits
-- **Interface Count**: Efficiently handle dozens of interfaces
-- **Lease Volume**: Process high lease turnover rates
-- **Memory Usage**: Bounded memory usage regardless of scale
-- **Response Time**: Maintain consistent response times under load
+1. **Client Initialization**: Main controller starts dibbler client with IPv6-specific configuration
+2. **DHCPv6 Solicitation**: dibbler performs DHCPv6 solicitation process (SOLICIT/ADVERTISE/REQUEST/REPLY)
+3. **Dual Association**: Handles both IANA (Identity Association for Non-temporary Addresses) and IAPD (Identity Association for Prefix Delegation)
+4. **Plugin Execution**: dibbler executes the plugin with comprehensive IPv6 lease information
+5. **IPC Communication**: Plugin sends detailed IPv6 lease data including addresses and prefixes
+6. **Lease Processing**: Controller processes both address assignments and prefix delegations
+7. **IPv6 Configuration**: Interface is configured with IPv6 addresses, prefixes, and routes
+8. **System Events**: IPv6-specific system events are generated for prefix delegation and addressing
+9. **Status Update**: TR-181 data model is updated with IPv6 lease information
 
 ## Extension Points
 

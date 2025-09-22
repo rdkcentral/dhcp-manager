@@ -4,6 +4,10 @@
 
 The Main Controller (`dhcpmgr_controller.c/h`) serves as the central coordination hub for the DHCP Client Manager. It orchestrates DHCP client lifecycle management, monitors interface status changes, coordinates lease processing, and manages the interaction between various components of the system.
 
+![Main Controller Flow Chart](../Images/Main_controller_flow_chart.png)
+
+*Figure 1: Main Controller Flow Chart - Shows the decision flow and operational logic of the main controller thread*
+
 ## Architecture
 
 The controller implements a state-driven architecture that continuously monitors system conditions and responds to changes:
