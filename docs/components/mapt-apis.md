@@ -4,6 +4,8 @@
 
 The DHCP MAP-T (Mapping of Address and Port using Translation) APIs implement RFC 7599 support for IPv4-over-IPv6 transition technology. This component processes DHCP option 95 (S46_CONT_MAPT) to configure MAP-T parameters, enabling IPv4 connectivity over IPv6-only networks through address and port mapping.
 
+> **Note:** Only MAP-T option parsing and parameter validation are performed within the DHCP Manager. The actual MAP-T configuration and interface setup are handled by the WAN Manager component.
+
 ## Architecture
 
 The MAP-T implementation follows the RFC 7599 specification with comprehensive parameter processing:
@@ -50,25 +52,6 @@ The MAP-T implementation follows the RFC 7599 specification with comprehensive p
 - **Format**: TLV (Type-Length-Value) container
 - **Sub-options**: Contains nested MAP-T specific options
 
-#### Option 89: S46_RULE (MAP Rule)
-- **Purpose**: Defines mapping rules for IPv4-to-IPv6 translation
-- **Components**:
-  - IPv6 prefix for MAP domain
-  - IPv4 prefix for IPv4 pool
-  - EA (Embedded Address) bits
-  - Port mapping parameters
-
-#### Option 90: S46_BR (Border Relay)
-- **Purpose**: Specifies Border Relay IPv6 address
-- **Usage**: Destination for encapsulated IPv4 traffic
-- **Format**: IPv6 address
-
-#### Option 93: S46_PORT_PARAMS (Port Parameters)
-- **Purpose**: Defines port mapping parameters
-- **Components**:
-  - PSID (Port Set Identifier)
-  - PSID length
-  - PSID offset
 
 ## Data Structures
 
@@ -263,12 +246,11 @@ When option 95 is received in DHCPv6 response:
 
 ### System Configuration
 
-#### Tunnel Interface Setup
+####  Interface Setup
 MAP-T requires tunnel interface configuration:
-1. **Interface Creation**: Create MAP-T tunnel interface
+1. **Interface Creation**: Create MAP-T interface
 2. **Address Assignment**: Assign calculated IPv6 address
 3. **Route Configuration**: Set up routing for IPv4 traffic
-4. **Border Relay**: Configure BR as tunnel endpoint
 
 #### Traffic Flow
 1. **IPv4 Packets**: Application sends IPv4 packets
@@ -292,28 +274,9 @@ MAP-T requires tunnel interface configuration:
 - **Length Mismatches**: Validate option lengths
 - **Unknown Options**: Skip unsupported options
 
-### Recovery Procedures
 
-#### Graceful Degradation
-1. **Partial Configuration**: Use available parameters
-2. **Default Values**: Apply sensible defaults
-3. **Error Reporting**: Log configuration issues
-4. **Fallback**: Disable MAP-T if critical errors
 
 ## Performance Considerations
-
-### Processing Efficiency
-
-#### Option Parsing Optimization
-- **Single Pass**: Parse options in one iteration
-- **Minimal Copying**: Avoid unnecessary data copying
-- **Early Validation**: Validate data during parsing
-- **Memory Efficiency**: Use stack allocation where possible
-
-#### Calculation Optimization
-- **Bit Operations**: Use efficient bit manipulation
-- **Lookup Tables**: Cache common calculations
-- **Lazy Evaluation**: Calculate only when needed
 
 ### Memory Management
 
@@ -368,16 +331,8 @@ MAP-T requires tunnel interface configuration:
 
 #### Mandatory Features
 - ✅ **Option 95**: S46_CONT_MAPT container
-- ✅ **Option 89**: S46_RULE processing
-- ✅ **Option 90**: S46_BR processing  
-- ✅ **Option 93**: S46_PORT_PARAMS processing
 - ✅ **Parameter Validation**: RFC-compliant validation
 - ✅ **Address Calculation**: Standard address mapping
-
-#### Optional Features
-- ⚠️ **Option 91**: S46_DMR (not implemented)
-- ⚠️ **Multiple Rules**: Single rule support only
-- ⚠️ **FMR Support**: Basic FMR flag support
 
 ### Interoperability
 
@@ -385,25 +340,3 @@ MAP-T requires tunnel interface configuration:
 - **Standard MAP-T**: Basic MAP-T deployments
 - **Provider Networks**: Common ISP configurations
 - **Border Relays**: Various BR implementations
-
-## Future Enhancements
-
-### Planned Improvements
-1. **Multiple Rules**: Support for multiple MAP rules
-2. **DMR Support**: Add Default Mapping Rule support
-3. **Enhanced Validation**: More comprehensive parameter checking
-4. **Performance Optimization**: Faster option processing
-5. **Configuration Caching**: Cache MAP-T parameters
-
-### Advanced Features
-1. **Dynamic Updates**: Handle MAP-T parameter updates
-2. **Load Balancing**: Multiple Border Relay support
-3. **Monitoring**: MAP-T tunnel monitoring and statistics
-4. **Quality of Service**: QoS support for MAP-T traffic
-5. **Security**: Enhanced security features for MAP-T
-
-### Standards Evolution
-- **RFC Updates**: Track RFC 7599 updates and errata
-- **New Options**: Support for new DHCP options
-- **Protocol Extensions**: Support for MAP-T extensions
-- **IPv6 Evolution**: Adapt to IPv6 protocol changes
