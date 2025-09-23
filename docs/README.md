@@ -2,11 +2,11 @@
 
 ## Overview
 
-The DHCP Client Manager is a core component of the RDK-B (Reference Design Kit for Broadband) framework that provides centralized management of DHCP client operations for both IPv4 and IPv6 protocols. This implementation ensures efficient IP address management, seamless IPv4/IPv6 coexistence, and dynamic lease monitoring in RDK-B networking environments.
+The DHCP Client Manager is a component of the RDK-B (Reference Design Kit for Broadband) framework that provides centralized management of DHCP operations for both IPv4 and IPv6 protocols. This implementation ensures efficient IP address management, seamless IPv4/IPv6 coexistence, and dynamic lease monitoring in RDK-B networking environments.
 
 ## Key Features
 
-- **Dual Protocol Support**: Comprehensive support for both DHCPv4 (using udhcpc) and DHCPv6 (using dibbler) clients
+- **Dual Protocol Support**: Comprehensive support for both DHCPv4 and DHCPv6 clients
 - **Centralized Management**: Single point of control for all DHCP client operations across multiple interfaces
 - **Real-time Lease Monitoring**: IPC-based system for receiving and processing lease updates from DHCP clients
 - **TR-181 Integration**: Full integration with TR-181 Data Model for standardized management
@@ -25,7 +25,7 @@ The DHCP Client Manager follows a modular, event-driven architecture with the fo
 │                 │    │                 │    │                 │
 │ • TR-181 DML    │◄──►│ • Client Control│◄──►│ • IPC Listener  │
 │ • Set/Get Ops   │    │ • Status Monitor│    │ • Lease Updates │
-│ • Subscriptions │    │ • Interface Mgmt│    │ • Quick Process │
+│ • Subscriptions │    │ • Interface Mgmt│    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │                       │                       │
@@ -35,7 +35,7 @@ The DHCP Client Manager follows a modular, event-driven architecture with the fo
 │                 │    │                 │    │                 │
 │ • Persistence   │    │ • DHCPv4 Process│    │ • udhcpc Plugin │
 │ • State Restore │    │ • DHCPv6 Process│    │ • dibbler Plugin│
-│ • Crash Recovery│    │ • Event Updates │    │ • Lease Reports │
+│ • Crash Recovery│    │ • Event Updates │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
@@ -80,9 +80,6 @@ The DHCP Client Manager is built as part of the RDK-B build system:
 # Build the entire DHCP Manager
 bitbake ccsp-dhcp-mgr
 
-# Or build just the client utilities
-cd source/DHCPMgrUtils
-make
 ```
 
 ### Configuration
@@ -111,7 +108,6 @@ dmsb.dhcpmanager
 │   ├── Alias                           # Client alias/name
 │   ├── ReqOptionNoOfEntries            # Number of requested options
 │   ├── ReqOption.{i}.Tag               # DHCP option tag
-│   ├── ReqOption.{i}.Order             # Option request order
 │   ├── SendOptionNoOfEntries           # Number of sent options
 │   ├── SendOption.{i}.Tag              # DHCP option tag
 │   └── SendOption.{i}.Value            # Option value (hex-encoded)
@@ -134,6 +130,7 @@ dmsb.dhcpmanager
 - Monitors interface status changes
 - Coordinates lease processing
 - Handles client startup/shutdown
+- Monitors client process health
 
 ### 2. Lease Monitor (`dhcp_lease_monitor_thrd.c/h`)
 - IPC server for receiving lease updates
@@ -147,9 +144,8 @@ dmsb.dhcpmanager
 - Configures network interfaces
 
 ### 4. Recovery Handler (`dhcpmgr_recovery_handler.c/h`)
-- Persists lease information to filesystem
-- Restores state after system restart
-- Monitors client process health
+- Persists lease information to filesystem (/tmp/)
+- Restores state after process restart
 
 ### 5. MAP-T Support (`dhcpmgr_map_apis.c/h`)
 - Implements RFC 7599 for IPv4-over-IPv6
@@ -162,12 +158,12 @@ The DHCP Manager works with external DHCP clients through a plugin architecture:
 
 ### DHCPv4 (udhcpc)
 - **Config Creator**: Generates udhcpc-compatible configuration
-- **Plugin Binary**: `dhcpmgr_udhcpc_plugin` - executed on lease events
+- **Plugin Binary**: `dhcpmgr_udhcpc_plugin` - executed on lease events by the dhcp client
 - **Communication**: IPC socket to lease monitor
 
 ### DHCPv6 (dibbler)
 - **Config Creator**: Generates dibbler-compatible configuration
-- **Plugin Binary**: `dhcpmgr_dibbler_plugin` - executed on lease events
+- **Plugin Binary**: `dhcpmgr_dibbler_plugin` - executed on lease events by the dhcp client
 - **Communication**: IPC socket to lease monitor
 
 ## Message Flow

@@ -19,7 +19,7 @@ The lease handlers implement a multi-layered processing architecture:
                                       │
                                       ▼
 ┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
-│   Recovery System   │◄────│  Persistence Layer │────►│  External Systems   │
+│   Recovery System   │◄────│  Persistence Layer  │────►│  External Systems   │
 │                     │     │                     │     │                     │
 │ • State Backup      │     │ • Lease Storage     │     │ • WAN Manager       │
 │ • Crash Recovery    │     │ • Configuration     │     │ • System Events     │
@@ -154,7 +154,7 @@ ifl_set_event(syseventParam, newLease->dhcpServerId);
 2. **Lease Comparison**: Detect changes in address/prefix assignments
 3. **Validation**: Verify IPv6 address formats and prefixes
 4. **TR-181 Update**: Update IPv6-specific data model parameters
-5. **Network Configuration**: Apply IPv6 addresses and routes
+5. **Network Configuration**: Apply IPv6 addresses and routes for the interface
 6. **Event Generation**: Generate IPv6-specific system events
 7. **Persistence**: Store IPv6 lease data for recovery
 
@@ -221,10 +221,12 @@ while (pDhcp6c->NewLeases != NULL) {
 
 **IPv6 Configuration**:
 1. **Address Assignment**: Add IPv6 addresses to interface
-2. **Prefix Configuration**: Configure IPv6 prefixes
-3. **Route Setup**: Install IPv6 routes
-4. **Neighbor Discovery**: Configure ND parameters
-5. **DNS Setup**: Configure IPv6 DNS servers
+2. **Prefix Configuration**: (Handled by WAN Manager)
+3. **Route Setup**: (Handled by WAN Manager)
+4. **Neighbor Discovery**: (Handled by WAN Manager)
+5. **DNS Setup**: (Handled by WAN Manager)
+
+> **Note:** These configuration steps are performed by the WAN Manager component, not directly by the DHCPv6 lease handler.
 
 #### `DhcpMgr_clearDHCPv6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)`
 
@@ -233,7 +235,7 @@ while (pDhcp6c->NewLeases != NULL) {
 **IPv6 Cleanup**:
 1. **Address Removal**: Remove IPv6 addresses from interface
 2. **Route Cleanup**: Remove IPv6 routes
-3. **Prefix Cleanup**: Clear delegated prefixes
+3. **Prefix Cleanup**:(Handled by WAN Manager)
 4. **Memory Cleanup**: Free lease structures
 5. **Event Cleanup**: Clear IPv6 system events
 
@@ -313,10 +315,6 @@ typedef struct {
 
 #### Event Consumers
 - **WAN Manager**: Network status updates
-- **Routing Daemon**: Route table updates
-- **DNS Resolver**: DNS server updates
-- **Firewall**: Network policy updates
-- **Monitoring Systems**: Status reporting
 
 ## Error Handling
 
@@ -371,7 +369,6 @@ typedef struct {
 - **Change Detection**: Quick comparison algorithms
 - **Batch Updates**: Group related updates
 - **Parallel Processing**: Process multiple leases concurrently
-- **Cache Optimization**: Cache frequently accessed data
 
 #### Network Optimization
 - **Minimal Syscalls**: Reduce system call overhead
@@ -382,12 +379,6 @@ typedef struct {
 ## Testing and Debugging
 
 ### Test Coverage
-
-#### Unit Tests
-- Lease comparison functions
-- Data validation routines
-- Memory management
-- Error handling paths
 
 #### Integration Tests
 - End-to-end lease processing
@@ -414,18 +405,3 @@ typedef struct {
 2. **Memory Leaks**: Monitor allocation and cleanup
 3. **Performance Issues**: Profile processing bottlenecks
 4. **Configuration Errors**: Verify network setup commands
-
-## Future Enhancements
-
-### Planned Improvements
-1. **Advanced Validation**: Enhanced lease data validation
-2. **Load Balancing**: Distribute processing across cores
-3. **Caching Layer**: Cache processed lease information
-4. **Metrics Collection**: Detailed performance monitoring
-5. **Hot Reload**: Dynamic configuration updates
-
-### Scalability Considerations
-- **Multi-interface Support**: Optimize for many interfaces
-- **Large Lease Volumes**: Handle high lease turnover
-- **Resource Constraints**: Efficient operation on limited hardware
-- **High Availability**: Redundant processing capabilities

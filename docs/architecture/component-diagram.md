@@ -111,6 +111,8 @@ graph TB
 - **Interface Monitoring**: Tracks network interface status
 - **Configuration Management**: Processes TR-181 configuration changes
 - **Error Handling**: Implements recovery and error handling strategies
+- **Process Monitoring**: Monitors DHCP client process health
+
 
 ### Lease Monitor
 - **IPC Server**: Receives lease updates from DHCP client plugins
@@ -118,14 +120,13 @@ graph TB
 - **Protocol Detection**: Identifies DHCPv4 vs DHCPv6 messages
 - **Fast Processing**: Minimal latency message processing
 
-### Protocol Handlers
+### Protocol(Lease) Handlers
 - **DHCPv4 Handler**: Processes IPv4 lease information and network configuration
 - **DHCPv6 Handler**: Processes IPv6 lease information including IANA/IAPD
 - **MAP-T Processor**: Handles IPv4-over-IPv6 transition technology
 
 ### Recovery Handler
 - **Persistence**: Stores lease information for system restart recovery
-- **Process Monitoring**: Monitors DHCP client process health
 - **State Restoration**: Restores system state after crashes or restarts
 
 ## Data Flow Architecture

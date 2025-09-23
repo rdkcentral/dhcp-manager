@@ -86,7 +86,7 @@ The DHCPv6 plugin message contains:
 ## IPC Implementation Details
 
 ### Transport Protocol
-- **Library**: nanomsg (next-generation messaging library)
+- **Library**: nanomsg
 - **Pattern**: Pipeline (NN_PULL socket)
 - **Address**: `tcp://127.0.0.1:50324`
 - **Benefits**:
@@ -125,7 +125,7 @@ if (bytes == msg_size) {
 ### Thread Model
 - **Main Thread**: Handles TR-181 operations and client management
 - **Monitor Thread**: Dedicated to IPC message processing
-- **Handler Threads**: May process leases asynchronously
+- **Handler Threads**: Process leases asynchronously
 
 ### Synchronization
 - **Lock-free Design**: Monitor thread operates independently
@@ -230,37 +230,3 @@ The monitor provides detailed logging:
 - **Non-blocking Operations**: Avoid blocking main controller
 - **Detached Thread**: Automatic resource cleanup
 
-## Testing and Validation
-
-### Unit Testing
-- Message structure validation
-- IPC socket functionality
-- Error handling scenarios
-- Thread lifecycle management
-
-### Integration Testing
-- End-to-end lease processing
-- Multiple client scenarios
-- Concurrent message handling
-- Recovery after failures
-
-### Performance Testing
-- Message throughput measurement
-- Latency analysis
-- Memory usage profiling
-- CPU utilization tracking
-
-## Future Enhancements
-
-### Potential Improvements
-1. **Message Acknowledgment**: Add confirmation mechanism
-2. **Message Priorities**: Implement priority-based processing
-3. **Compression**: Add message compression for efficiency
-4. **Security**: Implement message authentication
-5. **Monitoring**: Add metrics collection and reporting
-
-### Scalability Considerations
-- Support for multiple DHCP manager instances
-- Load balancing across processors
-- Dynamic port allocation
-- Enhanced error recovery mechanisms
