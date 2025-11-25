@@ -249,7 +249,7 @@ static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
         snprintf(ia_pd_prefix,sizeof(ia_pd_prefix),"%s/%u",pDhcp6c->currentLease->ia_pd.Prefix,pDhcp6c->currentLease->ia_pd.PrefixLength);
 
         IPv6Events eventv6[] = {
-        {pDhcp6c->currentLease->ia_pd.Prefix, COSA_DML_WANIface_PREF_SYSEVENT_NAME},
+        {ia_pd_prefix, COSA_DML_WANIface_PREF_SYSEVENT_NAME},
         {iapd_iaid, COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME},
         {iapd_t1,   COSA_DML_WANIface_PREF_T1_SYSEVENT_NAME},
         {iapd_t2,   COSA_DML_WANIface_PREF_T2_SYSEVENT_NAME},
