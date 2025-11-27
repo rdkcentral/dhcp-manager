@@ -42,6 +42,16 @@ GTEST_ENABLE_FLAG = ""
 #             [echo "Gtestapp is disabled"])
 #AM_CONDITIONAL([WITH_GTEST_SUPPORT], [test x$GTEST_SUPPORT_ENABLED = xtrue])
 
+# Checks for Core net lib Feature Support
+AC_ARG_ENABLE([core_net_lib_feature_support],
+[  --enable-core_net_lib_feature_support=val Turn on core_net_lib Feature, val=true or false],
+[case "${enableval}" in
+  yes) core_net_lib_feature_support=true ;;
+  no)  core_net_lib_feature_support=false ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-core_net_lib_feature_support]) ;;
+esac],[core_net_lib_feature_support=false])
+AM_CONDITIONAL(CORE_NET_LIB_FEATURE_SUPPORT, test x"$core_net_lib_feature_support" = x"true")
+
 AC_PREFIX_DEFAULT(`pwd`)
 AC_ENABLE_SHARED
 AC_DISABLE_STATIC
