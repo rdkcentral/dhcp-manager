@@ -49,8 +49,3 @@ libCcspDhcpMgrUtils_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsys
         ${top_builddir}/source/DHCPClientUtils/DHCPv6Client/libCcspDhcpMgr_Dhcpv6Client.la \
         -lhal_platform \
         ${top_builddir}/source/DHCPMgrUtils/CustomOptions/libcustomoptions.la
-
-if CORE_NET_LIB_FEATURE_SUPPORT
-libCcspDhcpMgrUtils_la_LIBADD += -lnet
-endif
-
