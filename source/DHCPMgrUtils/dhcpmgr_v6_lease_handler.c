@@ -19,14 +19,12 @@
 
 #include "cosa_dhcpv6_apis.h"
 #include "dhcpv6_interface.h"
-#include "secure_wrapper.h"
+#include <stdlib.h>
+#include <sys/wait.h>
 #include "dhcpmgr_rbus_apis.h"
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
 #include "ifl.h"
-#ifdef CORE_NET_LIB
-#include <libnet.h>
-#endif
 
 #define COSA_DML_WANIface_PREF_SYSEVENT_NAME           "tr_%s_dhcpv6_client_v6pref"
 #define COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME      "tr_%s_dhcpv6_client_pref_iaid"
@@ -51,7 +49,7 @@ typedef struct
 
 static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
 static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
-
+static int exec_shell_cmd(char * command);
 /**
  * @brief processv6LesSysevents This function will set the sysevent values for IA_PD and IA_NA
  *
@@ -59,6 +57,27 @@ static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
  *
  * @return void
  */
+
+static int exec_shell_cmd(char * command)
+{
+    int status = system(command);
+    if (status == -1) {
+        DHCPMGR_LOG_ERROR("%s: %d system() failed to run shell\n",__FUNCTION__,__LINE__);
+        return -1;
+    }
+
+    if (WIFEXITED(status)) {
+        int exit_code = WEXITSTATUS(status);
+
+        if (exit_code != 0) 
+        {
+            return -1;
+        }
+    } else if (WIFSIGNALED(status)) {
+        DHCPMGR_LOG_ERROR("%s %d :Command was terminated by signal %d\n", WTERMSIG(status),__FUNCTION__,__LINE__);
+    }
+    return 0;
+}
 
 static void processv6LesSysevents(IPv6Events* eventMaps, size_t size, const char* IfaceName)
 {
@@ -334,19 +353,11 @@ static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
 
     // Use system calls or platform-specific APIs to configure the network interface
     char command[256];
-#ifdef CORE_NET_LIB
-    snprintf(command, sizeof(command), "-6 %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
-    libnet_status ret=addr_add(command);
-    if (ret != CNL_STATUS_SUCCESS) 
-#else
     snprintf(command, sizeof(command), "ip -6 addr add %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
-    int ret = v_secure_system(command);
-    if (ret != 0) 
-#endif
+    if(exec_shell_cmd(command) != 0)
     {
         DHCPMGR_LOG_ERROR("%s %d: Failed to configure IPv6 address on interface %s. Command: %s\n", __FUNCTION__, __LINE__, interface, command);
     }
-
     return;
 }
 
