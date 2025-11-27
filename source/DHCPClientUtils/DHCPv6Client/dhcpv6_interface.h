@@ -83,7 +83,7 @@ typedef struct _DHCPv6_PLUGIN_MSG
 
     char domainName[BUFLEN_64];  /**< New domain Name,   */
     char ntpserver[BUFLEN_128];  /**< New ntp server(s), dhcp server may provide this */
-    char aftr[AFTR_NAME_LENGTH];      /**< dhcp server may provide this */
+    char aftr[AFTR_NAME_LENGTH]; /**< dhcp server may provide this */
     uint32_t ipv6_TimeOffset; /**< New time offset */
     struct _DHCPv6_PLUGIN_MSG  *next;  /** link to the next lease */
 }DHCPv6_PLUGIN_MSG;
