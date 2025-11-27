@@ -236,6 +236,8 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     strncpy(dest->nameserver1, src->dns.nameserver1, sizeof(dest->nameserver1) - 1);
     strncpy(dest->domainName, src->domainName, sizeof(dest->domainName) - 1);
     snprintf(dest->sitePrefix, sizeof(dest->sitePrefix), "%s/%d", src->ia_pd.Prefix, src->ia_pd.PrefixLength);
+    strncpy(dest->aftr, src->aftr, sizeof(dest->aftr) - 1);
+    dest->aftr[sizeof(dest->aftr) - 1] = '\0';
 
     dest->prefixPltime = src->ia_pd.PreferedLifeTime;
     dest->prefixVltime = src->ia_pd.ValidLifeTime;
