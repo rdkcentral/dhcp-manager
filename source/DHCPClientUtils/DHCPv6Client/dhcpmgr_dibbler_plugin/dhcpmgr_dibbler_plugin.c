@@ -221,6 +221,7 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
     if ((env = getenv(DHCPv6_OPTION_DSLITE)) != NULL)
     {
         strncpy(dhcpv6_data->aftr, env, sizeof(dhcpv6_data->aftr));
+        DHCPMGR_LOG_INFO("[%s-%d] AFTR name is %s\n", __FUNCTION__, __LINE__, dhcpv6_data->aftr);
     }
     else
     {
