@@ -117,7 +117,7 @@ static bool compare_dhcpv6_plugin_msg(const DHCPv6_PLUGIN_MSG *currentLease, con
         memcmp(&currentLease->mapt, &newLease->mapt, sizeof(currentLease->mapt)) != 0 ||
         strcmp(currentLease->domainName, newLease->domainName) != 0 ||
         strcmp(currentLease->ntpserver, newLease->ntpserver) != 0 ||
-        strcmp(currentLease->aftr, newLease->aftr) != 0) 
+        strcmp(currentLease->endpointName, newLease->endpointName) != 0)
     {
         return false; // Structures are not equal
     }
