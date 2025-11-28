@@ -74,7 +74,7 @@ static int exec_shell_cmd(char * command)
             return -1;
         }
     } else if (WIFSIGNALED(status)) {
-        DHCPMGR_LOG_ERROR("%s %d :Command was terminated by signal %d\n", WTERMSIG(status),__FUNCTION__,__LINE__);
+        DHCPMGR_LOG_ERROR("%s %d :Command was terminated by signal %d\n",__FUNCTION__,__LINE__,WTERMSIG(status));
     }
     return 0;
 }
