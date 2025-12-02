@@ -221,7 +221,10 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
             DHCPMGR_LOG_INFO("%s %d: NewLease nameserver2 %s  \n", __FUNCTION__, __LINE__, newLease->dns.nameserver1);
             DHCPMGR_LOG_INFO("%s %d: NewLease PreferedLifeTime %d  \n", __FUNCTION__, __LINE__, newLease->ia_pd.PreferedLifeTime);
             DHCPMGR_LOG_INFO("%s %d: NewLease ValidLifeTime %d  \n", __FUNCTION__, __LINE__, newLease->ia_pd.ValidLifeTime);
-            configureNetworkInterface(pDhcp6c);
+            if(newLease->ia_na.assigned == TRUE)
+            {
+                configureNetworkInterface(pDhcp6c);
+            }
             ConfigureIpv6Sysevents(pDhcp6c);
             if(newLease->vendor.Assigned == TRUE)
             {
