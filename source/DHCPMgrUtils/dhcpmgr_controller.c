@@ -26,6 +26,7 @@
 #include "util.h"
 #include "ansc_platform.h"
 #include "cosa_apis.h"
+#include "cosa_apis_util.h"
 #include "cosa_dml_api_common.h"
 #include "cosa_dhcpv4_apis.h"
 #include "cosa_dhcpv4_internal.h"
@@ -39,7 +40,6 @@
 #include "dhcp_lease_monitor_thrd.h"
 #include "dhcpmgr_rbus_apis.h"
 #include "dhcp_client_common_utils.h"
-#include "cosa_apis.h"
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
 
@@ -420,8 +420,9 @@ static void* DhcpMgr_MainController( void *args )
 
     DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started \n", __FUNCTION__, __LINE__);
     BOOL bRunning = TRUE;
-    struct timeval tv;
-    int n = 0;
+ //   struct timeval tv;
+ //   int n = 0;
+  
     const char *filename = "/tmp/dhcpmanager_restarted";
     int retStatus = 0;
 
@@ -451,15 +452,19 @@ static void* DhcpMgr_MainController( void *args )
     while (bRunning)
     {
         /* Wait up to 250 milliseconds */
-        tv.tv_sec = 0;
+/*        tv.tv_sec = 0;
         tv.tv_usec = 250000;
         //TODO : add a Signaling mechanism instead of sleep.
         n = select(0, NULL, NULL, NULL, &tv);
         if (n < 0)
         {
-            /* interrupted by signal or something, continue */
+            // interrupted by signal or something, continue 
             continue;
-        }
+        } */
+
+        pthread_mutex_lock(&g_dhcpSetMtx.mutex);
+        pthread_cond_wait(&g_dhcpSetMtx.mtx_cv, &g_dhcpSetMtx.mutex);
+        pthread_mutex_unlock(&g_dhcpSetMtx.mutex);
 
         //DHCPv4 client entries
         //TODO : implement a internal DHCP structures and APIs, replace COSA APIs

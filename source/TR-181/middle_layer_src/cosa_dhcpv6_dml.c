@@ -993,6 +993,7 @@ Client3_SetParamBoolValue
         DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
         pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
         pDhcpc->Cfg.bEnabled = bValue;
+        pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
         pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
 
         return TRUE;
@@ -1029,6 +1030,7 @@ Client3_SetParamBoolValue
             DHCPMGR_LOG_INFO("%s %d Renew triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
             pDhcpc->Cfg.Renew = TRUE;
+            pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
             return  TRUE;
         }
@@ -1045,6 +1047,7 @@ Client3_SetParamBoolValue
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
             pDhcpc->Cfg.Restart = TRUE;
+            pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
             return  TRUE;
         }

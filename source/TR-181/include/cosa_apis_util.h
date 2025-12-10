@@ -17,6 +17,7 @@
  * limitations under the License.
 */
 
+#include <pthread.h>
 #define LM_GEN_STR_SIZE    64
 #define LM_MAX_IP_AMOUNT 24
 #define LM_MAX_COMMENT_SIZE 64
@@ -172,3 +173,11 @@ int g_GetParamValueString(ANSC_HANDLE g_pDslhDmlAgent, char* prefixFullName, cha
 INT PsmWriteParameter( char *pParamName, char *pParamVal );
 
 INT PsmReadParameter( char *pParamName, char *pReturnVal, int returnValLength );
+
+typedef struct Pthread_Mutex_dhcp
+{
+    pthread_mutex_t mutex;
+    pthread_cond_t  mtx_cv;
+}DHCP_Set_mtx;
+
+extern DHCP_Set_mtx g_dhcpSetMtx;
