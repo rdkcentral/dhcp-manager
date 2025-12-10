@@ -420,6 +420,7 @@ static void* DhcpMgr_MainController( void *args )
 
     DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started \n", __FUNCTION__, __LINE__);
     BOOL bRunning = TRUE;
+    struct timespec ts;
  //   struct timeval tv;
  //   int n = 0;
   
@@ -461,9 +462,15 @@ static void* DhcpMgr_MainController( void *args )
             // interrupted by signal or something, continue 
             continue;
         } */
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_nsec += 250000000; // 250 milliseconds
+        if (ts.tv_nsec >= 1000000000) {
+            ts.tv_sec += ts.tv_nsec / 1000000000;
+            ts.tv_nsec = ts.tv_nsec % 1000000000;
+        }
 
         pthread_mutex_lock(&g_dhcpSetMtx.mutex);
-        pthread_cond_wait(&g_dhcpSetMtx.mtx_cv, &g_dhcpSetMtx.mutex);
+        pthread_cond_timedwait(&g_dhcpSetMtx.mtx_cv, &g_dhcpSetMtx.mutex, &ts);
         pthread_mutex_unlock(&g_dhcpSetMtx.mutex);
 
         //DHCPv4 client entries
