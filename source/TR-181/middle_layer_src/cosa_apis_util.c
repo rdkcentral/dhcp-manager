@@ -50,6 +50,8 @@ typedef int (*CALLBACK_FUNC_NAME)(void *);
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
 
+DHCP_Set_mtx g_dhcpSetMtx = {PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER};
+
 #ifdef FEATURE_RDKB_WAN_MANAGER
 static ANSC_STATUS RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal )
 {
