@@ -471,7 +471,6 @@ static void* DhcpMgr_MainController( void *args )
 
         pthread_mutex_lock(&g_dhcpSetMtx.mutex);
         pthread_cond_timedwait(&g_dhcpSetMtx.mtx_cv, &g_dhcpSetMtx.mutex, &ts);
-        pthread_mutex_unlock(&g_dhcpSetMtx.mutex);
 
         //DHCPv4 client entries
         //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
@@ -686,6 +685,7 @@ static void* DhcpMgr_MainController( void *args )
             pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
 
         }
+        pthread_mutex_unlock(&g_dhcpSetMtx.mutex);
     }
     return NULL;
 

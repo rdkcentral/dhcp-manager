@@ -1131,8 +1131,10 @@ Client_SetParamBoolValue
         DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
         pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
         /* save update to backup */
+        pthread_mutex_lock(&g_dhcpSetMtx.mutex); // Global lock for DHCP set operations
         pDhcpc->Cfg.bEnabled = bValue;
         pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
+        pthread_mutex_unlock(&g_dhcpSetMtx.mutex); // Global unlock for DHCP set operations
         pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
 
         return  TRUE;
@@ -1147,8 +1149,10 @@ Client_SetParamBoolValue
             {
                 DHCPMGR_LOG_INFO("%s %d Renew triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
                 pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+                pthread_mutex_lock(&g_dhcpSetMtx.mutex); // Global lock for DHCP set operations
                 pDhcpc->Cfg.Renew = TRUE;
                 pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
+                pthread_mutex_unlock(&g_dhcpSetMtx.mutex); // Global unlock for DHCP set operations
                 pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
             }
             else
@@ -1164,8 +1168,10 @@ Client_SetParamBoolValue
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+            pthread_mutex_lock(&g_dhcpSetMtx.mutex); // Global lock for DHCP set operations
             pDhcpc->Cfg.Restart = TRUE;
             pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
+            pthread_mutex_unlock(&g_dhcpSetMtx.mutex); // Global unlock for DHCP set operations
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
         }
         else
