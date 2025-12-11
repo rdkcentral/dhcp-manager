@@ -471,7 +471,7 @@ static void* DhcpMgr_MainController( void *args )
 
         pthread_mutex_lock(&g_dhcpSetMtx.mutex);
         pthread_cond_timedwait(&g_dhcpSetMtx.mtx_cv, &g_dhcpSetMtx.mutex, &ts);
-
+        DHCPMGR_LOG_DEBUG("%s %d: Woke up from condition wait\n", __FUNCTION__, __LINE__);
         //DHCPv4 client entries
         //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
         PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;

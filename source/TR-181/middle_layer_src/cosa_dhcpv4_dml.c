@@ -1167,12 +1167,19 @@ Client_SetParamBoolValue
         if (pDhcpc->Cfg.bEnabled)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            DHCPMGR_LOG_INFO("%s %d Lock Dhcpc->mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+            DHCPMGR_LOG_INFO("%s %d Lock g_dhcpSetMtx.mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_lock(&g_dhcpSetMtx.mutex); // Global lock for DHCP set operations
             pDhcpc->Cfg.Restart = TRUE;
-            pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
+            DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s Restart set to TRUE \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            DHCPMGR_LOG_INFO("%s %d Before calling signal..\n", __FUNCTION__, __LINE__);
+            pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable 
+            DHCPMGR_LOG_INFO("%s %d After calling signal..\n", __FUNCTION__, __LINE__);
             pthread_mutex_unlock(&g_dhcpSetMtx.mutex); // Global unlock for DHCP set operations
+            DHCPMGR_LOG_INFO("%s %d Unlock Dhcpc->mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+            DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s Restart set to FALSE \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
         }
         else
         {

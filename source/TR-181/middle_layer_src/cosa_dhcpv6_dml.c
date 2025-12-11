@@ -991,11 +991,18 @@ Client3_SetParamBoolValue
     {
         /* save update to backup */
         DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
+        DHCPMGR_LOG_INFO("%s %d Lock pDhcpc->mutex \n", __FUNCTION__, __LINE__);
         pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+        DHCPMGR_LOG_INFO("%s %d Lock g_dhcpSetMtx->mutex \n", __FUNCTION__, __LINE__);
         pthread_mutex_lock(&g_dhcpSetMtx.mutex); // Global lock for DHCP set operations
         pDhcpc->Cfg.bEnabled = bValue;
+        DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s Enable set to %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"TRUE":"FALSE" );
+         DHCPMGR_LOG_INFO("%s %d Before calling signal..\n", __FUNCTION__, __LINE__);
         pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
+        DHCPMGR_LOG_INFO("%s %d After calling signal..\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_INFO("%s %d Unlock g_dhcpSetMtx->mutex \n", __FUNCTION__, __LINE__);
         pthread_mutex_unlock(&g_dhcpSetMtx.mutex); // Global unlock for DHCP set operations
+        DHCPMGR_LOG_INFO("%s %d Unlock pDhcpc->mutex \n", __FUNCTION__, __LINE__);
         pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
 
         return TRUE;
@@ -1030,12 +1037,20 @@ Client3_SetParamBoolValue
         if (pDhcpc->Cfg.bEnabled)
         {
             DHCPMGR_LOG_INFO("%s %d Renew triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            DHCPMGR_LOG_INFO("%s %d Lock g_dhcpSetMtx->mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+            DHCPMGR_LOG_INFO("%s %d Lock g_dhcpSetMtx.mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_lock(&g_dhcpSetMtx.mutex); // Global lock for DHCP set operations
             pDhcpc->Cfg.Renew = TRUE;
+            DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s Renew set to TRUE \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            DHCPMGR_LOG_INFO("%s %d Before calling signal..\n", __FUNCTION__, __LINE__);
             pthread_cond_signal(&g_dhcpSetMtx.mtx_cv); // Signal condition variable
+            DHCPMGR_LOG_INFO("%s %d After calling signal..\n", __FUNCTION__, __LINE__);
+            DHCPMGR_LOG_INFO("%s %d Unlock g_dhcpSetMtx->mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_unlock(&g_dhcpSetMtx.mutex); // Global unlock for DHCP set operations
+            DHCPMGR_LOG_INFO("%s %d Unlock pDhcpc->mutex \n", __FUNCTION__, __LINE__);
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+
             return  TRUE;
         }
         else
