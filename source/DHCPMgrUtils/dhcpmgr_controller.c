@@ -42,6 +42,10 @@
 #include "cosa_apis.h"
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
+#include <errno.h>
+#include <mqueue.h>
+#include <string.h>
+#include <time.h>
 
 
 /* ---- Global Constants -------------------------- */
@@ -412,6 +416,72 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
     return TRUE;
 }
 
+typedef struct {
+    unsigned long instance;
+    int enabled;
+    int dhcpv4;
+    int dhcpv6;
+} DhcpMgrCtlMsg;
+
+static void DhcpMgr_SetDhcpv6ClientEnabled(ULONG instanceNum, BOOL enabled)
+{
+    PSINGLE_LINK_ENTRY pSListEntry = NULL;
+    ULONG ulIndex = 0;
+    ULONG instance = 0;
+    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pDhcp6cxtLink = NULL;
+    PCOSA_DML_DHCPCV6_FULL pDhcp6c = NULL;
+    ULONG clientCount = CosaDmlDhcpv6cGetNumberOfEntries(NULL);
+
+    for (ulIndex = 0; ulIndex < clientCount; ulIndex++)
+    {
+        pSListEntry = (PSINGLE_LINK_ENTRY)Client3_GetEntry(NULL, ulIndex, &instance);
+        if (pSListEntry)
+        {
+            pDhcp6cxtLink = ACCESS_COSA_CONTEXT_DHCPCV6_LINK_OBJECT(pSListEntry);
+            pDhcp6c = (PCOSA_DML_DHCPCV6_FULL)pDhcp6cxtLink->hContext;
+            if (pDhcp6c && pDhcp6c->Cfg.InstanceNumber == instanceNum)
+            {
+                pthread_mutex_lock(&pDhcp6c->mutex);
+                pDhcp6c->Cfg.bEnabled = enabled ? TRUE : FALSE;
+                pthread_mutex_unlock(&pDhcp6c->mutex);
+                DHCPMGR_LOG_INFO("%s:%d Set DHCPv6 client %s instance %lu enabled=%d\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, instanceNum, enabled);
+                return;
+            }
+        }
+    }
+
+    DHCPMGR_LOG_WARNING("%s:%d Instance %lu not found to set enabled=%d\n", __FUNCTION__, __LINE__, instanceNum, enabled);
+}
+static void DhcpMgr_SetDhcpv4ClientEnabled(ULONG instanceNum, BOOL enabled)
+{
+    PSINGLE_LINK_ENTRY pSListEntry = NULL;
+    ULONG ulIndex = 0;
+    ULONG instance = 0;
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink = NULL;
+    PCOSA_DML_DHCPC_FULL pDhcpc = NULL;
+    ULONG clientCount = CosaDmlDhcpcGetNumberOfEntries(NULL);
+
+    for (ulIndex = 0; ulIndex < clientCount; ulIndex++)
+    {
+        pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL, ulIndex, &instance);
+        if (pSListEntry)
+        {
+            pDhcpCxtLink = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
+            pDhcpc = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
+            if (pDhcpc && pDhcpc->Cfg.InstanceNumber == instanceNum)
+            {
+                pthread_mutex_lock(&pDhcpc->mutex);
+                pDhcpc->Cfg.bEnabled = enabled ? TRUE : FALSE;
+                pthread_mutex_unlock(&pDhcpc->mutex);
+                DHCPMGR_LOG_INFO("%s:%d Set DHCPv4 client %s instance %lu enabled=%d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, instanceNum, enabled);
+                return;
+            }
+        }
+    }
+
+    DHCPMGR_LOG_WARNING("%s:%d Instance %lu not found to set enabled=%d\n", __FUNCTION__, __LINE__, instanceNum, enabled);
+}
+
 static void* DhcpMgr_MainController( void *args )
 {
     (void) args;
@@ -420,10 +490,26 @@ static void* DhcpMgr_MainController( void *args )
 
     DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started \n", __FUNCTION__, __LINE__);
     BOOL bRunning = TRUE;
-    struct timeval tv;
-    int n = 0;
     const char *filename = "/tmp/dhcpmanager_restarted";
     int retStatus = 0;
+
+    /* Controller message queue */
+    mqd_t ctl_mq = (mqd_t)-1;
+    struct mq_attr ctl_attr;
+    ctl_attr.mq_flags = 0;
+    ctl_attr.mq_maxmsg = 10;
+    ctl_attr.mq_msgsize = sizeof(DhcpMgrCtlMsg);
+    ctl_attr.mq_curmsgs = 0;
+
+    ctl_mq = mq_open("/DHCPMGR_ctlr", O_CREAT | O_RDONLY, 0644, &ctl_attr);
+    if (ctl_mq == (mqd_t)-1)
+    {
+        DHCPMGR_LOG_WARNING("%s %d: Could not open controller mq /DHCPMGR_ctlr (%s)\n", __FUNCTION__, __LINE__, strerror(errno));
+    }
+    else
+    {
+        DHCPMGR_LOG_INFO("%s %d: Controller mq /DHCPMGR_ctlr opened\n", __FUNCTION__, __LINE__);
+    }
 
     if(access(filename, F_OK) != -1)
     {
@@ -450,17 +536,59 @@ static void* DhcpMgr_MainController( void *args )
 
     while (bRunning)
     {
-        /* Wait up to 250 milliseconds */
-        tv.tv_sec = 0;
-        tv.tv_usec = 250000;
-        //TODO : add a Signaling mechanism instead of sleep.
-        n = select(0, NULL, NULL, NULL, &tv);
-        if (n < 0)
-        {
-            /* interrupted by signal or something, continue */
-            continue;
-        }
+        /* Wait for controller messages with 250ms timeout */
+        DhcpMgrCtlMsg msg = {0};
+        ssize_t bytes_read = 0;
 
+        if (ctl_mq != (mqd_t)-1)
+        {
+            struct timespec ts;
+            if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+            {
+                DHCPMGR_LOG_WARNING("%s %d: clock_gettime failed (%s), sleeping 250ms and retrying\n", __FUNCTION__, __LINE__, strerror(errno));
+                struct timespec sleep_ts = {0, 250000000}; /* 250ms */
+                nanosleep(&sleep_ts, NULL);
+                continue;
+            }
+            else
+            {
+                /* add 250 ms */
+                ts.tv_nsec += 250000000; /* 250ms */
+                if (ts.tv_nsec >= 1000000000)
+                {
+                    ts.tv_sec += 1;
+                    ts.tv_nsec -= 1000000000;
+                }
+
+                bytes_read = mq_timedreceive(ctl_mq, (char*)&msg, sizeof(msg), NULL, &ts);
+                if (bytes_read >= 0)
+                {
+                    DHCPMGR_LOG_INFO("%s %d: Received ctl msg instance=%lu enabled=%d\n dhcpv4=%d dhcpv6=%d", __FUNCTION__, __LINE__, msg.instance, msg.enabled, msg.dhcpv4, msg.dhcpv6);
+                    /* set the enabled flag for the instance (true/false) */
+                    if (msg.dhcpv4)
+                        DhcpMgr_SetDhcpv4ClientEnabled(msg.instance, msg.enabled ? TRUE : FALSE);
+                    else if (msg.dhcpv6)
+                        DhcpMgr_SetDhcpv6ClientEnabled(msg.instance, msg.enabled ? TRUE : FALSE);
+                }
+                else
+                {
+                    if (errno == ETIMEDOUT)
+                    {
+                        /* no message within timeout, continue normal processing */
+                    }
+                    else if (errno == EINTR)
+                    {
+                        /* interrupted by signal, continue loop */
+                        continue;
+                    }
+                    else
+                    {
+                        DHCPMGR_LOG_WARNING("%s %d: mq_timedreceive failed (%s)\n", __FUNCTION__, __LINE__, strerror(errno));
+                    }
+                }
+            }
+        }
+        /********************************************* DHCPv4 Handling ********************************************* */
         //DHCPv4 client entries
         //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
         PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
@@ -675,6 +803,12 @@ static void* DhcpMgr_MainController( void *args )
 
         }
     }
+
+    if (ctl_mq != (mqd_t)-1)
+    {
+        mq_close(ctl_mq);
+    }
+
     return NULL;
 
 }

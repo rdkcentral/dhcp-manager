@@ -82,6 +82,9 @@
 #include "cosa_apis_util.h"
 #include "cosa_webconfig_api.h"
 #include "util.h"
+#include <errno.h>
+#include <mqueue.h>
+#include <string.h>
 
 #ifdef DHCPV4_SERVER_SUPPORT
 #include "dhcpv4_server_interface.h"
@@ -1129,11 +1132,39 @@ Client_SetParamBoolValue
     if (strcmp(ParamName, "Enable") == 0)
     {
         DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
-        pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-        /* save update to backup */
-        pDhcpc->Cfg.bEnabled = bValue;
+        /* Notify controller via POSIX message queue */
+        {
+            mqd_t mq = mq_open("/DHCPMGR_ctlr", O_WRONLY | O_NONBLOCK);
+            if (mq == (mqd_t)-1)
+            {
+                DHCPMGR_LOG_WARNING("%s %d: Could not open controller mq /DHCPMGR_ctlr for send (%s)\n", __FUNCTION__, __LINE__, strerror(errno));
+            }
+            else
+            {
+                struct {
+                    unsigned long instance;
+                    int enabled;
+                    int dhcpv6;  // 0 for dhcpv4, 1 for dhcpv6
+                    int dhcpv4;  // 1 for dhcpv4, 0 for dhcpv6
+                } msg;
 
-        pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+                msg.instance = pCxtLink->InstanceNumber;
+                msg.enabled = bValue ? 1 : 0;
+                msg.dhcpv6 = 0;
+                msg.dhcpv4 = 1;
+
+                if (mq_send(mq, (const char *)&msg, sizeof(msg), 0) == -1)
+                {
+                    DHCPMGR_LOG_WARNING("%s %d: mq_send failed (%s)\n", __FUNCTION__, __LINE__, strerror(errno));
+                }
+                else
+                {
+                    DHCPMGR_LOG_INFO("%s %d: Sent ctl msg instance=%lu enabled=%d\n", __FUNCTION__, __LINE__, msg.instance, msg.enabled);
+                }
+
+                mq_close(mq);
+            }
+        }
 
         return  TRUE;
     }
