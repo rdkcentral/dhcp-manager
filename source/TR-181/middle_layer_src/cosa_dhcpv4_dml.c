@@ -1144,8 +1144,8 @@ Client_SetParamBoolValue
                 struct {
                     unsigned long instance;
                     int enabled;
-                    int dhcpv6;  // 0 for dhcpv4, 1 for dhcpv6
-                    int dhcpv4;  // 1 for dhcpv4, 0 for dhcpv6
+                    int dhcpv4;  // 0 for dhcpv4, 1 for dhcpv6
+                    int dhcpv6;  // 1 for dhcpv4, 0 for dhcpv6
                 } msg;
 
                 msg.instance = pCxtLink->InstanceNumber;

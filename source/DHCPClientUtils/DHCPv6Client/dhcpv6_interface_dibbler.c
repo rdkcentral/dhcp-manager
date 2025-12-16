@@ -439,7 +439,7 @@ pid_t start_dhcpv6_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     {
         DHCPMGR_LOG_WARNING("%s %d: unable to collect pid for %d.\n", __FUNCTION__, __LINE__, ret);
     }
-
+    sleep(1); // wait for dibbler to get stable
     DHCPMGR_LOG_INFO("%s %d: Started dibbler-client. returning pid..\n", __FUNCTION__, __LINE__);
     return get_process_pid (DIBBLER_CLIENT, cmd_args, true);
 
@@ -508,5 +508,6 @@ int send_dhcpv6_release(pid_t processID) {
 
     //TODO: start_exe2 will add a sigchild handler, Do we still require this call ?
     int ret = collect_waiting_process(processID, DIBBLER_CLIENT_TERMINATE_TIMEOUT);
+    sleep(1); // wait for dibbler to get stable
     return ret;
 }
