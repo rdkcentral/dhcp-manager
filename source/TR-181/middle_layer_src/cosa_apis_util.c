@@ -60,23 +60,23 @@ int create_message_queue(const char *alias_name, char mq_name_out[], mqd_t *mq_d
     
     /* Create queue name: /mq_if_<alias_name> */
     snprintf(mq_name_out, MQ_NAME_LEN, "/mq_if_%s", alias_name);
-    printf("Creating/opening message queue with name: %s\n", mq_name_out);
+    DHCPMGR_LOG_INFO("%s %d Creating/opening message queue with name: %s\n", __FUNCTION__, __LINE__, mq_name_out);
     
     /* Try to open existing queue first */
     mq_name_out[MQ_NAME_LEN - 1] = '\0';
 
     /* Log the name we're passing to mq_open for diagnostics */
-    printf("Attempting mq_open for name: %s\n", mq_name_out);
+    DHCPMGR_LOG_INFO("%s %d Attempting mq_open for name: %s\n", __FUNCTION__, __LINE__, mq_name_out);
 
     *mq_desc = mq_open(mq_name_out, O_RDWR | O_NONBLOCK);
     
     if (*mq_desc != (mqd_t)-1) {
-        printf("Message queue %s already exists, opened successfully\n", mq_name_out);
+        DHCPMGR_LOG_ERROR("%s %d Message queue %s already exists, opened successfully\n", __FUNCTION__, __LINE__, mq_name_out);
         return 0;
     }
     
     /* Queue doesn't exist, create it */
-    printf("Creating new message queue %s\n", mq_name_out);
+    DHCPMGR_LOG_INFO("%s %d Creating new message queue %s\n", __FUNCTION__, __LINE__, mq_name_out);
     
     /* Set queue attributes */
     attr.mq_flags = 0;
@@ -84,15 +84,15 @@ int create_message_queue(const char *alias_name, char mq_name_out[], mqd_t *mq_d
     attr.mq_msgsize = MQ_MSG_SIZE;
     attr.mq_curmsgs = 0;
 
-    printf("Creating mq with attrs: maxmsg=%ld msgsize=%ld\n", (long)attr.mq_maxmsg, (long)attr.mq_msgsize);
+    DHCPMGR_LOG_INFO("%s %d Creating mq with attrs: maxmsg=%ld msgsize=%ld\n", __FUNCTION__, __LINE__, (long)attr.mq_maxmsg, (long)attr.mq_msgsize);
     *mq_desc = mq_open(mq_name_out, O_CREAT | O_RDWR | O_NONBLOCK, 0644, &attr);
     
     if (*mq_desc == (mqd_t)-1) {
-        perror("mq_open failed");
+        DHCPMGR_LOG_ERROR("%s %d mq_open failed", __FUNCTION__, __LINE__);
         return -1;
     }
     
-    printf("Message queue %s created successfully\n", mq_name_out);
+    DHCPMGR_LOG_INFO("%s %d Message queue %s created successfully", __FUNCTION__, __LINE__, mq_name_out);
     return 0;
 }
 
@@ -100,35 +100,36 @@ int create_message_queue(const char *alias_name, char mq_name_out[], mqd_t *mq_d
 /* Delete (close) a message queue */
 int delete_message_queue(mqd_t mq_desc) {
     if (mq_close(mq_desc) == -1) {
-        perror("mq_close failed");
+        DHCPMGR_LOG_ERROR("%s %d mq_close failed", __FUNCTION__, __LINE__);
         return -1;
     }
     
-    printf("Message queue closed successfully\n");
+    DHCPMGR_LOG_INFO("%s %d Message queue closed successfully", __FUNCTION__, __LINE__  );
     return 0;
 }
 
 /* Unlink a message queue */
 int unlink_message_queue(const char *mq_name) {
     if (mq_unlink(mq_name) == -1) {
-        perror("mq_unlink failed");
+        DHCPMGR_LOG_ERROR("%s %d mq_unlink failed", __FUNCTION__, __LINE__);
         return -1;
     }
     
-    printf("Message queue %s unlinked successfully\n", mq_name);
+    DHCPMGR_LOG_INFO("%s %d Message queue %s unlinked successfully", __FUNCTION__, __LINE__, mq_name);
     return 0;
 }
 
 
 /* Mark thread as stopped in the global array */
 int mark_thread_stopped(const char *alias_name) {
+    DHCPMGR_LOG_INFO("%s %d: Marking thread for %s as stopped\n", __FUNCTION__, __LINE__, alias_name);
     pthread_mutex_lock(&global_mutex);
     
     for (int i = 0; i < interface_count; i++) {
         if (strcmp(interfaces[i].if_name, alias_name) == 0) {
             interfaces[i].thread_running = false;
             pthread_mutex_unlock(&global_mutex);
-            printf("Marked thread for %s as stopped\n", alias_name);
+            DHCPMGR_LOG_INFO("%s %d: Marked thread for %s as stopped\n", __FUNCTION__, __LINE__, alias_name);
             return 0;
         }
     }
@@ -138,6 +139,7 @@ int mark_thread_stopped(const char *alias_name) {
 }
 
 int find_or_create_interface(const char *alias_name, interface_info_t *info_out) {
+    DHCPMGR_LOG_INFO("%s %d: Finding or creating interface entry for %s\n", __FUNCTION__, __LINE__, alias_name);
     pthread_mutex_lock(&global_mutex);
     
     /* Check if interface already exists */
@@ -151,7 +153,7 @@ int find_or_create_interface(const char *alias_name, interface_info_t *info_out)
     
     /* Create new interface entry */
     if (interface_count >= MAX_INTERFACES) {
-        fprintf(stderr, "Maximum number of interfaces reached\n");
+        DHCPMGR_LOG_INFO("%s %d Maximum number of interfaces reached\n", __FUNCTION__, __LINE__);
         pthread_mutex_unlock(&global_mutex);
         return -1;
     }
@@ -172,20 +174,22 @@ int find_or_create_interface(const char *alias_name, interface_info_t *info_out)
 
 /* Create a thread for the interface */
 int create_interface_thread(char *info_ifName) {
+    DHCPMGR_LOG_INFO("%s %d: Creating thread for interface %s\n", __FUNCTION__, __LINE__, info_ifName);
     pthread_t thread_id;
     if (pthread_create(&thread_id, NULL, DhcpMgr_MainController, info_ifName) != 0) {
-        perror("pthread_create failed");
+        DHCPMGR_LOG_ERROR("%s %d pthread_create failed for interface %s\n", __FUNCTION__, __LINE__, info_ifName);
         return -1;
     }
     
     pthread_detach(thread_id);
-    printf("Thread created for interface %s\n", info_ifName);
+    DHCPMGR_LOG_INFO("%s %d Thread created for interface %s\n", __FUNCTION__, __LINE__, info_ifName);
 //    pthread_join(thread_id, NULL);
     return 0;
 }
 
 /* Update interface info in the global array */
 int update_interface_info(const char *alias_name, interface_info_t *info) {
+    DHCPMGR_LOG_INFO("%s %d: Updating interface info for %s\n", __FUNCTION__, __LINE__, alias_name);
     pthread_mutex_lock(&global_mutex);
     
     for (int i = 0; i < interface_count; i++) {

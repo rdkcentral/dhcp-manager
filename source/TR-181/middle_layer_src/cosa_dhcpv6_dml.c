@@ -1058,8 +1058,10 @@ Client3_SetParamBoolValue
         }
     }
 
+    DHCPMGR_LOG_INFO("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
     if(ret_mq_send)
     {
+        DHCPMGR_LOG_INFO("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
         if(pDhcpc->Cfg.Interface == NULL || strlen(pDhcpc->Cfg.Interface) == 0)
         {
             DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
