@@ -121,13 +121,17 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
 
                     // Send the lease to the Controller via message queue
                     char mq_name[MAX_STR_LEN];
-                    snprintf(mq_name, sizeof(mq_name), "mq_if_%s", plugin_msg.ifname);
+                    snprintf(mq_name, sizeof(mq_name), "/mq_if_%s", plugin_msg.ifname);
                     DHCPMGR_LOG_INFO("[%s-%d] Attempting to open message queue %s\n", __FUNCTION__, __LINE__, mq_name);
+                    
                     // Open the message queue
                     mqd_t mq_desc = mq_open(mq_name, O_WRONLY | O_NONBLOCK);
-                    if (mq_desc == (mqd_t)-1) {
+                    if (mq_desc == (mqd_t)-1) 
+                    {
                         DHCPMGR_LOG_ERROR("[%s-%d] Failed to open message queue %s\n", __FUNCTION__, __LINE__, mq_name);
-                    } else {
+                    } 
+                    else 
+                    {
                         interface_info_t info;
                         memset(&info, 0, sizeof(interface_info_t));
                         strncpy(info.if_name, plugin_msg.ifname, MAX_STR_LEN - 1);
@@ -136,12 +140,37 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
                         info.mq_desc = mq_desc;
                         info.msg.dhcpType = DML_DHCPV4;
                         strcpy(info.msg.ParamName, "ProcessLease");
-
                         
-                        if (mq_send(info.mq_desc,(char*) &info, sizeof(info), 0) == -1) {
+                        if (mq_send(info.mq_desc,(char*) &info, sizeof(info), 0) == -1) 
+                        {
                             DHCPMGR_LOG_ERROR("[%s-%d] Failed to send message to queue %s\n", __FUNCTION__, __LINE__, mq_name);
-                        } else {
+                        } 
+                        else 
+                        {
                             DHCPMGR_LOG_INFO("[%s-%d] Successfully sent DHCPv4 lease to controller queue %s\n", __FUNCTION__, __LINE__, mq_name);
+                        }
+
+                        if (find_or_create_interface(plugin_msg.ifname, &info) == 0) 
+                        {
+                            if (!info.thread_running) 
+                            {
+                                if (create_interface_thread(info.mq_name) == 0) 
+                                {
+                                    DHCPMGR_LOG_INFO("%s %d: Controller thread started for %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
+                                    info.thread_running = true;
+                                        /* Update the global interface info */
+                                    update_interface_info(plugin_msg.ifname, &info);
+                                } 
+                                else 
+                                {
+                                    DHCPMGR_LOG_ERROR("%s %d: Failed to create controller thread for %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
+                                    return FALSE;
+                                }
+                            } 
+                            else 
+                            {
+                                DHCPMGR_LOG_INFO("%s %d: Thread already running for %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
+                            }
                         }
                         mq_close(mq_desc);
                     }
@@ -160,24 +189,15 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
                     char mq_name[MAX_STR_LEN];
                     snprintf(mq_name, sizeof(mq_name), "/mq_if_%s", plugin_msg.ifname);
 
-                    //testcode
-                    if(mq_name[0] == '/')
-                    {
-                        DHCPMGR_LOG_INFO("[%s-%d] mq_name already starts with '/'\n", __FUNCTION__, __LINE__);  
-                    }
-                    else
-                    {
-                        // Ensure mq_name starts with '/'
-                        char temp[MAX_STR_LEN];
-                        snprintf(temp, sizeof(temp), "/%s", mq_name);
-                        strncpy(mq_name, temp, sizeof(mq_name));
-                    }
                     DHCPMGR_LOG_INFO("[%s-%d] Attempting to open message queue %s\n", __FUNCTION__, __LINE__, mq_name);
                     // Open the message queue
                     mqd_t mq_desc = mq_open(mq_name, O_WRONLY | O_NONBLOCK);
-                    if (mq_desc == (mqd_t)-1) {
+                    if (mq_desc == (mqd_t)-1) 
+                    {
                         DHCPMGR_LOG_ERROR("[%s-%d] Failed to open message queue %s\n", __FUNCTION__, __LINE__, mq_name);
-                    } else {
+                    } 
+                    else 
+                    {
                         interface_info_t info;
                         memset(&info, 0, sizeof(interface_info_t));
                         strncpy(info.if_name, plugin_msg.ifname, MAX_STR_LEN - 1);
@@ -186,10 +206,35 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
                         info.mq_desc = mq_desc;
                         info.msg.dhcpType = DML_DHCPV6;
                         strcpy(info.msg.ParamName, "ProcessLease");
-                        if (mq_send(info.mq_desc,(char*) &info, sizeof(info), 0) == -1) {
+                        if (mq_send(info.mq_desc,(char*) &info, sizeof(info), 0) == -1) 
+                        {
                             DHCPMGR_LOG_ERROR("[%s-%d] Failed to send message to queue %s\n", __FUNCTION__, __LINE__, mq_name);
-                        } else {
+                        } 
+                        else 
+                        {
                             DHCPMGR_LOG_INFO("[%s-%d] Successfully sent DHCPv6 lease to controller queue %s\n", __FUNCTION__, __LINE__, mq_name);
+                        }
+                        if (find_or_create_interface(plugin_msg.ifname, &info) == 0) 
+                        {
+                            if (!info.thread_running) 
+                            {
+                                if (create_interface_thread(info.mq_name) == 0) 
+                                {
+                                    DHCPMGR_LOG_INFO("%s %d: Controller thread started for %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
+                                    info.thread_running = true;
+                                        /* Update the global interface info */
+                                    update_interface_info(plugin_msg.ifname, &info);
+                                } 
+                                else 
+                                {
+                                    DHCPMGR_LOG_ERROR("%s %d: Failed to create controller thread for %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
+                                    return FALSE;
+                                }
+                            } 
+                            else 
+                            {
+                                DHCPMGR_LOG_INFO("%s %d: Thread already running for %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
+                            }
                         }
                         mq_close(mq_desc);
                     }

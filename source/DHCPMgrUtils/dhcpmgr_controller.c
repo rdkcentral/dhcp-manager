@@ -767,12 +767,12 @@ void* DhcpMgr_MainController( void *args )
         
     /* Set timeout for 10s */
         clock_gettime(CLOCK_REALTIME, &timeout);
-        timeout.tv_sec += 10;
+        timeout.tv_sec += 60;
 
         memset(&info, 0, sizeof(interface_info_t));
         DHCPMGR_LOG_INFO("%s %d: Waiting to receive message from queue %s\n", __FUNCTION__, __LINE__, mq_name);
-        sleep(5); //testcode
-        DHCPMGR_LOG_INFO("%s %d: Woke up from sleep, attempting to receive message\n", __FUNCTION__, __LINE__);
+//        sleep(5); //testcode
+//        DHCPMGR_LOG_INFO("%s %d: Woke up from sleep, attempting to receive message\n", __FUNCTION__, __LINE__);
         /* Try to receive message with 900ms timeout */
         bytes_read = mq_timedreceive(mq_desc,(char*) &info, sizeof(info), NULL, &timeout);
         DHCPMGR_LOG_INFO("%s %d: mq_timedreceive returned with bytes_read=%zd\n", __FUNCTION__, __LINE__, bytes_read);

@@ -1219,11 +1219,15 @@ Client_SetParamBoolValue
             /* Send status message to the interface queue */
             if (mq_send(info.mq_desc, (char*)&info, sizeof(info), 0) == -1) {
                 DHCPMGR_LOG_ERROR("%s %d: Failed to send status to interface queue %s\n", __FUNCTION__, __LINE__, info.mq_name);
-            } else {
+            } 
+            else 
+            {
                 DHCPMGR_LOG_INFO("%s %d: Status sent to interface queue %s\n", __FUNCTION__, __LINE__, info.mq_name);
                 return TRUE;
             }
-        } else {
+        } 
+        else 
+        {
             DHCPMGR_LOG_ERROR("%s %d: Failed to find/create interface %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
         }
     }
