@@ -194,11 +194,13 @@ typedef struct dml_set_msg_s {
         DML_SET_MSG_TYPE_ULONG,
         DML_SET_MSG_TYPE_STRING
     } valueType;
-    enum {
-        DML_DHCPV4=1,
-        DML_DHCPV6
-    } dhcpType;
 } dml_set_msg_t;
+
+typedef enum 
+{
+    DML_DHCPV4=1,
+    DML_DHCPV6
+}DML_DHCP_TYPE;
 
 typedef struct {
     char if_name[MAX_STR_LEN];
@@ -207,6 +209,7 @@ typedef struct {
     mqd_t mq_desc;
     pthread_mutex_t mutex;
     dml_set_msg_t msg;
+    DML_DHCP_TYPE dhcpType;
 } interface_info_t;
 
 /* Message queue operations */

@@ -1099,7 +1099,7 @@ Client3_SetParamBoolValue
             strcpy(info.msg.ParamName, ParamName);
             info.msg.value.bValue = bValue;
             info.msg.valueType = DML_SET_MSG_TYPE_BOOL;
-            info.msg.dhcpType = 2; //DHCPv6 =2 
+            info.dhcpType = DML_DHCPV6; //DHCPv6 =2 
 
             /* Send status message to the interface queue */
             if (mq_send(info.mq_desc, (char*)&info, sizeof(info), 0) == -1) {

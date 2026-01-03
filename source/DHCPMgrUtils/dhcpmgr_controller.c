@@ -440,9 +440,9 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
     return TRUE;
 }
 
-static void Process_DHCP_Handler(interface_info_t info)
+static void Process_DHCP_Handler(char* if_name, DML_DHCP_TYPE dhcpType, dml_set_msg_t *dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler for MQ:ParamName: %s and DHCPType=%d \n", __FUNCTION__, __LINE__, info.msg.ParamName, info.msg.dhcpType);
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=%d \n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL", dhcpType);
 
     PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
@@ -450,7 +450,7 @@ static void Process_DHCP_Handler(interface_info_t info)
     ULONG instanceNum;
     ULONG clientCount;
 
-    if(info.msg.dhcpType == DML_DHCPV4)
+    if(dhcpType == DML_DHCPV4)
     {
         /********************************************* DHCPv4 Handling ********************************************* */   
             //DHCPv4 client entries
@@ -474,33 +474,37 @@ static void Process_DHCP_Handler(interface_info_t info)
             }
             
             pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-            if(strncmp(pDhcpc->Cfg.Interface, info.if_name, sizeof(pDhcpc->Cfg.Interface)) == 0)
+            if(strncmp(pDhcpc->Cfg.Interface, if_name, sizeof(pDhcpc->Cfg.Interface)) == 0)
             {
-                DHCPMGR_LOG_INFO("%s %d: Found matching interface %s for MQ %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, info.if_name);
-                if (strcmp(info.msg.ParamName, "Enable") == 0 )
+                DHCPMGR_LOG_INFO("%s %d: Found matching interface %s %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, if_name);
+                if(dml_set_msg == NULL)
                 {
-                    pDhcpc->Cfg.bEnabled = info.msg.value.bValue;
+                    DHCPMGR_LOG_INFO("%s %d: No ParamName received , skipping processing DML check\n", __FUNCTION__, __LINE__);
                 }
-                else if (strcmp(info.msg.ParamName, "Renew") == 0 ) 
+                else if (strcmp(dml_set_msg->ParamName, "Enable") == 0 )
                 {
-                    pDhcpc->Cfg.Renew = info.msg.value.bValue;
+                    pDhcpc->Cfg.bEnabled = dml_set_msg->value.bValue;
                 }
-                else if (strcmp(info.msg.ParamName, "Restart") == 0 )
+                else if (strcmp(dml_set_msg->ParamName, "Renew") == 0 ) 
                 {
-                    pDhcpc->Cfg.Restart = info.msg.value.bValue;
+                    pDhcpc->Cfg.Renew = dml_set_msg->value.bValue;
                 }
-                else if (strcmp(info.msg.ParamName, "ProcessLease") == 0 )
+                else if (strcmp(dml_set_msg->ParamName, "Restart") == 0 )
+                {
+                    pDhcpc->Cfg.Restart = dml_set_msg->value.bValue;
+                }
+                else if (strcmp(dml_set_msg->ParamName, "ProcessLease") == 0 )
                 {
                     DhcpMgr_ProcessV4Lease(pDhcpc);
                 }
                 else
                 { 
-                    DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received in MQ\n", __FUNCTION__, __LINE__, info.msg.ParamName); 
+                    DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received \n", __FUNCTION__, __LINE__, dml_set_msg->ParamName); 
                 }
             }
             else
             {
-                DHCPMGR_LOG_INFO("%s %d: No matching interface %s for MQ\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                DHCPMGR_LOG_INFO("%s %d: No matching interface %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
                 continue;
             }
 
@@ -585,7 +589,7 @@ static void Process_DHCP_Handler(interface_info_t info)
         }
     }
 
-    if(info.msg.dhcpType == DML_DHCPV6)
+    if(dhcpType == DML_DHCPV6)
     {
         /********************************************* DHCPv6 Handling ********************************************* */
        		//DHCPv6 client entries
@@ -614,28 +618,32 @@ static void Process_DHCP_Handler(interface_info_t info)
             
             pthread_mutex_lock(&pDhcp6c->mutex); //MUTEX lock
 
-            if(strncmp(pDhcp6c->Cfg.Interface, info.if_name, sizeof(pDhcp6c->Cfg.Interface)) == 0)
+            if(strncmp(pDhcp6c->Cfg.Interface, if_name, sizeof(pDhcp6c->Cfg.Interface)) == 0)
             {
-                DHCPMGR_LOG_INFO("%s %d: Found matching interface %s for MQ %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, info.if_name);
-                if (strcmp(info.msg.ParamName, "Enable") == 0 )
+                DHCPMGR_LOG_INFO("%s %d: Found matching interface %s for MQ %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, if_name);
+                if (dml_set_msg == NULL)
                 {
-                    pDhcp6c->Cfg.bEnabled = info.msg.value.bValue;
+                    DHCPMGR_LOG_INFO("%s %d: No ParamName received , skipping processing DML check\n", __FUNCTION__, __LINE__);
                 }
-                else if (strcmp(info.msg.ParamName, "Renew") == 0 ) 
+                else if (strcmp(dml_set_msg->ParamName, "Enable") == 0 )
                 {
-                    pDhcp6c->Cfg.Renew = info.msg.value.bValue;
+                    pDhcp6c->Cfg.bEnabled = dml_set_msg->value.bValue;
                 }
-                else if (strcmp(info.msg.ParamName, "Restart") == 0 )
+                else if (strcmp(dml_set_msg->ParamName, "Renew") == 0 ) 
                 {
-                    pDhcp6c->Cfg.Restart = info.msg.value.bValue;
+                    pDhcp6c->Cfg.Renew = dml_set_msg->value.bValue;
                 }
-                else if (strcmp(info.msg.ParamName, "ProcessLease") == 0 )
+                else if (strcmp(dml_set_msg->ParamName, "Restart") == 0 )
+                {
+                    pDhcp6c->Cfg.Restart = dml_set_msg->value.bValue;
+                }
+                else if (strcmp(dml_set_msg->ParamName, "ProcessLease") == 0 )
                 {
                     DhcpMgr_ProcessV6Lease(pDhcp6c);
                 }
                 else
                 { 
-                    DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received in MQ\n", __FUNCTION__, __LINE__, info.msg.ParamName); 
+                    DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received in MQ\n", __FUNCTION__, __LINE__, dml_set_msg->ParamName); 
                 }
             }
             else
@@ -789,7 +797,7 @@ void* DhcpMgr_MainController( void *args )
                 /* Drain all pending messages that may have arrived */
                 while ((bytes_read = mq_receive(mq_desc, (char*) &info, sizeof(interface_info_t), NULL)) != -1) {
                     DHCPMGR_LOG_INFO("%s %d Thread for %s: Drained pending message from queue\n", __FUNCTION__, __LINE__, info.mq_name);
-                    Process_DHCP_Handler(info);
+                    Process_DHCP_Handler(info.if_name, info.dhcpType, &info.msg);
                 }
                 
                 DHCPMGR_LOG_INFO("%s %d Thread for %s: Queue drained, exiting...\n", __FUNCTION__, __LINE__, info.mq_name);
@@ -824,7 +832,7 @@ void* DhcpMgr_MainController( void *args )
                 break;
             }
         }
-        Process_DHCP_Handler(info);
+        Process_DHCP_Handler(info.if_name, info.dhcpType, &info.msg);
         DHCPMGR_LOG_INFO("%s %d Thread for %s: Message processed, waiting for next message...\n", __FUNCTION__, __LINE__, info.mq_name);
     }
         /* Cleanup before exiting */
@@ -1034,6 +1042,7 @@ void processKilled(pid_t pid)
             {
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
             }
+            Process_DHCP_Handler(pDhcpc->Cfg.Interface, DML_DHCPV4, NULL); //Trigger the controller to handle the stopped client
             return;
         }
     }
@@ -1069,6 +1078,7 @@ void processKilled(pid_t pid)
             {
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
             }
+            Process_DHCP_Handler(pDhcp6c->Cfg.Interface, DML_DHCPV6, NULL); //Trigger the controller to handle the stopped client
             return;
         }
 
