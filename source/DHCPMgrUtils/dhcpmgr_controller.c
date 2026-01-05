@@ -775,7 +775,7 @@ void* DhcpMgr_MainController( void *args )
     }
     DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
 
-    mq_desc = mq_open(mq_name, O_RDONLY);
+    mq_desc = mq_open(mq_name, O_RDONLY | O_NONBLOCK);
     if (mq_desc == (mqd_t)-1) {
         DHCPMGR_LOG_ERROR("%s %d: mq_open failed in thread\n", __FUNCTION__, __LINE__);
         return NULL;
