@@ -19,6 +19,7 @@
 
 #include "dhcp_client_common_utils.h"
 #include <sys/prctl.h>
+#include "util.h"
 
 /*
  * signal_process ()
@@ -736,15 +737,17 @@ pid_t start_exe2(char * exe, char * args)
  */
 int add_dhcp_opt_to_list (dhcp_opt_list ** opt_list, int opt, char * opt_val)
 {
-
+    DHCPMGR_LOG_INFO("%s %d: Adding DHCP option %d to list\n", __FUNCTION__, __LINE__, opt);
     if ((opt_list == NULL) || (opt <= 0))
     {
+        DHCPMGR_LOG_INFO("%s %d: Invalid args to add dhcp option to list\n", __FUNCTION__, __LINE__);
         return RETURN_ERR;
     }
 
     dhcp_opt_list * new_dhcp_opt = malloc (sizeof(dhcp_opt_list));
     if (new_dhcp_opt == NULL)
     {
+        DHCPMGR_LOG_INFO("%s %d: Memory allocation failed for dhcp option list\n", __FUNCTION__, __LINE__);
         return RETURN_ERR;
     }
     memset (new_dhcp_opt, 0, sizeof(dhcp_opt_list));
@@ -756,7 +759,7 @@ int add_dhcp_opt_to_list (dhcp_opt_list ** opt_list, int opt, char * opt_val)
         new_dhcp_opt->next = *opt_list;
     }
     *opt_list = new_dhcp_opt;
-
+    DHCPMGR_LOG_INFO("%s %d: Added DHCP option %d to list END !!!!!!\n", __FUNCTION__, __LINE__, opt);
     return RETURN_OK;
 
 }

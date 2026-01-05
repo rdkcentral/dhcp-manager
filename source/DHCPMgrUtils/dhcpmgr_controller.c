@@ -300,12 +300,23 @@ static int DhcpMgr_build_dhcpv6_opt_list (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT hIns
             }
         }
     }
-
+    DHCPMGR_LOG_INFO("%s:%d outside for loop to add requested options\n", __FUNCTION__, __LINE__);
     char *reqOptions = strdup((CHAR *)pDhcp6c->Cfg.RequestedOptions);
     char *token = NULL;
+    if(reqOptions != NULL)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Requested Options string : %s\n", __FUNCTION__, __LINE__, reqOptions);
+    }
+    else
+    {
+        DHCPMGR_LOG_INFO("%s:%d No Requested Options found\n", __FUNCTION__, __LINE__);
+        return 0;
+    }
+
     token = strtok(reqOptions, " , ");
     while (token != NULL)
     {
+        DHCPMGR_LOG_INFO("%s:%d Processing Requested Option token : %s\n", __FUNCTION__, __LINE__, token);
         int opt = atoi(token);
         if(opt == 95)
         {
