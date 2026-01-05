@@ -789,7 +789,7 @@ void* DhcpMgr_MainController( void *args )
         
     /* Set timeout for 10s */
         clock_gettime(CLOCK_REALTIME, &timeout);
-        timeout.tv_sec += 60;
+        timeout.tv_sec += 5;
 
         memset(&info, 0, sizeof(interface_info_t));
         DHCPMGR_LOG_INFO("%s %d: Waiting to receive message from queue %s\n", __FUNCTION__, __LINE__, mq_name);
