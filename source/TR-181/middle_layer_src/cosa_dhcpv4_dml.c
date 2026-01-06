@@ -1144,15 +1144,16 @@ Client_SetParamBoolValue
             if (pDhcpc->Cfg.bEnabled)
             {
                 DHCPMGR_LOG_INFO("%s %d Renew triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-                pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+/*                pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
                 pDhcpc->Cfg.Renew = TRUE;
-                pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+                pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock */
+                  ret_mq_send=1;
             }
             else
                 return FALSE;
         }
 
-        return  TRUE;
+//        return  TRUE;
     }
 
     if(strcmp(ParamName, "X_RDK_Restart") == 0)
@@ -1160,9 +1161,10 @@ Client_SetParamBoolValue
         if (pDhcpc->Cfg.bEnabled)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+/*            pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
             pDhcpc->Cfg.Restart = TRUE;
-            pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+            pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock */
+              ret_mq_send=1;
         }
         else
         {
