@@ -986,16 +986,13 @@ Client3_SetParamBoolValue
     PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pCxtLink          = (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT)hInsContext;
     PCOSA_DML_DHCPCV6_FULL            pDhcpc            = (PCOSA_DML_DHCPCV6_FULL)pCxtLink->hContext;
 
+    int ret_mq_send=0;
     /* check the parameter name and set the corresponding value */
     if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
         DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
-        pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-        pDhcpc->Cfg.bEnabled = bValue;
-        pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
-
-        return TRUE;
+        ret_mq_send = 1;
     }
 
     if (strcmp(ParamName, "RequestAddresses") == 0)
@@ -1027,10 +1024,7 @@ Client3_SetParamBoolValue
         if (pDhcpc->Cfg.bEnabled)
         {
             DHCPMGR_LOG_INFO("%s %d Renew triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-            pDhcpc->Cfg.Renew = TRUE;
-            pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
-            return  TRUE;
+            ret_mq_send=1;
         }
         else
         {
@@ -1043,15 +1037,38 @@ Client3_SetParamBoolValue
         if(pDhcpc->Cfg.bEnabled)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-            pDhcpc->Cfg.Restart = TRUE;
-            pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
-            return  TRUE;
+            ret_mq_send=1;
         }
         else
         {
             DHCPMGR_LOG_WARNING("%s %d Restart triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             return FALSE;
+        }
+    }
+
+    /*Adding the dml set values to messageque so that controller thread will process the values */
+
+//    DHCPMGR_LOG_INFO("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
+    if(ret_mq_send)
+    {
+ //       DHCPMGR_LOG_INFO("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+        if(pDhcpc->Cfg.Interface == NULL || strlen(pDhcpc->Cfg.Interface) == 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+            return FALSE;
+        }
+
+        interface_info_t info;
+        AnscZeroMemory(&info, sizeof(interface_info_t));
+        strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+        info.dhcpType = DML_DHCPV6;
+        strcpy(info.msg.ParamName, ParamName);
+        info.msg.value.bValue = bValue;
+        info.msg.valueType = DML_SET_MSG_TYPE_BOOL;
+        if (DhcpMgr_OpenQueueEnsureThread(&info) != 0) {
+            DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+        } else {
+            return TRUE;
         }
     }
 

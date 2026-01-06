@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <mqueue.h>
 #include "util.h"
 #include "ansc_platform.h"
 #include "cosa_apis.h"
@@ -42,11 +43,10 @@
 #include "cosa_apis.h"
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
+#include "cosa_apis_util.h"
 
 
 /* ---- Global Constants -------------------------- */
-
-static void* DhcpMgr_MainController( void *arg );
 
 /**
  * @brief Starts the main controller thread.
@@ -57,22 +57,34 @@ static void* DhcpMgr_MainController( void *arg );
  */
 int DhcpMgr_StartMainController()
 {
-    pthread_t threadId;
-    int ret = -1;
+    const char *filename = "/tmp/dhcpmanager_restarted";
+    int retStatus = -1;
 
-    ret = pthread_create( &threadId, NULL, &DhcpMgr_MainController, NULL );
-
-    if( 0 != ret )
+    if(access(filename, F_OK) != -1)
     {
-        DHCPMGR_LOG_ERROR("%s %d - Failed to start Main Controller Thread Error:%d\n", __FUNCTION__, __LINE__, ret);
-    }
-    else
-    {
-        DHCPMGR_LOG_INFO("%s %d - Main Controller Thread Started Successfully\n", __FUNCTION__, __LINE__);
-        ret = 0;
+        retStatus = DhcpMgr_Dhcp_Recovery_Start();
+        if(retStatus != 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d - Failed to start dhcp recovery thread\n", __FUNCTION__, __LINE__);
+        }
+        else
+        {
+            DHCPMGR_LOG_INFO("%s %d - Dhcp crash recovery thread started successfully\n", __FUNCTION__, __LINE__);
+            if (remove(filename) != 0)
+            {
+                DHCPMGR_LOG_ERROR("%s %d Error deleting %s file\n", __FUNCTION__, __LINE__, filename);
+            }
+        }
     }
 
-    return ret;
+    retStatus = DhcpMgr_LeaseMonitor_Start();
+    if(retStatus < 0)
+    {
+        DHCPMGR_LOG_INFO("%s %d - Lease Monitor Thread failed to start!\n", __FUNCTION__, __LINE__ );
+    }
+
+
+    return retStatus;
 }
 
 /**
@@ -412,269 +424,392 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
     return TRUE;
 }
 
-static void* DhcpMgr_MainController( void *args )
+static void Process_DHCPv4_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
 {
-    (void) args;
-    //detach thread from caller stack
-    pthread_detach(pthread_self());
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 \n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL");
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
+    PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
+    ULONG ulIndex;
+    ULONG instanceNum;
+    ULONG clientCount;
+    //********************************************* DHCPv4 Handling ********************************************* *   
+    //DHCPv4 client entries
+    PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
 
-    DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started \n", __FUNCTION__, __LINE__);
-    BOOL bRunning = TRUE;
-    struct timeval tv;
-    int n = 0;
-    const char *filename = "/tmp/dhcpmanager_restarted";
-    int retStatus = 0;
-
-    if(access(filename, F_OK) != -1)
+    clientCount = CosaDmlDhcpcGetNumberOfEntries(NULL);
+    for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
     {
-        retStatus = DhcpMgr_Dhcp_Recovery_Start();
-        if(retStatus != 0)
+        pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL,ulIndex,&instanceNum);
+        if ( pSListEntry )
         {
-            DHCPMGR_LOG_ERROR("%s %d - Failed to start dhcp recovery thread\n", __FUNCTION__, __LINE__);
+            pDhcpCxtLink          = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
+            pDhcpc            = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
         }
-        else
+        if (!pDhcpc)
         {
-            DHCPMGR_LOG_INFO("%s %d - Dhcp crash recovery thread started successfully\n", __FUNCTION__, __LINE__);
-            if (remove(filename) != 0)
-            {
-                DHCPMGR_LOG_ERROR("%s %d Error deleting %s file\n", __FUNCTION__, __LINE__, filename);
-            }
-        }
-    }
-
-    retStatus = DhcpMgr_LeaseMonitor_Start();
-    if(retStatus < 0)
-    {
-        DHCPMGR_LOG_INFO("%s %d - Lease Monitor Thread failed to start!\n", __FUNCTION__, __LINE__ );
-    }
-
-    while (bRunning)
-    {
-        /* Wait up to 250 milliseconds */
-        tv.tv_sec = 0;
-        tv.tv_usec = 250000;
-        //TODO : add a Signaling mechanism instead of sleep.
-        n = select(0, NULL, NULL, NULL, &tv);
-        if (n < 0)
-        {
-            /* interrupted by signal or something, continue */
+            DHCPMGR_LOG_ERROR("%s : pDhcpc is NULL\n",__FUNCTION__);
             continue;
         }
 
-        //DHCPv4 client entries
-        //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
-        PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
-        PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
-        PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
-        ULONG ulIndex;
-        ULONG instanceNum;
-        ULONG clientCount = CosaDmlDhcpcGetNumberOfEntries(NULL);
-
-        for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
+        pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+        if(strncmp(pDhcpc->Cfg.Interface, if_name, sizeof(pDhcpc->Cfg.Interface)) == 0)
         {
-            pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL,ulIndex,&instanceNum);
-            if ( pSListEntry )
+            if(dml_set_msg == NULL)
             {
-                pDhcpCxtLink          = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
-                pDhcpc            = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
+                DHCPMGR_LOG_INFO("%s %d: No ParamName received , skip processing DML check\n", __FUNCTION__, __LINE__);
             }
-
-            if (!pDhcpc)
+            else if (strcmp(dml_set_msg->ParamName, "Enable") == 0 )
             {
-                DHCPMGR_LOG_ERROR("%s : pDhcpc is NULL\n",__FUNCTION__);
-                continue;
+                pDhcpc->Cfg.bEnabled = dml_set_msg->value.bValue;
             }
-            
-            pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-            if(pDhcpc->Cfg.bEnabled == TRUE )
+            else if (strcmp(dml_set_msg->ParamName, "Renew") == 0 ) 
             {
-                if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
-                {
-                    ////DHCP client Enabled, start the client if not started.
-                    DHCPMGR_LOG_INFO("%s %d: Starting dhcpv4 client on %s\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-                    if(DhcpMgr_checkInterfaceStatus(pDhcpc->Cfg.Interface)== FALSE)
-                    {
-                        pDhcpc->Cfg.bEnabled = FALSE;
-                        DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_FAILED);
-                    }
-                    else
-                    {
-                        dhcp_opt_list *req_opt_list = NULL;
-                        dhcp_opt_list *send_opt_list = NULL;
-                        DhcpMgr_build_dhcpv4_opt_list (pDhcpCxtLink, &req_opt_list, &send_opt_list);
-
-                        pDhcpc->Info.ClientProcessId  = start_dhcpv4_client(pDhcpc->Cfg.Interface, req_opt_list, send_opt_list);
-
-                        //Free optios list
-                        if(req_opt_list)
-                            free_opt_list_data (req_opt_list);
-                        if(send_opt_list)
-                            free_opt_list_data (send_opt_list);
-
-                        if(pDhcpc->Info.ClientProcessId > 0 ) 
-                        {
-                            pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
-                            DHCPMGR_LOG_INFO("%s %d: dhcpv4 client for %s started PID : %d \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                            DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_STARTED);
-                        }
-                        else
-                        {
-                            DHCPMGR_LOG_INFO("%s %d: dhcpv4 client for %s failed to start \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-                            DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_FAILED);
-                        }
-                    }
-                } 
-                else if (pDhcpc->Cfg.Renew == TRUE)
-                {
-                    DHCPMGR_LOG_INFO("%s %d: Triggering renew for  dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                    send_dhcpv4_renew(pDhcpc->Info.ClientProcessId);
-                    pDhcpc->Cfg.Renew = FALSE;
-                }
-                else if (pDhcpc->Cfg.Restart == TRUE)
-                {
-                    //Only stoping the client here, restart will be done in the next iteration
-                    DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                    send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
-                    pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
-                    pDhcpc->Cfg.Restart = FALSE;
-                    DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL);
-                }
-                
-                //Process new lease
+                pDhcpc->Cfg.Renew = dml_set_msg->value.bValue;
+            }
+            else if (strcmp(dml_set_msg->ParamName, "Restart") == 0 )
+            {
+                pDhcpc->Cfg.Restart = dml_set_msg->value.bValue;
+            }
+            else if (strcmp(dml_set_msg->ParamName, "ProcessLease") == 0 )
+            {
                 DhcpMgr_ProcessV4Lease(pDhcpc);
             }
+            else if (strcmp(dml_set_msg->ParamName, "ClientRestart") == 0 )
+            {
+                DHCPMGR_LOG_INFO("%s %d: ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+            }
             else
             {
-                //DHCP client disabled, stop the client if it is running.
-                if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
-                {
-                    DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                    //Always send release and stop the client
-                    send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
-                    pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
-                    pDhcpc->Cfg.Renew = FALSE;
-                    DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
-                    DhcpMgr_clearDHCPv4Lease(pDhcpc);
-                    remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
-                    DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_STOPPED);
-                }
+                DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received \n", __FUNCTION__, __LINE__, dml_set_msg->ParamName); 
             }
-
+        }
+        else
+        {
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
-
+            continue;
         }
 
-
-        /********************************************* DHCPv6 Handling ********************************************* */
-       		//DHCPv6 client entries
-        //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
-        PCOSA_DML_DHCPCV6_FULL            pDhcp6c        = NULL;
-        PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pDhcp6cxtLink  = NULL;
-        pSListEntry   = NULL;
-        ulIndex = 0;
-        instanceNum =0;
-        clientCount = CosaDmlDhcpv6cGetNumberOfEntries(NULL);
-
-        for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
+        if(pDhcpc->Cfg.bEnabled == TRUE )
         {
-            pSListEntry = (PSINGLE_LINK_ENTRY)Client3_GetEntry(NULL,ulIndex,&instanceNum);
-            if ( pSListEntry )
+            DHCPMGR_LOG_INFO("%s %d: DHCP client is enabled for interface %d\n",__FUNCTION__, __LINE__, pDhcpc->Info.Status);
+            if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
             {
-                pDhcp6cxtLink          = ACCESS_COSA_CONTEXT_DHCPCV6_LINK_OBJECT(pSListEntry);
-                pDhcp6c            = (PCOSA_DML_DHCPC_FULL)pDhcp6cxtLink->hContext;
-            }
-
-            if (!pDhcp6c)
-            {
-                DHCPMGR_LOG_ERROR("%s : pDhcp6c is NULL\n",__FUNCTION__);
-                continue;
-            }
-            
-            pthread_mutex_lock(&pDhcp6c->mutex); //MUTEX lock
-            if(pDhcp6c->Cfg.bEnabled == TRUE )
-            {
-                if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
+                ////DHCP client Enabled, start the client if not started.
+                DHCPMGR_LOG_INFO("%s %d: Starting dhcpv4 client on %s\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                if(DhcpMgr_checkInterfaceStatus(pDhcpc->Cfg.Interface)== FALSE)
                 {
-                    ////DHCP client Enabled, start the client if not started.
-                    DHCPMGR_LOG_INFO("%s %d: Starting dhcpv6 client on %s\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
-                    if(DhcpMgr_checkInterfaceStatus(pDhcp6c->Cfg.Interface)== FALSE)
+                    pDhcpc->Cfg.bEnabled = FALSE;
+                    DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_FAILED);
+                }
+                else
+                {
+                    dhcp_opt_list *req_opt_list = NULL;
+                    dhcp_opt_list *send_opt_list = NULL;
+                    DhcpMgr_build_dhcpv4_opt_list (pDhcpCxtLink, &req_opt_list, &send_opt_list);
+
+                    pDhcpc->Info.ClientProcessId  = start_dhcpv4_client(pDhcpc->Cfg.Interface, req_opt_list, send_opt_list);
+
+                    //Free optios list
+                    if(req_opt_list)
+                        free_opt_list_data (req_opt_list);
+                    if(send_opt_list)
+                        free_opt_list_data (send_opt_list);
+
+                    if(pDhcpc->Info.ClientProcessId > 0 ) 
                     {
-                        pDhcp6c->Cfg.bEnabled = FALSE;
-                        DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_FAILED);
-                    }
-                    else if(DhcpMgr_checkLinkLocalAddress(pDhcp6c->Cfg.Interface)== FALSE)
-                    {
-                        //Link local failed. Retry
+                         pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client for %s started PID : %d \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
+                        DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_STARTED);
                     }
                     else
                     {
-                        dhcp_opt_list *req_opt_list = NULL;
-                        dhcp_opt_list *send_opt_list = NULL;
-                        DhcpMgr_build_dhcpv6_opt_list (pDhcp6cxtLink, &req_opt_list, &send_opt_list);
-
-                        pDhcp6c->Info.ClientProcessId  = start_dhcpv6_client(pDhcp6c->Cfg.Interface, req_opt_list, send_opt_list);
-
-                        //Free optios list
-                        if(req_opt_list)
-                            free_opt_list_data (req_opt_list);
-                        if(send_opt_list)
-                            free_opt_list_data (send_opt_list);
-
-                        if(pDhcp6c->Info.ClientProcessId > 0 ) 
-                        {
-                            pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
-                            DHCPMGR_LOG_INFO("%s %d: dhcpv6 client for %s started PID : %d \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                            DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STARTED);
-                        }
-                        else
-                        {
-                            DHCPMGR_LOG_INFO("%s %d: dhcpv6 client for %s failed to start \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
-                            DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_FAILED);
-                        }
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client for %s failed to start \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_FAILED);
                     }
-
-                } 
-                else if (pDhcp6c->Cfg.Renew == TRUE)
-                {
-                    DHCPMGR_LOG_INFO("%s %d: Triggering renew for  dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                    send_dhcpv6_renew(pDhcp6c->Info.ClientProcessId);
-                    pDhcp6c->Cfg.Renew = FALSE;
                 }
-                else if( pDhcp6c->Cfg.Restart == TRUE)
-                {
-                    //Only stoping the client here, restart will be done in the next iteration
-                    DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                    send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
-                    pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
-                    pDhcp6c->Cfg.Restart = FALSE;
-                    DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
-                    DhcpMgr_clearDHCPv6Lease(pDhcp6c);
-                }
+            }
+            else if (pDhcpc->Cfg.Renew == TRUE)
+            {
+                DHCPMGR_LOG_INFO("%s %d: Triggering renew for  dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
+                send_dhcpv4_renew(pDhcpc->Info.ClientProcessId);
+                pDhcpc->Cfg.Renew = FALSE;
+            }
+            else if (pDhcpc->Cfg.Restart == TRUE)
+            {
+                //Only stoping the client here, restart will be done in the next iteration
+                DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
+                send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
+                pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
+                pDhcpc->Cfg.Restart = FALSE;
+                DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL);
+            }
+        }
+        else
+        {
+            //DHCP client disabled, stop the client if it is running.
+            if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
+            {
+                DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
+                //Always send release and stop the client
+                send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
+                pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
+                pDhcpc->Cfg.Renew = FALSE;
+                DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
+                DhcpMgr_clearDHCPv4Lease(pDhcpc);
+                remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
+                DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_STOPPED);
+                sleep(2);
+            }
+        }
+        pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+        break;
+    }
+}
 
-                //Process new lease
+
+static void Process_DHCPv6_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
+{
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 \n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL");
+
+    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pDhcp6cxtLink  = NULL;
+    PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
+    ULONG ulIndex;
+    ULONG instanceNum;
+    ULONG clientCount;
+
+    //********************************************* DHCPv6 Handling ********************************************* *
+    //DHCPv6 client entries
+    PCOSA_DML_DHCPCV6_FULL            pDhcp6c        = NULL;
+
+    clientCount = CosaDmlDhcpv6cGetNumberOfEntries(NULL);
+
+    for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
+    {
+        pSListEntry = (PSINGLE_LINK_ENTRY)Client3_GetEntry(NULL,ulIndex,&instanceNum);
+        if ( pSListEntry )
+        {
+            pDhcp6cxtLink          = ACCESS_COSA_CONTEXT_DHCPCV6_LINK_OBJECT(pSListEntry);
+            pDhcp6c            = (PCOSA_DML_DHCPCV6_FULL)pDhcp6cxtLink->hContext;
+        }
+        if (!pDhcp6c)
+        {
+            DHCPMGR_LOG_ERROR("%s : pDhcp6c is NULL\n",__FUNCTION__);
+            continue;
+        }
+        
+        pthread_mutex_lock(&pDhcp6c->mutex); //MUTEX lock
+        if(strncmp(pDhcp6c->Cfg.Interface, if_name, sizeof(pDhcp6c->Cfg.Interface)) == 0)
+        {
+            if (dml_set_msg == NULL)
+            {
+                DHCPMGR_LOG_INFO("%s %d: No ParamName received , skipping processing DML check\n", __FUNCTION__, __LINE__);
+            }
+            else if (strcmp(dml_set_msg->ParamName, "Enable") == 0 )
+            {
+                pDhcp6c->Cfg.bEnabled = dml_set_msg->value.bValue;
+            }
+            else if (strcmp(dml_set_msg->ParamName, "Renew") == 0 ) 
+            {
+                pDhcp6c->Cfg.Renew = dml_set_msg->value.bValue;
+            }
+            else if (strcmp(dml_set_msg->ParamName, "Restart") == 0 )
+            {
+                pDhcp6c->Cfg.Restart = dml_set_msg->value.bValue;
+            }
+            else if (strcmp(dml_set_msg->ParamName, "ProcessLease") == 0 )
+            {
                 DhcpMgr_ProcessV6Lease(pDhcp6c);
             }
-            else
+            else if (strcmp(dml_set_msg->ParamName, "ClientRestart") == 0 )
             {
-                //DHCP client disabled, stop the client if it is running.
-                if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
-                {
-                    DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv6 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                    //Always send release and stop the client. 
-                    send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
-                    pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
-                    pDhcp6c->Cfg.Renew = FALSE;
-                    DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL); //Send lease expired event
-                    DhcpMgr_clearDHCPv6Lease(pDhcp6c);
-                    remove_dhcp_lease_file(pDhcp6c->Cfg.InstanceNumber,DHCP_v6);
-                    DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STOPPED);
-                }
+                DHCPMGR_LOG_INFO("%s %d: ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
             }
-
+            else
+            { 
+                DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received in MQ\n", __FUNCTION__, __LINE__, dml_set_msg->ParamName); 
+            }
+        }
+        else
+        {
             pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
+            continue;
+        }
 
+        if(pDhcp6c->Cfg.bEnabled == TRUE )
+        {
+            if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
+            {
+                ////DHCP client Enabled, start the client if not started.
+                DHCPMGR_LOG_INFO("%s %d: Starting dhcpv6 client on %s\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                if(DhcpMgr_checkInterfaceStatus(pDhcp6c->Cfg.Interface)== FALSE)
+                {
+                    pDhcp6c->Cfg.bEnabled = FALSE;
+                    DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_FAILED);
+                }
+                else if(DhcpMgr_checkLinkLocalAddress(pDhcp6c->Cfg.Interface)== FALSE)
+                {
+                    //Link local failed. Retry
+                }
+                else
+                {
+                    dhcp_opt_list *req_opt_list = NULL;
+                    dhcp_opt_list *send_opt_list = NULL;
+                    DhcpMgr_build_dhcpv6_opt_list (pDhcp6cxtLink, &req_opt_list, &send_opt_list);
+
+                    pDhcp6c->Info.ClientProcessId  = start_dhcpv6_client(pDhcp6c->Cfg.Interface, req_opt_list, send_opt_list);
+
+                    //Free optios list
+                    if(req_opt_list)
+                        free_opt_list_data (req_opt_list);
+                    if(send_opt_list)
+                        free_opt_list_data (send_opt_list);
+
+                    if(pDhcp6c->Info.ClientProcessId > 0 ) 
+                    {
+                        //Link local failed. Retry
+                        pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv6 client for %s started PID : %d \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
+                        DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STARTED);
+                        sleep(2);
+                    }
+                    else
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv6 client for %s failed to start \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                        DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_FAILED);
+                    }
+                }
+            } 
+            else if (pDhcp6c->Cfg.Renew == TRUE)
+            {
+                DHCPMGR_LOG_INFO("%s %d: Triggering renew for  dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
+                send_dhcpv6_renew(pDhcp6c->Info.ClientProcessId);
+                pDhcp6c->Cfg.Renew = FALSE;
+            }
+            else if( pDhcp6c->Cfg.Restart == TRUE)
+            {
+                //Only stoping the client here, restart will be done in the next iteration
+                DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
+                send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
+                pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
+                pDhcp6c->Cfg.Restart = FALSE;
+                DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
+                DhcpMgr_clearDHCPv6Lease(pDhcp6c);
+                sleep(2);
+            }
+        }
+        else
+        {
+            //DHCP client disabled, stop the client if it is running.
+            if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
+            {
+                DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv6 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
+                //Always send release and stop the client. 
+                send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
+                pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
+                pDhcp6c->Cfg.Renew = FALSE;
+                DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL); //Send lease expired event
+                DhcpMgr_clearDHCPv6Lease(pDhcp6c);
+                remove_dhcp_lease_file(pDhcp6c->Cfg.InstanceNumber,DHCP_v6);
+                DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STOPPED);
+            }
+        }
+        pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
+        break;
+    }
+}
+
+void* DhcpMgr_MainController( void *args )
+{
+//    (void) args;
+    //detach thread from caller stack
+    pthread_detach(pthread_self());
+    mqd_t mq_desc;
+    struct timespec timeout;
+    ssize_t bytes_read;
+    interface_info_t info;
+    char mq_name[MQ_NAME_LEN] = {0};
+
+    DHCPMGR_LOG_INFO("%s %d: Entered with arg %s\n",__FUNCTION__, __LINE__, (char*)args);
+    if(args != NULL && strcmp((char *)args, "mq_if_erouter0") != 0)
+    {
+        strncpy(mq_name, (char *)args, MQ_NAME_LEN);
+    }
+    else
+    {
+        DHCPMGR_LOG_INFO("%s %d InValid Argument to the Controller Thread\n",__FUNCTION__,__LINE__);
+        //Testcode
+        strcpy(mq_name, "/mq_if_erouter0");
+    }
+    DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
+
+    mq_desc = mq_open(mq_name, O_RDONLY);
+    if (mq_desc == (mqd_t)-1) {
+        DHCPMGR_LOG_ERROR("%s %d: mq_open failed in thread\n", __FUNCTION__, __LINE__);
+        return NULL;
+    }
+
+    DHCPMGR_LOG_INFO("%s %d: Message queue %s opened successfully\n", __FUNCTION__, __LINE__, info.mq_name);
+
+    while (1)
+    {
+        DHCPMGR_LOG_INFO("%s %d: Main controller loop iteration started\n", __FUNCTION__, __LINE__);
+        
+    /* Set timeout for 5s */
+        clock_gettime(CLOCK_REALTIME, &timeout);
+        timeout.tv_sec += 5;
+
+        memset(&info, 0, sizeof(interface_info_t));
+        DHCPMGR_LOG_INFO("%s %d: Waiting to receive message from queue %s\n", __FUNCTION__, __LINE__, mq_name);
+
+        /* Try to receive message with 5 timeout */
+        bytes_read = mq_timedreceive(mq_desc,(char*) &info, sizeof(info), NULL, &timeout);
+        DHCPMGR_LOG_INFO("%s %d: mq_timedreceive returned with bytes_read=%zd\n", __FUNCTION__, __LINE__, bytes_read);
+         if (bytes_read == -1) 
+         {
+            if (errno == ETIMEDOUT) 
+            {
+//                DHCPMGR_LOG_INFO("%s %d Thread for %s: No messages for 10s, draining queue before exit...\n", __FUNCTION__, __LINE__, info.mq_name);
+                
+                memset(&info, 0, sizeof(interface_info_t));
+
+                // Drain all pending messages that may have arrived 
+                while ((bytes_read = mq_receive(mq_desc, (char*) &info, sizeof(interface_info_t), NULL)) != -1) {
+//                    DHCPMGR_LOG_INFO("%s %d Thread for %s: Drained pending message from queue\n", __FUNCTION__, __LINE__, info.mq_name);
+                    if (info.dhcpType == DML_DHCPV4) 
+                    {
+                        Process_DHCPv4_Handler(info.if_name, &info.msg);
+                    } 
+                    else if (info.dhcpType == DML_DHCPV6) 
+                    {
+                        Process_DHCPv6_Handler(info.if_name, &info.msg);
+                    }
+                }
+                
+                DHCPMGR_LOG_INFO("%s %d Thread for %s: Queue drained, exiting...\n", __FUNCTION__, __LINE__, info.mq_name);
+                break;
+            }
+            else 
+            {
+                DHCPMGR_LOG_ERROR("%s %d: mq_timedreceive failed with error=%d\n", __FUNCTION__, __LINE__, errno);
+                break;
+            }
+        }
+        if (info.dhcpType == DML_DHCPV4) 
+        {
+            Process_DHCPv4_Handler(info.if_name, &info.msg);
+        } 
+        else if (info.dhcpType == DML_DHCPV6) 
+        {
+            Process_DHCPv6_Handler(info.if_name, &info.msg);
         }
     }
+        /* Cleanup before exiting */
+    printf("Thread for %s exiting and cleaning up...\n", info.if_name);
+    
+    mq_close(mq_desc);
+    
+    /* Mark thread as stopped so new one can be created if needed */
+    mark_thread_stopped(info.if_name);
     return NULL;
 
 }
@@ -875,6 +1010,16 @@ void processKilled(pid_t pid)
             {
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
             }
+
+            // Enqueue a client restart message to the per-interface controller
+            interface_info_t info;
+            memset(&info, 0, sizeof(info));
+            strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+            info.dhcpType = DML_DHCPV4;
+            strncpy(info.msg.ParamName, "ClientRestart", sizeof(info.msg.ParamName) - 1);
+            info.msg.ParamName[sizeof(info.msg.ParamName) - 1] = '\0';
+            DhcpMgr_OpenQueueEnsureThread(&info);
+
             return;
         }
     }
@@ -910,6 +1055,17 @@ void processKilled(pid_t pid)
             {
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
             }
+
+            // Enqueue a client restart message to the per-interface controller
+            interface_info_t info;
+            memset(&info, 0, sizeof(info));
+            strncpy(info.if_name, pDhcp6c->Cfg.Interface, MAX_STR_LEN - 1);
+            info.dhcpType = DML_DHCPV6;
+            strncpy(info.msg.ParamName, "ClientRestart", sizeof(info.msg.ParamName) - 1);
+            info.msg.value.bValue = '\0';
+            info.msg.ParamName[sizeof(info.msg.ParamName) - 1] = '\0';
+            DhcpMgr_OpenQueueEnsureThread(&info);
+            
             return;
         }
 

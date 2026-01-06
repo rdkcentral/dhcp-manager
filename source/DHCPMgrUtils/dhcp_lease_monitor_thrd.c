@@ -38,6 +38,7 @@
 #include "dhcpv6_interface.h"
 #include "dhcpmgr_controller.h"
 #include "dhcp_lease_monitor_thrd.h"
+#include "cosa_apis_util.h"
 
 static int ipcListenFd = 0;
 
@@ -112,19 +113,43 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
                 case DHCP_VERSION_4:
                 {
                     DHCPv4_PLUGIN_MSG *newLease = (DHCPv4_PLUGIN_MSG *) malloc(sizeof(DHCPv4_PLUGIN_MSG));
-                    memcpy(newLease,&plugin_msg.data.dhcpv4, sizeof(DHCPv4_PLUGIN_MSG));
+                    memcpy(newLease, &plugin_msg.data.dhcpv4, sizeof(DHCPv4_PLUGIN_MSG));
                     newLease->next = NULL;
-                    DHCPMGR_LOG_INFO("[%s-%d] Processing DHCPv4 lease for interface: %s\n",__FUNCTION__, __LINE__, plugin_msg.ifname);
+                    DHCPMGR_LOG_INFO("[%s-%d] Processing DHCPv4 lease for interface: %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
                     DHCPMgr_AddDhcpv4Lease(plugin_msg.ifname, newLease);
+
+                    //Adding to the message queue of the respective interface controller thread
+                    interface_info_t info;
+                    memset(&info, 0, sizeof(interface_info_t));
+                    strncpy(info.if_name, plugin_msg.ifname, MAX_STR_LEN - 1);
+                    info.dhcpType = DML_DHCPV4;
+                    strcpy(info.msg.ParamName, "ProcessLease");
+                    info.msg.value.bValue = '\0';
+                    if (DhcpMgr_OpenQueueEnsureThread(&info) != 0)
+                    {
+                        DHCPMGR_LOG_ERROR("[%s-%d] Failed to enqueue DHCPv4 lease/control message\n", __FUNCTION__, __LINE__);
+                    }
                     break;
                 }
                 case DHCP_VERSION_6:
                 {
                     DHCPv6_PLUGIN_MSG *newLeasev6 = (DHCPv6_PLUGIN_MSG *) malloc(sizeof(DHCPv6_PLUGIN_MSG));
-                    memcpy(newLeasev6,&plugin_msg.data.dhcpv6, sizeof(DHCPv6_PLUGIN_MSG));
+                    memcpy(newLeasev6, &plugin_msg.data.dhcpv6, sizeof(DHCPv6_PLUGIN_MSG));
                     newLeasev6->next = NULL;
-                    DHCPMGR_LOG_INFO("[%s-%d] Processing DHCPv6  lease for interface: %s\n",__FUNCTION__, __LINE__, plugin_msg.ifname);
+                    DHCPMGR_LOG_INFO("[%s-%d] Processing DHCPv6 lease for interface: %s\n", __FUNCTION__, __LINE__, plugin_msg.ifname);
                     DHCPMgr_AddDhcpv6Lease(plugin_msg.ifname, newLeasev6);
+
+                    //Adding to the message queue of the respective interface controller thread
+                    interface_info_t info;
+                    memset(&info, 0, sizeof(interface_info_t));
+                    strncpy(info.if_name, plugin_msg.ifname, MAX_STR_LEN - 1);
+                    info.dhcpType = DML_DHCPV6;
+                    strcpy(info.msg.ParamName, "ProcessLease");
+                    info.msg.value.bValue = '\0';
+                    if (DhcpMgr_OpenQueueEnsureThread(&info) != 0)
+                    {
+                        DHCPMGR_LOG_ERROR("[%s-%d] Failed to enqueue DHCPv6 lease/control message\n", __FUNCTION__, __LINE__);
+                    }
                     break;
                 }
                 default:
