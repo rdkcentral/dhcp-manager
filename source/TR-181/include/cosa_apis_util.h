@@ -222,3 +222,6 @@ int update_interface_info(const char *alias_name, interface_info_t *info);
 int mark_thread_stopped(const char *alias_name);
 
 void* DhcpMgr_MainController( void *args );
+
+/* Helper: open MQ, ensure controller thread, and send the provided info */
+int DhcpMgr_OpenQueueEnsureThread(interface_info_t *info);

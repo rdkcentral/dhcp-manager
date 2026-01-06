@@ -463,7 +463,7 @@ static void Process_DHCP_Handler(char* if_name, DML_DHCP_TYPE dhcpType, dml_set_
 
     if(dhcpType == DML_DHCPV4)
     {
-        /********************************************* DHCPv4 Handling ********************************************* */   
+        //********************************************* DHCPv4 Handling ********************************************* *   
             //DHCPv4 client entries
     //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
         PCOSA_DML_DHCPC_FULL            pDhcpc        = NULL;
@@ -602,7 +602,7 @@ static void Process_DHCP_Handler(char* if_name, DML_DHCP_TYPE dhcpType, dml_set_
 
     if(dhcpType == DML_DHCPV6)
     {
-        /********************************************* DHCPv6 Handling ********************************************* */
+        //********************************************* DHCPv6 Handling ********************************************* *
        		//DHCPv6 client entries
         //TODO : implement a internal DHCP structures and APIs, replace COSA APIs
         PCOSA_DML_DHCPCV6_FULL            pDhcp6c        = NULL;
@@ -775,7 +775,7 @@ void* DhcpMgr_MainController( void *args )
     }
     DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
 
-    mq_desc = mq_open(mq_name, O_RDONLY | O_NONBLOCK);
+    mq_desc = mq_open(mq_name, O_RDONLY);
     if (mq_desc == (mqd_t)-1) {
         DHCPMGR_LOG_ERROR("%s %d: mq_open failed in thread\n", __FUNCTION__, __LINE__);
         return NULL;
@@ -1053,7 +1053,14 @@ void processKilled(pid_t pid)
             {
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
             }
-            Process_DHCP_Handler(pDhcpc->Cfg.Interface, DML_DHCPV4, NULL); //Trigger the controller to handle the stopped client
+            // Enqueue a client restart message to the per-interface controller
+            interface_info_t info;
+            memset(&info, 0, sizeof(info));
+            strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+            info.dhcpType = DML_DHCPV4;
+            strncpy(info.msg.ParamName, "ClientRestart", sizeof(info.msg.ParamName) - 1);
+            info.msg.ParamName[sizeof(info.msg.ParamName) - 1] = '\0';
+            DhcpMgr_OpenQueueEnsureThread(&info);
             return;
         }
     }
@@ -1089,7 +1096,14 @@ void processKilled(pid_t pid)
             {
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
             }
-            Process_DHCP_Handler(pDhcp6c->Cfg.Interface, DML_DHCPV6, NULL); //Trigger the controller to handle the stopped client
+            // Enqueue a client restart message to the per-interface controller
+            interface_info_t info;
+            memset(&info, 0, sizeof(info));
+            strncpy(info.if_name, pDhcp6c->Cfg.Interface, MAX_STR_LEN - 1);
+            info.dhcpType = DML_DHCPV6;
+            strncpy(info.msg.ParamName, "ClientRestart", sizeof(info.msg.ParamName) - 1);
+            info.msg.ParamName[sizeof(info.msg.ParamName) - 1] = '\0';
+            DhcpMgr_OpenQueueEnsureThread(&info);
             return;
         }
 

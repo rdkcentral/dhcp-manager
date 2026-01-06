@@ -204,6 +204,75 @@ int update_interface_info(const char *alias_name, interface_info_t *info) {
     return -1;
 }
 
+/* Common helper: send a control message to the per-interface controller queue
+   and ensure its controller thread exists. Returns 0 on success, -1 on error. */
+int DhcpMgr_OpenQueueEnsureThread(interface_info_t *info)
+{
+    if (!info)
+    {
+        DHCPMGR_LOG_ERROR("%s %d Invalid info argument\n", __FUNCTION__, __LINE__);
+        return -1;
+    }
+    if (info->if_name[0] == '\0')
+    {
+        DHCPMGR_LOG_ERROR("%s %d Missing interface name in info\n", __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    memset(info->mq_name, 0, sizeof(info->mq_name));
+    snprintf(info->mq_name, sizeof(info->mq_name), "/mq_if_%s", info->if_name);
+    DHCPMGR_LOG_INFO("%s %d Attempting to open message queue %s\n", __FUNCTION__, __LINE__, info->mq_name);
+
+    mqd_t mq_desc = mq_open(info->mq_name, O_WRONLY | O_NONBLOCK);
+    if (mq_desc == (mqd_t)-1)
+    {
+        DHCPMGR_LOG_ERROR("%s %d Failed to open message queue %s\n", __FUNCTION__, __LINE__, info->mq_name);
+        return -1;
+    }
+
+    info->mq_desc = mq_desc;
+    info->thread_running = TRUE;
+
+    interface_info_t tmp_info;
+    memset(&tmp_info, 0, sizeof(tmp_info));
+    if (find_or_create_interface(info->if_name, &tmp_info) == 0)
+    {
+        if (!tmp_info.thread_running)
+        {
+            if (create_interface_thread(info->mq_name) == 0)
+            {
+                DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, info->if_name);
+                tmp_info.thread_running = TRUE;
+                strncpy(tmp_info.if_name, info->if_name, MAX_STR_LEN - 1);
+                strncpy(tmp_info.mq_name, info->mq_name, MAX_STR_LEN - 1);
+                update_interface_info(info->if_name, &tmp_info);
+            }
+            else
+            {
+                DHCPMGR_LOG_ERROR("%s %d Failed to create controller thread for %s\n", __FUNCTION__, __LINE__, info->if_name);
+                mq_close(mq_desc);
+                return -1;
+            }
+        }
+        else
+        {
+            DHCPMGR_LOG_INFO("%s %d Thread already running for %s\n", __FUNCTION__, __LINE__, info->if_name);
+        }
+    }
+
+    /* Send the filled info to the controller queue */
+    if (mq_send(info->mq_desc, (char*)info, sizeof(*info), 0) == -1)
+    {
+        DHCPMGR_LOG_ERROR("%s %d Failed to send message to queue %s\n", __FUNCTION__, __LINE__, info->mq_name);
+        mq_close(mq_desc);
+        return -1;
+    }
+
+    DHCPMGR_LOG_INFO("%s %d Successfully sent message to controller queue %s\n", __FUNCTION__, __LINE__, info->mq_name);
+    mq_close(mq_desc);
+    return 0;
+}
+
 #ifdef FEATURE_RDKB_WAN_MANAGER
 static ANSC_STATUS RdkBus_GetParamValues( char *pComponent, char *pBus, char *pParamName, char *pReturnVal )
 {

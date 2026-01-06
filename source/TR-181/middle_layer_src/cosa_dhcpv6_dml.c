@@ -1070,46 +1070,15 @@ Client3_SetParamBoolValue
 
         interface_info_t info;
         AnscZeroMemory(&info, sizeof(interface_info_t));
-
-        if (find_or_create_interface(pDhcpc->Cfg.Interface, &info) == 0) {
-            /* Create the message queue for this interface if not already created */
-            if (info.mq_desc == (mqd_t)-1) {
-                if (create_message_queue(pDhcpc->Cfg.Interface, &info.mq_name, &info.mq_desc) == 0) {
-                    DHCPMGR_LOG_INFO("%s %d: Message queue created with name: %s\n", __FUNCTION__, __LINE__, info.mq_name);
-                } else {
-                    DHCPMGR_LOG_ERROR("%s %d: Failed to create message queue for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-                    return FALSE;
-                }
-            }
-            
-            if (!info.thread_running) {
-                if (create_interface_thread(info.mq_name) == 0) {
-                    DHCPMGR_LOG_INFO("%s %d: Controller thread started for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-                    info.thread_running = true;
-                    /* Update the global interface info */
-                    update_interface_info(pDhcpc->Cfg.Interface, &info);
-                } else {
-                    DHCPMGR_LOG_ERROR("%s %d: Failed to create controller thread for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-                    return FALSE;
-                }
-            } else {
-                DHCPMGR_LOG_INFO("%s %d: Thread already running for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-            }
-            
-            strcpy(info.msg.ParamName, ParamName);
-            info.msg.value.bValue = bValue;
-            info.msg.valueType = DML_SET_MSG_TYPE_BOOL;
-            info.dhcpType = DML_DHCPV6; //DHCPv6 =2 
-
-            /* Send status message to the interface queue */
-            if (mq_send(info.mq_desc, (char*)&info, sizeof(info), 0) == -1) {
-                DHCPMGR_LOG_ERROR("%s %d: Failed to send status to interface queue %s\n", __FUNCTION__, __LINE__, info.mq_name);
-            } else {
-                DHCPMGR_LOG_INFO("%s %d: Status sent to interface queue %s\n", __FUNCTION__, __LINE__, info.mq_name);
-                return TRUE;
-            }
+        strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+        info.dhcpType = DML_DHCPV6;
+        strcpy(info.msg.ParamName, ParamName);
+        info.msg.value.bValue = bValue;
+        info.msg.valueType = DML_SET_MSG_TYPE_BOOL;
+        if (DhcpMgr_OpenQueueEnsureThread(&info) != 0) {
+            DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
         } else {
-            DHCPMGR_LOG_ERROR("%s %d: Failed to find/create interface %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+            return TRUE;
         }
     }
     
