@@ -22,12 +22,17 @@
 #include "util.h"
 #include "ifl.h"
 #include "ipc_msg.h"
+#include "ccsp/autoconf.h"
+#include "ccsp/platform_hal.h"
+#include "voice_dhcp_hal.h"
+#include "syscfg/syscfg.h"
 
 static int DhcpMgr_Option17Set_Common(const char *ifName, const char *OptionValue,uint32_t *ipv6_TimeOffset);
 #ifdef EROUTER_DHCP_OPTION_MTA
 static int set_mta_config(const char *OptionValue, char *version);
 #endif
 
+#if 0
 // Weak function implementations
 __attribute__((weak)) int Get_DhcpV4_CustomOption60(const char *ifName, char *OptionValue,size_t OptionValueSize) 
 {
@@ -37,6 +42,7 @@ __attribute__((weak)) int Get_DhcpV4_CustomOption60(const char *ifName, char *Op
     DHCPMGR_LOG_INFO("%s %d Weak implementation of Get_DhcpV4_CustomOption60 \n", __FUNCTION__, __LINE__);
     return -1;
 }
+#endif
 
 __attribute__((weak)) int Get_DhcpV4_CustomOption61(const char *ifName, char *OptionValue, size_t OptionValueSize) 
 {
@@ -94,6 +100,7 @@ __attribute__((weak)) int Set_DhcpV6_CustomOption17(const char *ifName, const ch
     return DhcpMgr_Option17Set_Common(ifName, OptionValue, ipv6_TimeOffset);
 }
 
+#if 0
 __attribute__((weak)) int Get_DhcpV4_CustomOption43(const char *ifName, char *OptionValue, size_t OptionValueSize) 
 {
     (void)ifName;
@@ -102,7 +109,7 @@ __attribute__((weak)) int Get_DhcpV4_CustomOption43(const char *ifName, char *Op
     DHCPMGR_LOG_INFO("%s %d Weak implementation of Get_DhcpV4_CustomOption43 \n", __FUNCTION__, __LINE__);
     return -1;
 }
-
+#endif
 __attribute__((weak)) int Set_DhcpV4_CustomOption43(const char *ifName, const char *OptionValue)
 {
     (void)ifName;
@@ -476,6 +483,35 @@ static int set_mta_config(const char *OptionValue, char *version)
 #endif
 
 #if defined (SCXF10)
+static void readMacAddress (char * pMacAddress, int iMacBufSize)
+{
+    if (pMacAddress == NULL || iMacBufSize <= 0)
+    {
+        DHCPMGR_LOG_ERROR("%s %d: Invalid args..\n", __FUNCTION__, __LINE__);
+        return;
+    }
+
+	FILE *pFILE = fopen("/tmp/factory_nvram.data", "r");
+	if (pFILE != NULL)
+	{
+		char cLine[128] = {0};
+		while (fgets(cLine, sizeof(cLine), pFILE) != NULL)
+		{
+			if (strncmp(cLine, "EMTA ",5) == 0)
+			{
+				char *pMac = cLine + 5;
+				pMac[strcspn(pMac, "\n")] = 0; // Remove newline character
+				snprintf(pMacAddress, iMacBufSize, "%s", pMac);
+				break;
+			}
+		}
+		fclose(pFILE);
+	}
+    else
+    {
+        CcspTraceError(("%s: Failed to open /tmp/factory_nvram.data\n", __FUNCTION__));
+    }
+}
 static int prepareDhcpOption43(char *pOptionValue, size_t iOptionValueSize)
 {
     srand((unsigned int)time(NULL));
@@ -488,19 +524,22 @@ static int prepareDhcpOption43(char *pOptionValue, size_t iOptionValueSize)
 
     snprintf (sDhcpOption43RawData.cVendorName, sizeof(sDhcpOption43RawData.cVendorName), CONFIG_VENDOR_NAME);
     snprintf (sDhcpOption43RawData.cOUID, sizeof(sDhcpOption43RawData.cOUID), CONFIG_VENDOR_ID);
-    if (RETURN_OK != platform_hal_GetModelName(sDhcpOption43RawData.cModelNumber, sizeof(sDhcpOption43RawData.cModelNumber)))
+    if (RETURN_OK != platform_hal_GetModelName(sDhcpOption43RawData.cModelNumber))
         DHCPMGR_LOG_ERROR("%s %d: platform_hal_GetModelName failed..\n", __FUNCTION__, __LINE__);
-    if (RETURN_OK != platform_hal_GetSerialNumber(sDhcpOption43RawData.cSerialNumber, sizeof(sDhcpOption43RawData.cSerialNumber)))
+    if (RETURN_OK != platform_hal_GetSerialNumber(sDhcpOption43RawData.cSerialNumber))
         DHCPMGR_LOG_ERROR("%s %d: platform_hal_GetSerialNumber failed..\n", __FUNCTION__, __LINE__);
-    if (RETURN_OK != platform_hal_GetHardwareVersion(sDhcpOption43RawData.cHardwareVersion, sizeof(sDhcpOption43RawData.cHardwareVersion)))
+    if (RETURN_OK != platform_hal_GetHardwareVersion(sDhcpOption43RawData.cHardwareVersion))
         DHCPMGR_LOG_ERROR("%s %d: platform_hal_GetHardwareVersion failed..\n", __FUNCTION__, __LINE__);
     if (RETURN_OK != platform_hal_GetFirmwareName(sDhcpOption43RawData.cSoftwareVersion, sizeof(sDhcpOption43RawData.cSoftwareVersion)))
         DHCPMGR_LOG_ERROR("%s %d: platform_hal_GetFirmwareName failed..\n", __FUNCTION__, __LINE__);
     if (RETURN_OK != platform_hal_GetBootloaderVersion(sDhcpOption43RawData.cBootLoaderVersion, sizeof(sDhcpOption43RawData.cBootLoaderVersion)))
         DHCPMGR_LOG_ERROR("%s %d: platform_hal_GetBootloaderVersion failed..\n", __FUNCTION__, __LINE__);
-    if (RETURN_OK != platform_hal_GetMtaMacAddress(sDhcpOption43RawData.cMtaMacAddress, sizeof(sDhcpOption43RawData.cMtaMacAddress)))
+#if 0 //It is stubbed in platform_hal_oem.c
+    if (RETURN_OK != platform_hal_GetMtaMacAddress(sDhcpOption43RawData.cMtaMacAddress))
         DHCPMGR_LOG_ERROR("%s %d: platform_hal_GetMtaMacAddress failed..\n", __FUNCTION__, __LINE__);
-
+#else
+    readMacAddress(sDhcpOption43RawData.cMtaMacAddress, sizeof(sDhcpOption43RawData.cMtaMacAddress));
+#endif
     DHCPMGR_LOG_INFO("%s %d: Preparing DHCP Option 43, Values are\n", __FUNCTION__, __LINE__);
     DHCPMGR_LOG_INFO("VendorName=%s\n", sDhcpOption43RawData.cVendorName);
     DHCPMGR_LOG_INFO("OUID=%s\n", sDhcpOption43RawData.cOUID);
@@ -578,7 +617,7 @@ static int prepareDhcpOption43(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = 0x1F; //Suboption Type
     cHexBuf[iIndex++] = 0x06; //As per dhcp option 60 type 1F MAC address length is 6 bytes
     unsigned char cMtaMacAddress[6] = {0};
-    if (sscanf(sDhcpOption43RawData.cMtaMacAddress, "%02x:%02x:%02x:%02x:%02x:%02x",
+    if (sscanf(sDhcpOption43RawData.cMtaMacAddress, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
         &cMtaMacAddress[0], &cMtaMacAddress[1], &cMtaMacAddress[2],
         &cMtaMacAddress[3], &cMtaMacAddress[4], &cMtaMacAddress[5]) == 6)
     {
@@ -587,7 +626,7 @@ static int prepareDhcpOption43(char *pOptionValue, size_t iOptionValueSize)
     }
     else
     {
-        if (sscanf(sDhcpOption43RawData.cMtaMacAddress, "%02x%02x%02x%02x%02x%02x",
+        if (sscanf(sDhcpOption43RawData.cMtaMacAddress, "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
             &cMtaMacAddress[0], &cMtaMacAddress[1], &cMtaMacAddress[2],
             &cMtaMacAddress[3], &cMtaMacAddress[4], &cMtaMacAddress[5]) == 6)
         {
@@ -653,9 +692,9 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     DHCPMGR_LOG_INFO("httpDownload=%d\n", sVoicePktcCapabilities.httpDownload);
     DHCPMGR_LOG_INFO("nvramInfoStorage=%d\n", sVoicePktcCapabilities.nvramInfoStorage);
     DHCPMGR_LOG_INFO("supportedCodecs=");
-    for (int ind=0; i < stringlen(sVoicePktcCapabilities.supportedCodecs); ind++)
+    for (long unsigned int iIndex=0; iIndex < sizeof(sVoicePktcCapabilities.supportedCodecs); iIndex++)
     {
-        DHCPMGR_LOG_INFO("%02x ", sVoicePktcCapabilities.supportedCodecs[ind]);
+        DHCPMGR_LOG_INFO("%02x ", sVoicePktcCapabilities.supportedCodecs[iIndex]);
     }
     DHCPMGR_LOG_INFO("\n");
     DHCPMGR_LOG_INFO("silenceSuppression=%d\n", sVoicePktcCapabilities.silenceSuppression);
@@ -668,9 +707,9 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     DHCPMGR_LOG_INFO("rfc2833=%d\n", sVoicePktcCapabilities.rfc2833);
     DHCPMGR_LOG_INFO("voiceMetrics=%d\n", sVoicePktcCapabilities.voiceMetrics);
     DHCPMGR_LOG_INFO("supportedMibs=");
-    for (int ind=0; i < stringlen(sVoicePktcCapabilities.supportedMibs); ind++)
+    for (long unsigned int iIndex=0; iIndex < sizeof(sVoicePktcCapabilities.supportedMibs); iIndex++)
     {
-        DHCPMGR_LOG_INFO("%02x ", sVoicePktcCapabilities.supportedMibs[ind]);
+        DHCPMGR_LOG_INFO("%02x ", sVoicePktcCapabilities.supportedMibs[iIndex]);
     }
     DHCPMGR_LOG_INFO("\n");
     DHCPMGR_LOG_INFO("multiGrants=%d\n", sVoicePktcCapabilities.multiGrants);
@@ -816,7 +855,7 @@ int Get_DhcpV4_CustomOption60(const char *ifName, char *OptionValue,size_t Optio
         return -1;
     }
     #if defined (SCXF10)
-    char cIfName[IF_NAME_SIZE] = {0};
+    char cIfName[32] = {0};
     syscfg_get(NULL, "VoiceSupport_IfaceName", cIfName, sizeof(cIfName));
     if (0 == strcmp(ifName, cIfName))
     {
@@ -830,7 +869,7 @@ int Get_DhcpV4_CustomOption60(const char *ifName, char *OptionValue,size_t Optio
     #endif
 }
 
-int int Get_DhcpV4_CustomOption43(const char *ifName, char *OptionValue, size_t OptionValueSize)
+int Get_DhcpV4_CustomOption43(const char *ifName, char *OptionValue, size_t OptionValueSize)
 {
     if (NULL == ifName || NULL == OptionValue || 0 == OptionValueSize)
     {
@@ -838,7 +877,7 @@ int int Get_DhcpV4_CustomOption43(const char *ifName, char *OptionValue, size_t 
         return -1;
     }
     #if defined (SCXF10)
-    char cIfName[IF_NAME_SIZE] = {0};
+    char cIfName[32] = {0};
     syscfg_get(NULL, "VoiceSupport_IfaceName", cIfName, sizeof(cIfName));
     if (0 == strcmp(ifName, cIfName))
     {
