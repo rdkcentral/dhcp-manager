@@ -45,7 +45,7 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
  ***********************************************************************/
 rbusDataElement_t DhcpMgrRbusDataElements[] = {
     {DHCP_MGR_DHCPv4_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
-    {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
+    {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {getDataHandler, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
     {DHCP_MGR_DHCPv6_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
     {DHCP_MGR_DHCPv6_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
 };
@@ -173,6 +173,11 @@ static void DhcpMgr_createLeaseInfoMsg(DHCPv4_PLUGIN_MSG *src, DHCP_MGR_IPV4_MSG
     strncpy(dest->dnsServer, src->dnsServer, sizeof(dest->dnsServer) - 1);
     strncpy(dest->dnsServer1, src->dnsServer1, sizeof(dest->dnsServer1) - 1);
     strncpy(dest->timeZone, src->timeZone, sizeof(dest->timeZone) - 1);
+    strncpy(dest->cOption122, src->mtaOption.option_122, sizeof(dest->cOption122) - 1);
+    strncpy(dest->cOption67, src->mtaOption.cOption67, sizeof(dest->cOption67) - 1);
+    strncpy(dest->cTftpServer, src->cTftpServer, sizeof(dest->cTftpServer) - 1);
+    strncpy(dest->cHostName, src->cHostName, sizeof(dest->cHostName) - 1);
+    strncpy(dest->cDomainName, src->cDomainName, sizeof(dest->cDomainName) - 1);
     dest->mtuSize = src->mtuSize;
     dest->timeOffset = src->timeOffset;
     dest->isTimeOffsetAssigned = src->isTimeOffsetAssigned;
@@ -257,6 +262,13 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
 }
 
+rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
+{
+    (void)rbusHandle;
+    (void)pRbusGetHandlerOptions;
+    (void)rbusProperty;
+    return RBUS_ERROR_SUCCESS;
+}
 /**
  * @brief Publishes DHCPv4 rbus events.
  *
@@ -290,6 +302,8 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
     rbusObject_t rdata;
     rbusValue_t ifNameVal , typeVal, leaseInfoVal;
 
+    DHCPMGR_LOG_INFO("%s %d - Publishing DHCPv4 Event for Interface %s with MsgType %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, msgType);
+
     /*Set Interface Name */
     rbusObject_Init(&rdata, NULL);
     rbusValue_Init(&ifNameVal);
@@ -307,6 +321,11 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
         DHCP_MGR_IPV4_MSG leaseInfo;
         memset(&leaseInfo, 0, sizeof(leaseInfo));
         DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease,&leaseInfo);
+        DHCPMGR_LOG_INFO("%s %d - Mta Option 122: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->mtaOption.option_122);
+        DHCPMGR_LOG_INFO("%s %d - Mta Option 67: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->mtaOption.cOption67);
+        DHCPMGR_LOG_INFO("%s %d - cTftpServer: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->cTftpServer);
+        DHCPMGR_LOG_INFO("%s %d - HostName: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->cHostName);
+        DHCPMGR_LOG_INFO("%s %d - DomainName: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->cDomainName);
         rbusValue_Init(&leaseInfoVal);
         rbusValue_SetBytes(leaseInfoVal, &leaseInfo, sizeof(leaseInfo));
         rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);

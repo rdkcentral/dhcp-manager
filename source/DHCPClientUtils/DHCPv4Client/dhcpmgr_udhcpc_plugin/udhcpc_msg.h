@@ -24,9 +24,13 @@
 #define DHCP_ACK_OPT59 "opt59"
 #define DHCP_MTA_IPV4 "opt122"
 #define DHCP_MTA_IPV6 "opt125"
+#define DHCP_BOOT_FILE "bootfile" //Boot file name
 #define DHCP_REBINDING_TIME "rebindingtime"
 #define DHCP_SERVER_ID "serverid"
 #define DHCP_SIPSRV "sipsrv"
 #define DHCP_STATIC_ROUTES "staticroutes"
+#define DHCP_TFTP_SERVER "siaddr"
+#define DHCP_HOST_NAME "hostname"
+#define DHCP_DOMAIN_NAME "domainname"
 
 #endif
