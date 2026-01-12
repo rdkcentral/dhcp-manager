@@ -2061,8 +2061,6 @@ void prepare_static_dns_urls(FILE *fp_local_dhcp_conf)
         char  l_cLine[ 128 ]            = { 0 };
         FILE *l_fStaticDns_Urls         = NULL;
 
-        DHCPMGR_LOG_INFO();
-
         l_fStaticDns_Urls = fopen( STATIC_DNS_URLS_FILE, "r" );
         if (NULL != l_fStaticDns_Urls)
         {

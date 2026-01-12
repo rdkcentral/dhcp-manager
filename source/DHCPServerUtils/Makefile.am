@@ -26,3 +26,7 @@ endif
 if DHCPV6_SERVER_SUPPORT
 SUBDIRS += DHCPv6Server
 endif
+
+if DHCP_SERVER_SUPPORT
+SUBDIRS += SM_DHCPServer
+endif
