@@ -507,7 +507,8 @@ int create_dhcpsv6_config(DhcpPayload *lanConfigs, int LanConfig_count, bool sta
     config.interfaces = interfaces;
     config.num_interfaces = configured_count;
 
-    int ret = dhcpv6_server_create(&config, DHCPV6_SERVER_TYPE_STATEFUL);
+//    int ret = dhcpv6_server_create(&config, DHCPV6_SERVER_TYPE_STATEFUL);
+    int ret = -1;
     if (ret != 0) {
         DHCPMGR_LOG_ERROR("%s:%d Failed to create DHCPv6 server configuration (ret=%d)\n", __FUNCTION__, __LINE__, ret);
         free(interfaces);

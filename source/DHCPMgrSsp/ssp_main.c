@@ -74,7 +74,7 @@
 #endif
 
 #include "util.h"
-
+#include "sm_DhcpMgr.h"
 #include "dhcpmgr_controller.h"
 #include "dhcpmgr_rbus_apis.h"
 
@@ -424,7 +424,7 @@ DHCPMGR_LOG_WARNING("\nAfter Cdm_Init\n");
         exit(1);
     }
 
-#ifdef DHCPV4_SERVER_SUPPORT
+/*#ifdef DHCPV4_SERVER_SUPPORT
     //Init dhcpv4 server
     DHCPMGR_LOG_INFO("dhcp_server_init (dhcpv4 server) Started\n");
     dhcp_server_init();
@@ -443,7 +443,7 @@ DHCPMGR_LOG_WARNING("\nAfter Cdm_Init\n");
     DHCPMGR_LOG_INFO("init_dhcp_server_service Started\n");
     init_dhcp_server_service();
     DHCPMGR_LOG_INFO("init_dhcp_server_service Ended\n");
-#endif
+#endif*/
 
     DHCPMGR_LOG_INFO("DhcpMgr_Rbus_Init Init \n");
     DhcpMgr_Rbus_Init();
@@ -451,6 +451,9 @@ DHCPMGR_LOG_WARNING("\nAfter Cdm_Init\n");
     DHCPMGR_LOG_INFO("DhcpMgr_StartMainController Init \n");
     DhcpMgr_StartMainController();
     DHCPMGR_LOG_INFO("DhcpMgr_StartMainController Init Complete\n");
+
+    DHCPMGR_LOG_INFO("DhcpMgr Server Initialization\n");
+    dhcp_server_init_main();
 
     system("touch /tmp/dhcpmgr_initialized");
 

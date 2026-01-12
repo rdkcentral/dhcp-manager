@@ -10,6 +10,9 @@
 
 
 #define SERVER_BIN "dibbler-server"
+/* Define the global MQ descriptors declared in mq_shared.h */
+mqd_t mq_dispatch = (mqd_t)-1; /* MQ_NAME (/lan_sm_queue) */
+mqd_t mq_fsm = (mqd_t)-1;      /* SM_MQ_NAME (/lan_fsm_queue) */
 
 static DHCPS_State mainState = DHCPS_STATE_IDLE;
 
@@ -228,7 +231,7 @@ int Startv6s(void *payload) {
     (void)payload;
     dhcp_server_publish_state(DHCPS_STATE_STARTINGv6);
     DHCPMGR_LOG_INFO("%s:%d Starting DHCPv6 server\n", __FUNCTION__, __LINE__);
-    dhcpv6_server_start(SERVER_BIN, DHCPV6_SERVER_TYPE_STATEFUL);
+//    dhcpv6_server_start(SERVER_BIN, DHCPV6_SERVER_TYPE_STATEFUL);
     PostEvent(EVENT_STARTEDv6);
     dhcp_server_publish_state(DHCPS_STATE_IDLE);
     return 0;
@@ -237,7 +240,7 @@ int Startv6s(void *payload) {
 int Stopv6s( void *payload) {
     (void)payload;
     dhcp_server_publish_state(DHCPS_STATE_STOPPINGv6);
-    dhcpv6_server_stop(SERVER_BIN, DHCPV6_SERVER_TYPE_STATEFUL); // Using stateful to stop the server as a stub
+//    dhcpv6_server_stop(SERVER_BIN, DHCPV6_SERVER_TYPE_STATEFUL); // Using stateful to stop the server as a stub
     PostEvent(EVENT_STOPPEDv6);
     dhcp_server_publish_state(DHCPS_STATE_IDLE);
     DHCPMGR_LOG_INFO("%s:%d Stopping DHCPv6 server\n", __FUNCTION__, __LINE__);

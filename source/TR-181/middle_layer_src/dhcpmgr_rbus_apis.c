@@ -19,9 +19,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include "dhcpmgr_rbus_apis.h"
 #include "cosa_dhcpv4_apis.h"
 #include "cosa_dhcpv6_apis.h"
+#include <mqueue.h>
 
 #include "util.h"
 #include "dhcpv4_interface.h"
@@ -34,6 +37,17 @@
 #define  MAC_ADDR_SIZE 18
 static rbusHandle_t rbusHandle;
 char *componentName = "DHCPMANAGER";
+
+typedef enum {
+    DM_EVENT_STARTv4,
+    DM_EVENT_RESTARTv4,
+    DM_EVENT_CONF_CHANGEDv4,
+    DM_EVENT_STOPv4,
+    DM_EVENT_STARTv6,
+    DM_EVENT_RESTARTv6,
+    DM_EVENT_CONF_CHANGEDv6,
+    DM_EVENT_STOPv6
+} DhcpMgr_DispatchEvent;
 
 rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
 
@@ -48,6 +62,10 @@ rbusDataElement_t DhcpMgrRbusDataElements[] = {
     {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
     {DHCP_MGR_DHCPv6_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
     {DHCP_MGR_DHCPv6_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
+    {DHCPMGR_SERVERv4_EVENT,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, DhcpMgr_Event_SetHandler, NULL, NULL, NULL, NULL}},
+    {DHCPMGR_SERVERv6_EVENT,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, DhcpMgr_Event_SetHandler, NULL, NULL, NULL, NULL}},
+    {DHCPMGR_SERVER_READY,    RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, NULL, NULL}},
+    {DHCPMGR_SERVER_STATE,    RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, NULL, NULL}},
 };
 
 
@@ -433,3 +451,168 @@ int DhcpMgr_PublishDhcpV6Event(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MESSAGE_TYP
 
     return rc;
 }
+
+
+/****************DHCPServer Events ****************/
+
+rbusError_t DhcpMgr_Publish_Events(char *statestr,char * paramName,char * eventName)
+{
+    if(statestr == NULL)
+    {
+        DHCPMGR_LOG_ERROR("%s:%d Invalid state string\n", __FUNCTION__, __LINE__);
+        return RBUS_ERROR_BUS_ERROR;
+    }
+    
+    int rc = -1;
+    rbusEvent_t event;
+    rbusObject_t rdata;
+    rbusValue_t paramNameVal;
+
+    //Set the event name and value
+    rbusObject_Init(&rdata, NULL);
+    rbusValue_Init(&paramNameVal);
+    rbusValue_SetString(paramNameVal, (char*)statestr);
+    rbusObject_SetValue(rdata, paramName, paramNameVal);
+
+    event.name = eventName;
+    event.data = rdata;
+    event.type = RBUS_EVENT_GENERAL;
+
+    rbusError_t rt = rbusEvent_Publish(rbusHandle, &event);
+
+    if( rt != RBUS_ERROR_SUCCESS && rt != RBUS_ERROR_NOSUBSCRIBERS)
+    {
+        DHCPMGR_LOG_ERROR("%s:%d Event %s Publish Failed\n", __FUNCTION__, __LINE__, eventName);
+    }
+    else
+    {
+        DHCPMGR_LOG_INFO("%s:%d Event %s Published\n", __FUNCTION__, __LINE__, eventName);
+        rc = 0;
+    }
+
+    rbusValue_Release(paramNameVal);
+    rbusObject_Release(rdata);
+
+    return rc;
+}
+
+int rbus_GetLanDHCPConfig(const char** payload)
+{
+    DHCPMGR_LOG_INFO("%s:%d Fetching LAN DHCP Configurations\n", __FUNCTION__, __LINE__);
+    rbusValue_t value = NULL;
+
+    // Get the value from LanManager
+    rbusError_t rc = rbus_get(rbusHandle, "Device.LanManager.DhcpConfig", &value);
+    if (rc != RBUS_ERROR_SUCCESS)
+    {
+        DHCPMGR_LOG_ERROR("%s:%d Failed to fetch LAN DHCP Configurations, rbus_get returned %d\n", __FUNCTION__, __LINE__, rc);
+        return -1;
+    }
+
+    // Extract the payload from the value
+    if (value == NULL)
+    {
+        DHCPMGR_LOG_ERROR("%s:%d Payload not found in the response value\n", __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    *payload = rbusValue_GetString(value, NULL);
+    if (*payload == NULL)
+    {
+        DHCPMGR_LOG_ERROR("%s:%d Failed to retrieve payload string\n", __FUNCTION__, __LINE__);
+        return -1;
+    }
+
+    // Parse the payload and populate lanConfigs
+    DHCPMGR_LOG_INFO("%s:%d Received Payload: %s\n", __FUNCTION__, __LINE__, *payload);
+    // Add your parsing logic here to populate lanConfigs and LanConfig_count
+
+    return 0;
+}
+
+rbusError_t DhcpMgr_Event_SetHandler(rbusHandle_t handle, rbusProperty_t property, rbusSetHandlerOptions_t* options)
+{
+    (void)handle;
+    (void)options;
+    DHCPMGR_LOG_INFO("%s:%d Event Set Handler called\n", __FUNCTION__, __LINE__);
+    const char* paramName = rbusProperty_GetName(property);
+    rbusValue_t paramValue = rbusProperty_GetValue(property);
+    const char* paramValueStr = rbusValue_GetString(paramValue, NULL);
+
+    DhcpMgr_DispatchEvent mq_event = -1;
+
+    if (strcmp(paramName, "Device.DHCP.Server.v4.Event") == 0 && strcmp(paramValueStr, "start") == 0)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter is 'Device.DHCP.Server.v4.Event' and value is 'start'\n", __FUNCTION__, __LINE__);
+        mq_event = DM_EVENT_STARTv4; /* map to DhcpManagerEvent */
+    }
+    else if (strcmp(paramName, "Device.DHCP.Server.v4.Event") == 0 && strcmp(paramValueStr, "stop") == 0)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter is 'Device.DHCP.Server.v4.Event' and value is 'stop'\n", __FUNCTION__, __LINE__);
+        mq_event = DM_EVENT_STOPv4; /* map to DhcpManagerEvent */
+    }
+    else if (strcmp(paramName, "Device.DHCP.Server.v4.Event") == 0 && strcmp(paramValueStr, "restart") == 0)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter is 'Device.DHCP.Server.v4.Event' and value is 'restart'\n", __FUNCTION__, __LINE__);
+        mq_event = DM_EVENT_RESTARTv4; /* map to DhcpManagerEvent */
+    }
+    else if (strcmp(paramName, "Device.DHCP.Server.v6.Event") == 0 && strcmp(paramValueStr, "start") == 0)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter is 'Device.DHCP.Server.v6.Event' and value is 'start'\n", __FUNCTION__, __LINE__);
+        mq_event = DM_EVENT_STARTv6; /* map to DhcpManagerEvent */
+    }
+    else if (strcmp(paramName, "Device.DHCP.Server.v6.Event") == 0 && strcmp(paramValueStr, "stop") == 0)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter is 'Device.DHCP.Server.v6.Event' and value is 'stop'\n", __FUNCTION__, __LINE__);
+        mq_event = DM_EVENT_STOPv6; /* map to DhcpManagerEvent */
+    }
+    else if (strcmp(paramName, "Device.DHCP.Server.v6.Event") == 0 && strcmp(paramValueStr, "restart") == 0)
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter is 'Device.DHCP.Server.v6.Event' and value is 'restart'\n", __FUNCTION__, __LINE__);
+        mq_event = DM_EVENT_RESTARTv6; /* map to DhcpManagerEvent */
+    }
+    else
+    {
+        DHCPMGR_LOG_INFO("%s:%d Parameter or value did not match\n", __FUNCTION__, __LINE__);
+    }
+
+    /* If we mapped an event, send it over the POSIX message queue to the state machine. */
+    if (mq_event >= 0) {
+        mqd_t mq = mq_open(MQ_NAME, O_WRONLY);
+        if (mq == (mqd_t)-1) {
+            /* queue not available - try to create it */
+            if (errno == ENOENT) {
+                struct mq_attr attr;
+                attr.mq_flags = 0;
+                attr.mq_maxmsg = 10;
+                attr.mq_msgsize = sizeof(DhcpMgr_DispatchEvent);
+                attr.mq_curmsgs = 0;
+
+                mq = mq_open(MQ_NAME, O_CREAT | O_WRONLY, 0666, &attr);
+                if (mq == (mqd_t)-1) {
+                    DHCPMGR_LOG_ERROR("%s:%d Failed to create MQ '%s' to send event %d: %s\n", __FUNCTION__, __LINE__, MQ_NAME, mq_event, strerror(errno));
+                    return RBUS_ERROR_BUS_ERROR;
+                }
+            } else {
+                DHCPMGR_LOG_ERROR("%s:%d Failed to open MQ '%s' to send event %d: %s\n", __FUNCTION__, __LINE__, MQ_NAME, mq_event, strerror(errno));
+                return RBUS_ERROR_BUS_ERROR;
+            }
+        }
+
+        if (mq_send(mq, (const char*)&mq_event, sizeof(mq_event), 0) == -1) {
+            int errsv = errno;
+            DHCPMGR_LOG_ERROR("%s:%d mq_send failed: %s (event %d to %s)\n", __FUNCTION__, __LINE__, strerror(errsv), mq_event, MQ_NAME);
+            mq_close(mq);
+            return RBUS_ERROR_BUS_ERROR;
+        }
+
+        DHCPMGR_LOG_INFO("%s:%d Sent event %d to MQ %s\n", __FUNCTION__, __LINE__, mq_event, MQ_NAME);
+        mq_close(mq);
+        return RBUS_ERROR_SUCCESS;
+    }
+
+    return RBUS_ERROR_SUCCESS;
+}
+
+
+/* End of DHCPServer RBUS APIs */

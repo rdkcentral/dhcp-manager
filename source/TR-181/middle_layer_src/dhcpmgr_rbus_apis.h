@@ -37,6 +37,12 @@
 #define DHCP_MGR_DHCPv6_TABLE "Device.DHCPv6.Client"
 #define DHCP_MGR_DHCPv6_STATUS "Device.DHCPv6.Client.{i}.Events"
 #define DHCPv6_EVENT_FORMAT "Device.DHCPv6.Client.%d.Events"
+#define DHCPMGR_SERVERv4_EVENT "Device.DHCP.Server.v4.Event"
+#define DHCPMGR_SERVERv6_EVENT "Device.DHCP.Server.v6.Event"
+#define DHCPMGR_SERVER_READY "Device.DHCP.Server.StateReady"
+#define DHCPMGR_SERVER_STATE "Device.DHCP.Server.State"
+#define LAN_DHCP_CONFIG "Device.LanManager.DhcpConfig"
+#define MQ_NAME "/lan_sm_queue"
 
 /**
  * @brief Initializes the DHCP Manager by opening an rbus handle and registering rbus DML, DML tables, and rbus events.
@@ -93,5 +99,14 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
  * @retval -1 if there is an error in publishing the event.
  */
 int DhcpMgr_PublishDhcpV6Event(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MESSAGE_TYPE msgType);
+
+/*DHCPServer Events */
+
+rbusError_t DhcpMgr_Publish_Events(char *statestr,char * paramName,char * eventName);
+int rbus_GetLanDHCPConfig(const char** payload);
+rbusError_t DhcpMgr_Event_SetHandler(rbusHandle_t handle, rbusProperty_t property, rbusSetHandlerOptions_t* options);
+
+/*DHCPServer Events End*/
+
 #endif// _DHCPMGR_RBUS_H_
 
