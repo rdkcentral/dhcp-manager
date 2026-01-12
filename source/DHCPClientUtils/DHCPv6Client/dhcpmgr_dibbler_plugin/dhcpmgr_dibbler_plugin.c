@@ -255,13 +255,14 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
     /** AFTR (Access Gateway for DS-Lite) */
     if ((env = getenv(DHCPv6_OPTION_DSLITE)) != NULL)
     {
-        strncpy(dhcpv6_data->endpointName, env, sizeof(dhcpv6_data->endpointName));
-        trim(dhcpv6_data->endpointName);
-        DHCPMGR_LOG_INFO("[%s-%d] Endpoint name is %s\n", __FUNCTION__, __LINE__, dhcpv6_data->endpointName);
+        strncpy(dhcpv6_data->aftr, env, sizeof(dhcpv6_data->aftr) - 1);
+        dhcpv6_data->aftr[sizeof(dhcpv6_data->aftr) - 1] = '\0';
+        trim(dhcpv6_data->aftr);
+        DHCPMGR_LOG_INFO("[%s-%d] AFTR FQDN is %s\n", __FUNCTION__, __LINE__, dhcpv6_data->aftr);
     }
     else
     {
-        DHCPMGR_LOG_INFO("[%s-%d] Endpoint name is missing\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_INFO("[%s-%d] AFTR FQDN is missing\n", __FUNCTION__, __LINE__);
     }
 
     /** MAP-T Configuration */
