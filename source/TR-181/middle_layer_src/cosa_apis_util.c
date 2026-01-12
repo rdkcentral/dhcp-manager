@@ -143,18 +143,20 @@ int mark_thread_stopped(const char *alias_name) {
 }
 
 int find_or_create_interface(interface_info_t *info_in, interface_info_t *info_out) {
-//    DHCPMGR_LOG_INFO("%s %d: Finding or creating interface entry for %s\n", __FUNCTION__, __LINE__, alias_name);
+    DHCPMGR_LOG_INFO("%s %d: Finding or creating interface entry for %s\n", __FUNCTION__, __LINE__, info_in->if_name);
     pthread_mutex_lock(&global_mutex);
     
     /* Check if interface already exists */
     for (int i = 0; i < interface_count; i++) {
         if (strcmp(interfaces[i].if_name, info_in->if_name) == 0) {
             pthread_mutex_unlock(&global_mutex);
+            DHCPMGR_LOG_INFO("%s %d: Found existing interface entry for %s\n", __FUNCTION__, __LINE__, info_in->if_name);
             memcpy(info_out, &interfaces[i], sizeof(interface_info_t));
             return 0;
         }
     }
     
+    DHCPMGR_LOG_INFO("%s %d: Interface entry for %s not found, creating new entry\n", __FUNCTION__, __LINE__, info_in->if_name);
     /* Create new interface entry */
     if (interface_count >= MAX_INTERFACES) {
         DHCPMGR_LOG_ERROR("%s %d Maximum number of interfaces reached\n", __FUNCTION__, __LINE__);
@@ -254,13 +256,14 @@ int DhcpMgr_OpenQueueEnsureThread(interface_info_t *info)
     memset(&tmp_info, 0, sizeof(tmp_info));
     if (find_or_create_interface(info, &tmp_info) == 0)
     {
+        DHCPMGR_LOG_INFO("%s %d Thread running %d\n", __FUNCTION__, __LINE__, tmp_info.thread_running);
         if (!tmp_info.thread_running)
         {
             if (create_interface_thread(info->mq_name) == 0)
             {
                 DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, info->if_name);
                 tmp_info.thread_running = TRUE;
-//                update_interface_info(info->if_name, &tmp_info);   //TODO need to check why its required
+                update_interface_info(info->if_name, &tmp_info);   //TODO need to check why its required
             }
             else
             {
