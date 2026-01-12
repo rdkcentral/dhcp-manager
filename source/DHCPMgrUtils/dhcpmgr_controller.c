@@ -426,7 +426,7 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
 
 static void Process_DHCPv4_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 \n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL");
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL", if_name);
     PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
     ULONG ulIndex;
@@ -569,7 +569,7 @@ static void Process_DHCPv4_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
 
 static void Process_DHCPv6_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 \n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL");
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL", if_name);
 
     PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pDhcp6cxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
@@ -726,6 +726,7 @@ void* DhcpMgr_MainController( void *args )
     mqd_t mq_desc;
     struct timespec timeout;
     ssize_t bytes_read;
+    interface_info_t prev_info;
     interface_info_t info;
     char mq_name[MQ_NAME_LEN] = {0};
 
@@ -747,7 +748,7 @@ void* DhcpMgr_MainController( void *args )
         return NULL;
     }
 
-    DHCPMGR_LOG_INFO("%s %d: Message queue mq_if_%s opened successfully\n", __FUNCTION__, __LINE__, info.mq_name);
+    DHCPMGR_LOG_INFO("%s %d: Message queue mq_if_%s opened successfully\n", __FUNCTION__, __LINE__, mq_name);
 
     while (1)
     {
@@ -758,6 +759,7 @@ void* DhcpMgr_MainController( void *args )
         timeout.tv_sec += 5;
 
         memset(&info, 0, sizeof(interface_info_t));
+        memset(&prev_info, 0, sizeof(interface_info_t));
         DHCPMGR_LOG_INFO("%s %d: Waiting to receive message from queue %s\n", __FUNCTION__, __LINE__, mq_name);
 
         /* Try to receive message with 5 timeout */
@@ -767,8 +769,10 @@ void* DhcpMgr_MainController( void *args )
          {
             if (errno == ETIMEDOUT) 
             {
-                pthread_mutex_lock(&info.q_mutex); //MUTEX lock to drain the queue
-                DHCPMGR_LOG_INFO("%s %d Thread for mq_if_%s:  Cleaning up before exit...\n", __FUNCTION__, __LINE__, info.mq_name);
+                DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for queue %s\n", __FUNCTION__, __LINE__, info.if_name);
+                DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for previous info %s\n", __FUNCTION__, __LINE__, prev_info.if_name);
+                pthread_mutex_lock(&prev_info.q_mutex); //MUTEX lock to drain the queue
+                DHCPMGR_LOG_INFO("%s %d Thread for %s:  Cleaning up before exit...\n", __FUNCTION__, __LINE__, prev_info.mq_name);
                 break;
             }
             else 
@@ -778,19 +782,28 @@ void* DhcpMgr_MainController( void *args )
                 break;
             }
         }
+
+        memcpy(&prev_info, &info, sizeof(interface_info_t));
+        DHCPMGR_LOG_INFO("%s %d: Received message for interface %s\n", __FUNCTION__, __LINE__, prev_info.if_name);
+        DHCPMGR_LOG_INFO("%s %d: THread Runing=%d\n", __FUNCTION__, __LINE__, info.thread_running);
+
         if (info.dhcpType == DML_DHCPV4) 
         {
+            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler for interface %s\n", __FUNCTION__, __LINE__, info.if_name);
             Process_DHCPv4_Handler(info.if_name, &info.msg);
         } 
         else if (info.dhcpType == DML_DHCPV6) 
         {
+            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv6 Handler for interface %s\n", __FUNCTION__, __LINE__, info.if_name);
             Process_DHCPv6_Handler(info.if_name, &info.msg);
         }
     }
-    
-    mark_thread_stopped(info.if_name);
+
+    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, info.if_name);
+    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for previous interface %s\n", __FUNCTION__, __LINE__, prev_info.if_name);
+    mark_thread_stopped(prev_info.if_name);
     mq_close(mq_desc);
-    pthread_mutex_unlock(&info.q_mutex);
+    pthread_mutex_unlock(&prev_info.q_mutex);
     
     /* Mark thread as stopped so new one can be created if needed */
     DHCPMGR_LOG_INFO("%s %d: Exiting DhcpMgr_MainController thread for mq %s\n", __FUNCTION__, __LINE__, mq_name);

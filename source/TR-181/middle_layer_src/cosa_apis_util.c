@@ -137,7 +137,7 @@ int mark_thread_stopped(const char *alias_name) {
             return 0;
         }
     }
-    
+    DHCPMGR_LOG_INFO("%s %d: Thread for %s not found\n", __FUNCTION__, __LINE__, alias_name);
     pthread_mutex_unlock(&global_mutex);
     return -1;
 }
@@ -250,7 +250,7 @@ int DhcpMgr_OpenQueueEnsureThread(interface_info_t *info)
         }
     }
 
-    info->thread_running = TRUE;
+ //   info->thread_running = TRUE;
 
     interface_info_t tmp_info;
     memset(&tmp_info, 0, sizeof(tmp_info));
