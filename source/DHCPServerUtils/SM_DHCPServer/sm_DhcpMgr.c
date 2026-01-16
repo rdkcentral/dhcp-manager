@@ -74,7 +74,6 @@ void PostEvent(DhcpManagerEvent evt) {
      * (dispatch -> post -> dispatch...). Use mq_fsm so the
      * FSM_Dispatch_Thread receives DhcpManagerEvent values.
      */ 
-    extern mqd_t mq_fsm;
     if (mq_fsm == (mqd_t)-1) {
         DHCPMGR_LOG_ERROR("%s:%d PostEvent: FSM MQ not initialized\n", __FUNCTION__, __LINE__);
         return;
