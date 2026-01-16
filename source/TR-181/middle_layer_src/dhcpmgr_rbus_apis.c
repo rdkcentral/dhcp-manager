@@ -173,6 +173,10 @@ static void DhcpMgr_createLeaseInfoMsg(DHCPv4_PLUGIN_MSG *src, DHCP_MGR_IPV4_MSG
     strncpy(dest->dnsServer, src->dnsServer, sizeof(dest->dnsServer) - 1);
     strncpy(dest->dnsServer1, src->dnsServer1, sizeof(dest->dnsServer1) - 1);
     strncpy(dest->timeZone, src->timeZone, sizeof(dest->timeZone) - 1);
+    strncpy(dest->option_122, src->mtaOption.option_122, sizeof(dest->option_122) - 1);
+    strncpy(dest->option_66, src->mtaOption.option_66, sizeof(dest->option_66) - 1);
+    strncpy(dest->option_67, src->mtaOption.option_67, sizeof(dest->option_67) - 1);
+    strncpy(dest->option_125, src->mtaOption.option_125, sizeof(dest->option_125) - 1);
     dest->mtuSize = src->mtuSize;
     dest->timeOffset = src->timeOffset;
     dest->isTimeOffsetAssigned = src->isTimeOffsetAssigned;
