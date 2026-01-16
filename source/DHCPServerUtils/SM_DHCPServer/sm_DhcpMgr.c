@@ -291,6 +291,7 @@ void* FSM_Dispatch_Thread(void* arg)
     }
 
     free(buf);
+    DHCPMGR_LOG_ERROR("%s:%d Exit", __FUNCTION__, __LINE__);
     /* do not close mq_fsm here; main owns it */
     return NULL;
 }
