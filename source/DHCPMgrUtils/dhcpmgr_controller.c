@@ -424,9 +424,9 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
     return TRUE;
 }
 
-static void Process_DHCPv4_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
+static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL", if_name);
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName ? dml_set_msg.ParamName : "NULL", if_name);
     PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
     ULONG ulIndex;
@@ -454,33 +454,33 @@ static void Process_DHCPv4_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
         pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
         if(strncmp(pDhcpc->Cfg.Interface, if_name, sizeof(pDhcpc->Cfg.Interface)) == 0)
         {
-            if(dml_set_msg == NULL)
+            if(dml_set_msg.ParamName == NULL)
             {
                 DHCPMGR_LOG_INFO("%s %d: No ParamName received , skip processing DML check\n", __FUNCTION__, __LINE__);
             }
-            else if (strcmp(dml_set_msg->ParamName, "Enable") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "Enable") == 0 )
             {
-                pDhcpc->Cfg.bEnabled = dml_set_msg->value.bValue;
+                pDhcpc->Cfg.bEnabled = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg->ParamName, "Renew") == 0 ) 
+            else if (strcmp(dml_set_msg.ParamName, "Renew") == 0 ) 
             {
-                pDhcpc->Cfg.Renew = dml_set_msg->value.bValue;
+                pDhcpc->Cfg.Renew = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg->ParamName, "Restart") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "Restart") == 0 )
             {
-                pDhcpc->Cfg.Restart = dml_set_msg->value.bValue;
+                pDhcpc->Cfg.Restart = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg->ParamName, "ProcessLease") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "ProcessLease") == 0 )
             {
                 DhcpMgr_ProcessV4Lease(pDhcpc);
             }
-            else if (strcmp(dml_set_msg->ParamName, "Selfheal_ClientRestart") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
                 DHCPMGR_LOG_INFO("%s %d: Selfheal_ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
             }
             else
             {
-                DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received \n", __FUNCTION__, __LINE__, dml_set_msg->ParamName); 
+                DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received \n", __FUNCTION__, __LINE__, dml_set_msg.ParamName); 
             }
         }
         else
@@ -567,9 +567,9 @@ static void Process_DHCPv4_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
 }
 
 
-static void Process_DHCPv6_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
+static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg ? dml_set_msg->ParamName : "NULL", if_name);
+    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName ? dml_set_msg.ParamName : "NULL", if_name);
 
     PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pDhcp6cxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
@@ -600,33 +600,33 @@ static void Process_DHCPv6_Handler(char* if_name, dml_set_msg_t *dml_set_msg)
         pthread_mutex_lock(&pDhcp6c->mutex); //MUTEX lock
         if(strncmp(pDhcp6c->Cfg.Interface, if_name, sizeof(pDhcp6c->Cfg.Interface)) == 0)
         {
-            if (dml_set_msg == NULL)
+            if (dml_set_msg.ParamName == NULL)
             {
                 DHCPMGR_LOG_INFO("%s %d: No ParamName received , skipping processing DML check\n", __FUNCTION__, __LINE__);
             }
-            else if (strcmp(dml_set_msg->ParamName, "Enable") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "Enable") == 0 )
             {
-                pDhcp6c->Cfg.bEnabled = dml_set_msg->value.bValue;
+                pDhcp6c->Cfg.bEnabled = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg->ParamName, "Renew") == 0 ) 
+            else if (strcmp(dml_set_msg.ParamName, "Renew") == 0 ) 
             {
-                pDhcp6c->Cfg.Renew = dml_set_msg->value.bValue;
+                pDhcp6c->Cfg.Renew = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg->ParamName, "Restart") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "Restart") == 0 )
             {
-                pDhcp6c->Cfg.Restart = dml_set_msg->value.bValue;
+                pDhcp6c->Cfg.Restart = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg->ParamName, "ProcessLease") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "ProcessLease") == 0 )
             {
                 DhcpMgr_ProcessV6Lease(pDhcp6c);
             }
-            else if (strcmp(dml_set_msg->ParamName, "Selfheal_ClientRestart") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
                 DHCPMGR_LOG_INFO("%s %d: ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
             }
             else
             { 
-                DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received in MQ\n", __FUNCTION__, __LINE__, dml_set_msg->ParamName); 
+                DHCPMGR_LOG_ERROR("%s %d: Unknown ParamName %s received in MQ\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName); 
             }
         }
         else
@@ -726,10 +726,10 @@ void* DhcpMgr_MainController( void *args )
     mqd_t mq_desc;
     struct timespec timeout;
     ssize_t bytes_read;
-    interface_info_t info;
+    mq_send_msg_t mq_msg_info;
     char mq_name[MQ_NAME_LEN] = {0};
 
-    memset(&info, 0, sizeof(interface_info_t));
+    memset(&mq_msg_info, 0, sizeof(mq_send_msg_t));
     DHCPMGR_LOG_INFO("%s %d: Entered with arg %s\n",__FUNCTION__, __LINE__, (char*)args);
     if(args != NULL)
     {
@@ -761,40 +761,40 @@ void* DhcpMgr_MainController( void *args )
         DHCPMGR_LOG_INFO("%s %d: Waiting to receive message from queue %s\n", __FUNCTION__, __LINE__, mq_name);
 
         /* Try to receive message with 5 timeout */
-        bytes_read = mq_timedreceive(mq_desc,(char*) &info, sizeof(info), NULL, &timeout);
+        bytes_read = mq_timedreceive(mq_desc,(char*) &mq_msg_info, sizeof(mq_msg_info), NULL, &timeout);
         DHCPMGR_LOG_INFO("%s %d: mq_timedreceive returned with bytes_read=%zd\n", __FUNCTION__, __LINE__, bytes_read);
          if (bytes_read == -1) 
          {
             if (errno == ETIMEDOUT) 
             {
-                DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for queue %s\n", __FUNCTION__, __LINE__, info.if_name);
-                pthread_mutex_lock(&info.q_mutex); //MUTEX lock to drain the queue
+                DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for queue %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
+                pthread_mutex_lock(&mq_msg_info.if_info.q_mutex); //MUTEX lock to drain the queue
                 break;
             }
             else 
             {
                 DHCPMGR_LOG_ERROR("%s %d: mq_timedreceive failed with error=%d\n", __FUNCTION__, __LINE__, errno);
-                pthread_mutex_lock(&info.q_mutex); //MUTEX lock to drain the queue
+                pthread_mutex_lock(&mq_msg_info.if_info.q_mutex); //MUTEX lock to drain the queue
                 break;
             }
         }
 
-        if (info.dhcpType == DML_DHCPV4) 
+        if (mq_msg_info.msg_info.dhcpType == DML_DHCPV4) 
         {
-            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler for interface %s\n", __FUNCTION__, __LINE__, info.if_name);
-            Process_DHCPv4_Handler(info.if_name, &info.msg);
+            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
+            Process_DHCPv4_Handler(mq_msg_info.msg_info.if_name, mq_msg_info.msg_info);
         } 
-        else if (info.dhcpType == DML_DHCPV6) 
+        else if (mq_msg_info.msg_info.dhcpType == DML_DHCPV6) 
         {
-            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv6 Handler for interface %s\n", __FUNCTION__, __LINE__, info.if_name);
-            Process_DHCPv6_Handler(info.if_name, &info.msg);
+            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv6 Handler for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
+            Process_DHCPv6_Handler(mq_msg_info.msg_info.if_name, mq_msg_info.msg_info);
         }
     }
 
-    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, info.if_name);
-    mark_thread_stopped(info.if_name);
+    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
+    mark_thread_stopped(mq_msg_info.msg_info.if_name);
     mq_close(mq_desc);
-    pthread_mutex_unlock(&info.q_mutex);
+    pthread_mutex_unlock(&mq_msg_info.if_info.q_mutex);
     
     /* Mark thread as stopped so new one can be created if needed */
     DHCPMGR_LOG_INFO("%s %d: Exiting DhcpMgr_MainController thread for mq %s\n", __FUNCTION__, __LINE__, mq_name);
@@ -1000,13 +1000,14 @@ void processKilled(pid_t pid)
             }
 
             // Enqueue a client restart message to the per-interface controller
-            interface_info_t info;
+            dhcp_info_t info;
             memset(&info, 0, sizeof(info));
             strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
             info.dhcpType = DML_DHCPV4;
-            strncpy(info.msg.ParamName, "Selfheal_ClientRestart", sizeof(info.msg.ParamName) - 1);
-            info.msg.ParamName[sizeof(info.msg.ParamName) - 1] = '\0';
-            DhcpMgr_OpenQueueEnsureThread(&info);
+            strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
+            info.ParamName[sizeof(info.ParamName) - 1] = '\0';
+            info.value.bValue = '\0';
+            DhcpMgr_OpenQueueEnsureThread(info);
 
             return;
         }
@@ -1045,14 +1046,14 @@ void processKilled(pid_t pid)
             }
 
             // Enqueue a client restart message to the per-interface controller
-            interface_info_t info;
+            dhcp_info_t info;
             memset(&info, 0, sizeof(info));
             strncpy(info.if_name, pDhcp6c->Cfg.Interface, MAX_STR_LEN - 1);
             info.dhcpType = DML_DHCPV6;
-            strncpy(info.msg.ParamName, "Selfheal_ClientRestart", sizeof(info.msg.ParamName) - 1);
-            info.msg.value.bValue = '\0';
-            info.msg.ParamName[sizeof(info.msg.ParamName) - 1] = '\0';
-            DhcpMgr_OpenQueueEnsureThread(&info);
+            strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
+            info.value.bValue = '\0';
+            info.ParamName[sizeof(info.ParamName) - 1] = '\0';
+            DhcpMgr_OpenQueueEnsureThread(info);
             
             return;
         }

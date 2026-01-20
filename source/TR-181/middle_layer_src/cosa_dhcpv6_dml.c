@@ -1048,24 +1048,24 @@ Client3_SetParamBoolValue
 
     /*Adding the dml set values to messageque so that controller thread will process the values */
 
-//    DHCPMGR_LOG_INFO("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
+    DHCPMGR_LOG_INFO("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
     if(ret_mq_send)
     {
- //       DHCPMGR_LOG_INFO("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+        DHCPMGR_LOG_INFO("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
         if(pDhcpc->Cfg.Interface == NULL || strlen(pDhcpc->Cfg.Interface) == 0)
         {
             DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
             return FALSE;
         }
 
-        interface_info_t info;
-        AnscZeroMemory(&info, sizeof(interface_info_t));
-        strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
-        info.dhcpType = DML_DHCPV6;
-        strcpy(info.msg.ParamName, ParamName);
-        info.msg.value.bValue = bValue;
-        info.msg.valueType = DML_SET_MSG_TYPE_BOOL;
-        if (DhcpMgr_OpenQueueEnsureThread(&info) != 0) {
+        dhcp_info_t msg_info;
+        AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
+        strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+        msg_info.dhcpType = DML_DHCPV6;
+        strcpy(msg_info.ParamName, ParamName);
+        msg_info.value.bValue = bValue;
+        msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
+        if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) {
             DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
         } else {
             return TRUE;
