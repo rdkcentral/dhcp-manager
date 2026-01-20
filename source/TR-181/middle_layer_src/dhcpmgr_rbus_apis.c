@@ -45,7 +45,7 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
  ***********************************************************************/
 rbusDataElement_t DhcpMgrRbusDataElements[] = {
     {DHCP_MGR_DHCPv4_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
-    {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
+    {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {getDataHandler, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
     {DHCP_MGR_DHCPv6_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
     {DHCP_MGR_DHCPv6_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
 };
@@ -257,6 +257,13 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
 }
 
+rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
+{
+    (void)rbusHandle;
+    (void)pRbusGetHandlerOptions;
+    (void)rbusProperty;
+    return RBUS_ERROR_SUCCESS;
+}
 /**
  * @brief Publishes DHCPv4 rbus events.
  *
