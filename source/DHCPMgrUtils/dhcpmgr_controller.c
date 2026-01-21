@@ -738,6 +738,7 @@ void DHCPMgr_AddDhcpv4Lease(char * ifName, DHCPv4_PLUGIN_MSG *newLease)
             newLease->next = NULL;
             interfaceFound = TRUE;
             DHCPMGR_LOG_INFO("%s %d: New dhcpv4 lease msg added for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX release before break
             break;
         }
