@@ -176,16 +176,16 @@ int find_or_create_interface(char *info_name, interface_info_t *info_out) {
 }
 
 /* Create a thread for the interface */
-int create_interface_thread(char *info_ifName) {
-    DHCPMGR_LOG_INFO("%s %d: Creating thread for interface %s\n", __FUNCTION__, __LINE__, info_ifName);
+int create_interface_thread(char *mq_name) {
+    DHCPMGR_LOG_INFO("%s %d: Creating thread for interface %s\n", __FUNCTION__, __LINE__, mq_name);
     pthread_t thread_id;
-    if (pthread_create(&thread_id, NULL, DhcpMgr_MainController, info_ifName) != 0) {
-        DHCPMGR_LOG_ERROR("%s %d pthread_create failed for interface %s\n", __FUNCTION__, __LINE__, info_ifName);
+    if (pthread_create(&thread_id, NULL, DhcpMgr_MainController, mq_name) != 0) {
+        DHCPMGR_LOG_ERROR("%s %d pthread_create failed for interface %s\n", __FUNCTION__, __LINE__, mq_name);
         return -1;
     }
     
     pthread_detach(thread_id);
-    DHCPMGR_LOG_INFO("%s %d Thread created for interface %s\n", __FUNCTION__, __LINE__, info_ifName);
+    DHCPMGR_LOG_INFO("%s %d Thread created for interface %s\n", __FUNCTION__, __LINE__, mq_name);
     return 0;
 }
 
@@ -247,15 +247,15 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         DHCPMGR_LOG_INFO("%s %d Thread running %d\n", __FUNCTION__, __LINE__, tmp_info.thread_running);
         if (!tmp_info.thread_running)
         {
-            if (create_interface_thread(info.if_name) == 0)
+            if (create_interface_thread(mq_name) == 0)
             {
-                DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, info.if_name);
+                DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, mq_name);
                 tmp_info.thread_running = TRUE;
                 update_interface_info(info.if_name, &tmp_info);   //TODO need to check why its required
             }
             else
             {
-                DHCPMGR_LOG_ERROR("%s %d Failed to create controller thread for %s\n", __FUNCTION__, __LINE__, info.if_name);
+                DHCPMGR_LOG_ERROR("%s %d Failed to create controller thread for %s\n", __FUNCTION__, __LINE__, mq_name);
                 mq_close(mq_desc);
                 return -1;
             }
