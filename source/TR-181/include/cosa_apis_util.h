@@ -17,10 +17,18 @@
  * limitations under the License.
 */
 
+#include <mqueue.h>
+#include <pthread.h>
+
 #define LM_GEN_STR_SIZE    64
 #define LM_MAX_IP_AMOUNT 24
 #define LM_MAX_COMMENT_SIZE 64
 #define MAX_STR_SIZE 256
+#define MAX_STR_LEN 64
+#define MAX_INTERFACES 10
+#define MQ_NAME_LEN 64
+#define MQ_MAX_MESSAGES 20
+#define MQ_MSG_SIZE 1024
 
 #ifdef FEATURE_RDKB_WAN_MANAGER
 extern ANSC_HANDLE bus_handle;
@@ -172,3 +180,87 @@ int g_GetParamValueString(ANSC_HANDLE g_pDslhDmlAgent, char* prefixFullName, cha
 INT PsmWriteParameter( char *pParamName, char *pParamVal );
 
 INT PsmReadParameter( char *pParamName, char *pReturnVal, int returnValLength );
+
+/**********************DHCPManager Queue reqirements ***************************/
+
+/*typedef struct dml_set_msg_s {
+    char ParamName[MAX_STR_LEN];
+    union {
+        BOOL bValue;
+        int iValue;
+        ULONG uValue;
+        char strValue[MAX_STR_LEN];
+    } value;
+    enum {
+        DML_SET_MSG_TYPE_BOOL,
+        DML_SET_MSG_TYPE_INT,
+        DML_SET_MSG_TYPE_ULONG,
+        DML_SET_MSG_TYPE_STRING
+    } valueType;
+} dml_set_msg_t;
+
+typedef enum 
+{
+    DML_DHCPV4=1,
+    DML_DHCPV6
+}DML_DHCP_TYPE;*/
+
+/*typedef struct {
+    char if_name[MAX_STR_LEN];
+    char mq_name[MAX_STR_LEN];
+    BOOL thread_running;
+    pthread_mutex_t q_mutex; // Mutex for Queue operations
+    dml_set_msg_t msg;      // TODO need to do this in a spearate struct
+    DML_DHCP_TYPE dhcpType; // TODO need to do this in a spearate struct
+} interface_info_t; */
+
+typedef struct {
+    char if_name[MAX_STR_LEN];
+    char mq_name[MAX_STR_LEN];
+    BOOL thread_running;
+    pthread_mutex_t q_mutex; // Mutex for Queue operations
+} interface_info_t;
+
+typedef struct {
+    char if_name[MAX_STR_LEN];
+    char ParamName[MAX_STR_LEN];
+    union {
+        BOOL bValue;
+        int iValue;
+        ULONG uValue;
+        char strValue[MAX_STR_LEN];
+    } value;
+    enum {
+        DML_SET_MSG_TYPE_BOOL,
+        DML_SET_MSG_TYPE_INT,
+        DML_SET_MSG_TYPE_ULONG,
+        DML_SET_MSG_TYPE_STRING
+    } valueType;
+    enum {
+        DML_DHCPV4 = 1,
+        DML_DHCPV6
+    } dhcpType;
+} dhcp_info_t;
+
+typedef struct {
+    interface_info_t if_info;
+    dhcp_info_t msg_info; // Mutex for global structure
+} mq_send_msg_t;
+
+
+
+/* Message queue operations */
+int create_message_queue(const char *mq_name, mqd_t *mq_desc);
+int delete_message_queue(mqd_t mq_desc);
+int unlink_message_queue(const char *mq_name);
+int find_or_create_interface(char *info_name, interface_info_t *info_out);
+int create_interface_thread(char *info_name);
+int update_interface_info(const char *alias_name, interface_info_t *info);
+int mark_thread_stopped(const char *alias_name);
+
+void* DhcpMgr_MainController( void *args );
+
+/* Helper: open MQ, ensure controller thread, and send the provided info */
+int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info);
+
+/**********************DHCPManager Queue reqirements END ***************************/
