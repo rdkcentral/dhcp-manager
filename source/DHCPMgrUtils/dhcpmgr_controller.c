@@ -727,24 +727,33 @@ void* DhcpMgr_MainController( void *args )
     struct timespec timeout;
     ssize_t bytes_read;
     mq_send_msg_t mq_msg_info;
+    char inf_name[MAX_STR_LEN] = {0};
     char mq_name[MQ_NAME_LEN] = {0};
-
+    
     memset(&mq_msg_info, 0, sizeof(mq_send_msg_t));
     DHCPMGR_LOG_INFO("%s %d: Entered with arg %s\n",__FUNCTION__, __LINE__, (char*)args);
     if(args != NULL)
     {
-        strncpy(mq_name, (char *)args, MQ_NAME_LEN);
+        snprintf(mq_name, MQ_NAME_LEN, "/mq_if_%s", (char*)args);
+        mq_name[MQ_NAME_LEN - 1] = '\0';
+        strncpy(inf_name, ((char*)args), MAX_STR_LEN);
+        inf_name[MAX_STR_LEN - 1] = '\0';
+        free(args);
     }
     else
     {
-        DHCPMGR_LOG_INFO("%s %d InValid Argument to the Controller Thread\n",__FUNCTION__,__LINE__);
+        DHCPMGR_LOG_ERROR("%s %d: Thread argument is NULL\n", __FUNCTION__, __LINE__);
+        mark_thread_stopped(inf_name);
         return NULL;
     }
+
     DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
 
     mq_desc = mq_open(mq_name, O_RDONLY);
-    if (mq_desc == (mqd_t)-1) {
+    if (mq_desc == (mqd_t)-1) 
+    {
         DHCPMGR_LOG_ERROR("%s %d: mq_open failed in thread\n", __FUNCTION__, __LINE__);
+        mark_thread_stopped(inf_name);
         return NULL;
     }
 

@@ -254,7 +254,7 @@ int create_message_queue(const char *mq_name, mqd_t *mq_desc);
 int delete_message_queue(mqd_t mq_desc);
 int unlink_message_queue(const char *mq_name);
 int find_or_create_interface(char *info_name, interface_info_t *info_out);
-int create_interface_thread(char *info_aliasName);
+int create_interface_thread(char *info_name);
 int update_interface_info(const char *alias_name, interface_info_t *info);
 int mark_thread_stopped(const char *alias_name);
 
