@@ -1129,6 +1129,18 @@ Client_SetParamBoolValue
     /* check the parameter name and set the corresponding value */
     if (strcmp(ParamName, "Enable") == 0)
     {
+         if(bValue)
+        {
+            char DhcpSysEveSet[64] = {0};
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV4_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            commonSyseventSet(DhcpSysEveSet,pDhcpc->Cfg.Interface);
+        }
+        else
+        {
+            char DhcpSysEveSet[64] = {0};
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV4_DISABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            commonSyseventSet(DhcpSysEveSet,"");
+        }
         DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
         ret_mq_send=1;
     }
@@ -1172,6 +1184,13 @@ Client_SetParamBoolValue
         {
             DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
             return FALSE;
+        }
+
+        //make a crash of CcspDHCPManager if the file /tmp/crash_dhcpmanager4 available 
+        if (access("/tmp/crash_dhcpmanager4", F_OK) == 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Forced crash requested via /tmp/crash_dhcpmanager4\n", __FUNCTION__, __LINE__);
+            abort();
         }
 
         dhcp_info_t msg_info;
