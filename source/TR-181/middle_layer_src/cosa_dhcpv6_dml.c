@@ -1080,16 +1080,6 @@ Client3_SetParamBoolValue
         strcpy(msg_info.ParamName, ParamName);
         msg_info.value.bValue = bValue;
         msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
-
-        //DEBUG purpose only
-        //make a crash of CcspDHCPManager if the file /tmp/crash_dhcpmanager6 available 
-
-        if (access("/tmp/crash_dhcpmanager6", F_OK) == 0)
-        {
-            DHCPMGR_LOG_ERROR("%s %d: Forced crash requested via /tmp/crash_dhcpmanager6\n", __FUNCTION__, __LINE__);
-            abort();
-        }
-        
         if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) {
             DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
         } else {

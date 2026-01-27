@@ -1186,13 +1186,6 @@ Client_SetParamBoolValue
             return FALSE;
         }
 
-        //make a crash of CcspDHCPManager if the file /tmp/crash_dhcpmanager4 available 
-        if (access("/tmp/crash_dhcpmanager4", F_OK) == 0)
-        {
-            DHCPMGR_LOG_ERROR("%s %d: Forced crash requested via /tmp/crash_dhcpmanager4\n", __FUNCTION__, __LINE__);
-            abort();
-        }
-
         dhcp_info_t msg_info;
         AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
         strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
