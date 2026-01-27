@@ -76,6 +76,9 @@
 #include "cosa_apis_util.h"
 #include "util.h"
 
+#include <stdlib.h>
+#include <unistd.h>
+
 #define MIN 60
 #define HOURS 3600
 #define DAYS 86400
@@ -991,8 +994,20 @@ Client3_SetParamBoolValue
     if (strcmp(ParamName, "Enable") == 0)
     {
         /* save update to backup */
-        DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
-        ret_mq_send = 1;
+        if(bValue)
+        {
+            char DhcpSysEveSet[64] = {0};
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV6_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            commonSyseventSet(DhcpSysEveSet,pDhcpc->Cfg.Interface);
+        }
+        else
+        {
+            char DhcpSysEveSet[64] = {0};
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV6_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            commonSyseventSet(DhcpSysEveSet,"");
+        }
+            DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
+            ret_mq_send = 1;
     }
 
     if (strcmp(ParamName, "RequestAddresses") == 0)
@@ -1065,6 +1080,16 @@ Client3_SetParamBoolValue
         strcpy(msg_info.ParamName, ParamName);
         msg_info.value.bValue = bValue;
         msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
+
+        //DEBUG purpose only
+        //make a crash of CcspDHCPManager if the file /tmp/crash_dhcpmanager6 available 
+
+        if (access("/tmp/crash_dhcpmanager6", F_OK) == 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Forced crash requested via /tmp/crash_dhcpmanager6\n", __FUNCTION__, __LINE__);
+            abort();
+        }
+        
         if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) {
             DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
         } else {
