@@ -179,7 +179,7 @@ int create_interface_thread(char *info_name)
     char *args = NULL;
     if(info_name == NULL) 
     {
-        DHCPMGR_LOG_ERROR("%s %d: Message queue name is NULL for interface %s\n", __FUNCTION__, __LINE__, info_name);
+        DHCPMGR_LOG_ERROR("%s %d: Message queue name is NULL for interface\n", __FUNCTION__, __LINE__);
         return -1;
     }
     else
@@ -194,6 +194,7 @@ int create_interface_thread(char *info_name)
         free(args);
         return -1;
     }
+    free(args);
     DHCPMGR_LOG_INFO("%s %d Thread created for interface %s\n", __FUNCTION__, __LINE__, info_name);
     return 0;
 }
@@ -326,10 +327,8 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
             if (create_interface_thread(info.if_name) == 0)
             {
                 DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, mq_name);
-                pthread_mutex_lock(&global_mutex);
                 tmp_info.thread_running = TRUE;
                 update_interface_info(info.if_name, &tmp_info);   //TODO need to check why its required
-                pthread_mutex_unlock(&global_mutex);
             }
             else
             {
