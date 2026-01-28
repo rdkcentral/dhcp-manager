@@ -179,13 +179,13 @@ int create_interface_thread(char *info_name)
     char *args = NULL;
     if(info_name == NULL) 
     {
-        DHCPMGR_LOG_ERROR("%s %d: Message queue name is NULL for interface\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_ERROR("%s %d: interface name is NULL for interface\n", __FUNCTION__, __LINE__);
         return -1;
     }
     else
     {
         args = strdup(info_name);   
-        DHCPMGR_LOG_INFO("%s %d: Creating thread for interface %s\n", __FUNCTION__, __LINE__, info_name);
+        DHCPMGR_LOG_INFO("%s %d: Creating thread for interface %s\n", __FUNCTION__, __LINE__, args);
     }
 
     pthread_t thread_id;
@@ -194,7 +194,6 @@ int create_interface_thread(char *info_name)
         free(args);
         return -1;
     }
-    free(args);
     DHCPMGR_LOG_INFO("%s %d Thread created for interface %s\n", __FUNCTION__, __LINE__, info_name);
     return 0;
 }
