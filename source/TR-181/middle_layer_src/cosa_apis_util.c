@@ -66,7 +66,6 @@ int create_message_queue(const char *mq_name, mqd_t *mq_desc) {
     DHCPMGR_LOG_INFO("%s %d Creating/opening message queue with name: %s\n", __FUNCTION__, __LINE__, mq_name);
 
     /* Log the name we're passing to mq_open for diagnostics */
-//    DHCPMGR_LOG_INFO("%s %d Attempting mq_open for name: %s\n", __FUNCTION__, __LINE__, mq_name_out);
 
     *mq_desc = mq_open(mq_name, O_RDWR | O_NONBLOCK);
     
@@ -84,7 +83,6 @@ int create_message_queue(const char *mq_name, mqd_t *mq_desc) {
     attr.mq_msgsize = sizeof(mq_send_msg_t);
     attr.mq_curmsgs = 0;
 
-//    DHCPMGR_LOG_INFO("%s %d Creating mq with attrs: maxmsg=%ld msgsize=%ld\n", __FUNCTION__, __LINE__, (long)attr.mq_maxmsg, (long)attr.mq_msgsize);
     *mq_desc = mq_open(mq_name, O_CREAT | O_RDWR | O_NONBLOCK, 0644, &attr);
     
     if (*mq_desc == (mqd_t)-1) {
@@ -145,9 +143,9 @@ int find_or_create_interface(char *info_name, interface_info_t *info_out) {
     /* Check if interface already exists */
     for (int i = 0; i < interface_count; i++) {
         if (strcmp(interfaces[i].if_name, info_name) == 0) {
-            pthread_mutex_unlock(&global_mutex);
             DHCPMGR_LOG_INFO("%s %d: Found existing interface entry for %s\n", __FUNCTION__, __LINE__, info_name);
             memcpy(info_out, &interfaces[i], sizeof(interface_info_t));
+            pthread_mutex_unlock(&global_mutex);
             return 0;
         }
     }
@@ -217,6 +215,73 @@ int update_interface_info(const char *alias_name, interface_info_t *info) {
     return -1;
 }
 
+int DhcpMgr_LockInterfaceQueueMutexByName(const char *if_name)
+{
+    if (!if_name || if_name[0] == '\0')
+    {
+        return -1;
+    }
+
+    interface_info_t *entry = NULL;
+    pthread_mutex_lock(&global_mutex);
+    for (int i = 0; i < interface_count; i++)
+    {
+        if (strcmp(interfaces[i].if_name, if_name) == 0)
+        {
+            entry = &interfaces[i];
+            break;
+        }
+    }
+
+    if (entry == NULL)
+    {
+       DHCPMGR_LOG_ERROR("%s %d: Interface %s not found\n", __FUNCTION__, __LINE__, if_name);
+       pthread_mutex_unlock(&global_mutex);
+       return -1;
+    }
+    pthread_mutex_unlock(&global_mutex);
+
+    /* This blocks until the mutex is acquired ("if locked, wait and acquire it"). */
+    if (pthread_mutex_lock(&entry->q_mutex) != 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
+int DhcpMgr_UnlockInterfaceQueueMutexByName(const char *if_name)
+{
+    if (!if_name || if_name[0] == '\0')
+    {
+        return -1;
+    }
+
+    interface_info_t *entry = NULL;
+    pthread_mutex_lock(&global_mutex);
+    for (int i = 0; i < interface_count; i++)
+    {
+        if (strcmp(interfaces[i].if_name, if_name) == 0)
+        {
+            entry = &interfaces[i];
+            break;
+        }
+    }
+    pthread_mutex_unlock(&global_mutex);
+
+    if (entry == NULL)
+    {
+        return -1;
+    }
+
+    if (pthread_mutex_unlock(&entry->q_mutex) != 0)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 /* Common helper: send a control message to the per-interface controller queue
    and ensure its controller thread exists. Returns 0 on success, -1 on error. */
 int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
@@ -284,7 +349,12 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
     memcpy(&mq_msg.if_info, &tmp_info, sizeof(interface_info_t));
     memcpy(&mq_msg.msg_info, &info, sizeof(dhcp_info_t));
 
-    pthread_mutex_lock(&tmp_info.q_mutex); // Lock the mutex before sending message
+    if(DhcpMgr_LockInterfaceQueueMutexByName(info.if_name) != 0) // Lock the mutex before sending message
+    {
+        DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, info.if_name);
+        mq_close(mq_desc);
+        return -1;
+    }
     /* Send the filled info to the controller queue */
     if (mq_send(mq_desc, (char*)&mq_msg, sizeof(mq_msg), 0) == -1)
     {
@@ -292,12 +362,18 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         mq_close(mq_desc);
         tmp_info.thread_running = FALSE;
         update_interface_info(info.if_name, &tmp_info);
-        pthread_mutex_unlock(&tmp_info.q_mutex);
+        if(DhcpMgr_UnlockInterfaceQueueMutexByName(info.if_name) != 0) // Unlock the mutex on error
+        {
+            DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, info.if_name);
+        }
         return -1;
     }
     DHCPMGR_LOG_INFO("%s %d Successfully sent message to controller queue %s\n", __FUNCTION__, __LINE__, tmp_info.mq_name);
     mq_close(mq_desc);
-    pthread_mutex_unlock(&tmp_info.q_mutex);
+    if(DhcpMgr_UnlockInterfaceQueueMutexByName(info.if_name) != 0) // Unlock the mutex after sending message
+    {
+        DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, info.if_name);
+    }
     return 0;
 }
 

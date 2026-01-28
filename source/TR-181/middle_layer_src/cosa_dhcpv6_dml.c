@@ -1083,7 +1083,10 @@ Client3_SetParamBoolValue
         msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
         if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) {
             DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-        } else {
+            return FALSE;
+        } 
+        else 
+        {
             return TRUE;
         }
     }
