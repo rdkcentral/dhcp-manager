@@ -146,7 +146,7 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
                     strncpy(info.if_name, plugin_msg.ifname, MAX_STR_LEN - 1);
                     info.dhcpType = DML_DHCPV6;
                     strncpy(info.ParamName, "ProcessLease", sizeof(info.ParamName) - 1);
-                    info.value.bValue = '\0';
+                    info.value.bValue = FALSE;
                     if (DhcpMgr_OpenQueueEnsureThread(info) != 0)
                     {
                         DHCPMGR_LOG_ERROR("[%s-%d] Failed to enqueue DHCPv6 lease/control message\n", __FUNCTION__, __LINE__);

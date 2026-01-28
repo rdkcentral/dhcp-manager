@@ -71,7 +71,7 @@ int create_message_queue(const char *mq_name, mqd_t *mq_desc) {
     *mq_desc = mq_open(mq_name, O_RDWR | O_NONBLOCK);
     
     if (*mq_desc != (mqd_t)-1) {
-        DHCPMGR_LOG_ERROR("%s %d Message queue %s already exists, opened successfully\n", __FUNCTION__, __LINE__, mq_name);
+        DHCPMGR_LOG_INFO("%s %d Message queue %s already exists, opened successfully\n", __FUNCTION__, __LINE__, mq_name);
         return 0;
     }
     
@@ -261,8 +261,10 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
             if (create_interface_thread(info.if_name) == 0)
             {
                 DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, mq_name);
+                pthread_mutex_lock(&global_mutex);
                 tmp_info.thread_running = TRUE;
                 update_interface_info(info.if_name, &tmp_info);   //TODO need to check why its required
+                pthread_mutex_unlock(&global_mutex);
             }
             else
             {

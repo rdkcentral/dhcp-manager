@@ -181,7 +181,7 @@ INT PsmWriteParameter( char *pParamName, char *pParamVal );
 
 INT PsmReadParameter( char *pParamName, char *pReturnVal, int returnValLength );
 
-/**********************DHCPManager Queue reqirements ***************************/
+/**********************DHCPManager Queue requirements ***************************/
 
 /*typedef struct dml_set_msg_s {
     char ParamName[MAX_STR_LEN];
@@ -210,8 +210,8 @@ typedef enum
     char mq_name[MAX_STR_LEN];
     BOOL thread_running;
     pthread_mutex_t q_mutex; // Mutex for Queue operations
-    dml_set_msg_t msg;      // TODO need to do this in a spearate struct
-    DML_DHCP_TYPE dhcpType; // TODO need to do this in a spearate struct
+    dml_set_msg_t msg;      // TODO need to do this in a separate struct
+    DML_DHCP_TYPE dhcpType; // TODO need to do this in a separate struct
 } interface_info_t; */
 
 typedef struct {
@@ -263,4 +263,4 @@ void* DhcpMgr_MainController( void *args );
 /* Helper: open MQ, ensure controller thread, and send the provided info */
 int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info);
 
-/**********************DHCPManager Queue reqirements END ***************************/
+/**********************DHCPManager Queue requirements END ***************************/

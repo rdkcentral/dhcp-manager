@@ -1061,7 +1061,7 @@ Client3_SetParamBoolValue
         }
     }
 
-    /*Adding the dml set values to messageque so that controller thread will process the values */
+    /*Adding the dml set values to message queue so that controller thread will process the values */
 
     DHCPMGR_LOG_INFO("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
     if(ret_mq_send)
@@ -1077,7 +1077,8 @@ Client3_SetParamBoolValue
         AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
         strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
         msg_info.dhcpType = DML_DHCPV6;
-        strcpy(msg_info.ParamName, ParamName);
+        strncpy(msg_info.ParamName, ParamName, sizeof(msg_info.ParamName) - 1);
+        msg_info.ParamName[sizeof(msg_info.ParamName) - 1] = '\0';
         msg_info.value.bValue = bValue;
         msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
         if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) {

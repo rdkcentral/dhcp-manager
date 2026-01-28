@@ -728,7 +728,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
 
 void* DhcpMgr_MainController( void *args )
 {
-//    (void) args;
+
     //detach thread from caller stack
     pthread_detach(pthread_self());
     DHCPMGR_LOG_INFO("%s %d: Entered with arg %s\n",__FUNCTION__, __LINE__, (char*)args);
@@ -1050,7 +1050,7 @@ void processKilled(pid_t pid)
             info.dhcpType = DML_DHCPV4;
             strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
             info.ParamName[sizeof(info.ParamName) - 1] = '\0';
-            info.value.bValue = '\0';
+            info.value.bValue = FALSE;
             DhcpMgr_OpenQueueEnsureThread(info);
 
             return;
@@ -1095,8 +1095,8 @@ void processKilled(pid_t pid)
             strncpy(info.if_name, pDhcp6c->Cfg.Interface, MAX_STR_LEN - 1);
             info.dhcpType = DML_DHCPV6;
             strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
-            info.value.bValue = '\0';
             info.ParamName[sizeof(info.ParamName) - 1] = '\0';
+            info.value.bValue = 0;
             DhcpMgr_OpenQueueEnsureThread(info);
             
             return;

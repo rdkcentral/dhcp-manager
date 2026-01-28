@@ -1138,7 +1138,7 @@ Client_SetParamBoolValue
         else
         {
             char DhcpSysEveSet[64] = {0};
-            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV4_DISABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV4_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
             commonSyseventSet(DhcpSysEveSet,"");
         }
         DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
@@ -1174,12 +1174,10 @@ Client_SetParamBoolValue
         }
     }
 
-    /*Adding the dml set values to messageque so that controller thread will process the values*/
+    /*Adding the dml set values to message queue so that controller thread will process the values*/
 
-//    DHCPMGR_LOG_WARNING("%s %d ret_mq_send '%d'\n", __FUNCTION__, __LINE__,ret_mq_send );
     if(ret_mq_send)
     {
-//        DHCPMGR_LOG_INFO("%s %d Preparing to send status to interface queue for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
         if(pDhcpc->Cfg.Interface == NULL || strlen(pDhcpc->Cfg.Interface) == 0)
         {
             DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
@@ -1190,7 +1188,8 @@ Client_SetParamBoolValue
         AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
         strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
         msg_info.dhcpType = DML_DHCPV4;
-        strcpy(msg_info.ParamName, ParamName);
+        strncpy(msg_info.ParamName, ParamName, sizeof(msg_info.ParamName) - 1);
+        msg_info.ParamName[sizeof(msg_info.ParamName) - 1] = '\0';
         msg_info.value.bValue = bValue;
         msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
         if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) 
