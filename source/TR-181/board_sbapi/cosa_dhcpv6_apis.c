@@ -1823,7 +1823,10 @@ CosaDmlDhcpv6cGetEntry
     )
 {
     UNREFERENCED_PARAMETER(hContext);
+    DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> Getting DHCPv6 client entry for index %lu\n", __FUNCTION__, __LINE__, ulIndex);
 #ifdef DHCPV6C_PSM_ENABLE
+
+    DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> Inside DHCPV6C_PSM_ENABLE\n", __FUNCTION__, __LINE__);
     char param_name[256]  = {0};
     char param_value[256] = {0};
     int retPsmGet = CCSP_SUCCESS;
@@ -1922,6 +1925,7 @@ CosaDmlDhcpv6cGetEntry
         STRCPY_S_NOCLOBBER((CHAR *)pEntry->Info.SupportedOptions, sizeof(pEntry->Info.SupportedOptions), param_value);
     }
 #else
+    DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> Inside else of DHCPV6C_PSM_ENABLE\n", __FUNCTION__, __LINE__);
     UtopiaContext utctx = {0};
     char buf[256] = {0};
     char out[256] = {0};
@@ -2002,26 +2006,32 @@ CosaDmlDhcpv6cGetEntry
     {
         pEntry->Cfg.bEnabled = FALSE;
     }
+    DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> DHCPv6 pEntry->Cfg.bEnabled: %s \n", __FUNCTION__, __LINE__, pEntry->Cfg.bEnabled ? "TRUE" : "FALSE");
 
     /*Info members*/
     if (pEntry->Cfg.bEnabled)
     {
+        DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> DHCPv6 client is enabled, checking for crash recovery\n", __FUNCTION__, __LINE__);
         //setting status to disabled incase of DHCPManager Crash Recovery to restart the process
         //if already running before the crash
         if (DhcpStateSys[0] != '\0')
         {
+            DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> DHCPv6 client crash recovery case, setting status to Disabled\n", __FUNCTION__, __LINE__);
             pEntry->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
         }
         else
         {
+            DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> DHCPv6 client normal case, setting status to Enabled\n", __FUNCTION__, __LINE__);
             pEntry->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
         }
     }
     else
     {
+        DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> DHCPv6 client is disabled, setting status to Disabled\n", __FUNCTION__, __LINE__);
         pEntry->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
     }
 
+    DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> DHCPv6 pEntry->Cfg.bEnabled: %s client Status: %s\n", __FUNCTION__, __LINE__, pEntry->Cfg.bEnabled ? "TRUE" : "FALSE", pEntry->Info.Status == COSA_DML_DHCP_STATUS_Enabled ? "Enabled" : "Disabled");
     /*TODO: supported options*/
 
     _get_client_duid(pEntry->Info.DUID, sizeof(pEntry->Info.DUID));

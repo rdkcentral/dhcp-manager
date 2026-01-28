@@ -1195,7 +1195,6 @@ Client_SetParamBoolValue
         if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) 
         {
             DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
-            return FALSE;
         } 
         else 
         {

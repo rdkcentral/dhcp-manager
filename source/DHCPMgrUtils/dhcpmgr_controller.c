@@ -28,7 +28,6 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -69,31 +68,27 @@ int DhcpMgr_StartMainController()
     const char *filename = "/tmp/dhcpmanager_restarted";
     int retStatus = -1;
 
-    /*
-     * CodeQL/TOCTOU: avoid check-then-use on a file in /tmp.
-     * Just attempt to remove once; ENOENT means marker wasn't present.
-     */
-    if (remove(filename) == 0)
+    if(access(filename, F_OK) != -1)
     {
         retStatus = DhcpMgr_Dhcp_Recovery_Start();
-        if (retStatus != 0)
+        if(retStatus != 0)
         {
             DHCPMGR_LOG_ERROR("%s %d - Failed to start dhcp recovery thread\n", __FUNCTION__, __LINE__);
         }
         else
         {
             DHCPMGR_LOG_INFO("%s %d - Dhcp crash recovery thread started successfully\n", __FUNCTION__, __LINE__);
+            if (remove(filename) != 0)
+            {
+                DHCPMGR_LOG_ERROR("%s %d Error deleting %s file\n", __FUNCTION__, __LINE__, filename);
+            }
         }
-    }
-    else if (errno != ENOENT)
-    {
-        DHCPMGR_LOG_ERROR("%s %d Error deleting %s file (errno=%d)\n", __FUNCTION__, __LINE__, filename, errno);
     }
 
     retStatus = DhcpMgr_LeaseMonitor_Start();
     if(retStatus < 0)
     {
-        DHCPMGR_LOG_ERROR("%s %d - Lease Monitor Thread failed to start!\n", __FUNCTION__, __LINE__ );
+        DHCPMGR_LOG_INFO("%s %d - Lease Monitor Thread failed to start!\n", __FUNCTION__, __LINE__ );
     }
 
 
@@ -571,6 +566,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 DhcpMgr_clearDHCPv4Lease(pDhcpc);
                 remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_STOPPED);
+                sleep(2);
             }
         }
         pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
@@ -682,6 +678,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                         pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
                         DHCPMGR_LOG_INFO("%s %d: dhcpv6 client for %s started PID : %d \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
                         DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STARTED);
+                        sleep(2);
                     }
                     else
                     {
@@ -815,19 +812,13 @@ void* DhcpMgr_MainController( void *args )
             if (errno == ETIMEDOUT) 
             {
                 DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for queue %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
-                if(DhcpMgr_LockInterfaceQueueMutexByName(mq_msg_info.if_info.if_name) != 0) //MUTEX lock to drain the queue
-                {
-                    DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
-                }
+                pthread_mutex_lock(&mq_msg_info.if_info.q_mutex); //MUTEX lock to drain the queue
                 break;
             }
             else 
             {
                 DHCPMGR_LOG_ERROR("%s %d: mq_timedreceive failed with error=%d\n", __FUNCTION__, __LINE__, errno);
-                if(DhcpMgr_LockInterfaceQueueMutexByName(mq_msg_info.if_info.if_name) != 0) //MUTEX lock to drain the queue
-                {
-                    DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
-                }
+                pthread_mutex_lock(&mq_msg_info.if_info.q_mutex); //MUTEX lock to drain the queue
                 break;
             }
         }
@@ -847,11 +838,7 @@ void* DhcpMgr_MainController( void *args )
     DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
     mark_thread_stopped(mq_msg_info.msg_info.if_name);
     mq_close(mq_desc);
-
-    if(DhcpMgr_UnlockInterfaceQueueMutexByName(mq_msg_info.msg_info.if_name) != 0) //MUTEX unlock
-    {
-        DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
-    }
+    pthread_mutex_unlock(&mq_msg_info.if_info.q_mutex);
     
     /* Mark thread as stopped so new one can be created if needed */
     DHCPMGR_LOG_INFO("%s %d: Exiting DhcpMgr_MainController thread for mq %s\n", __FUNCTION__, __LINE__, mq_name);
