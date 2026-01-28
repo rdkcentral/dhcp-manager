@@ -123,7 +123,8 @@ static void* DhcpMgr_LeaseMonitor_Thrd(void *arg)
                     memset(&info, 0, sizeof(dhcp_info_t));
                     strncpy(info.if_name, plugin_msg.ifname, MAX_STR_LEN - 1);
                     info.dhcpType = DML_DHCPV4;
-                    strcpy(info.ParamName, "ProcessLease");
+                    strncpy(info.ParamName, "ProcessLease", sizeof(info.ParamName) - 1);
+                    info.ParamName[sizeof(info.ParamName) - 1] = '\0';
                     info.value.bValue = '\0';
                     if (DhcpMgr_OpenQueueEnsureThread(info) != 0)
                     {
