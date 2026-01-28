@@ -509,6 +509,5 @@ int send_dhcpv6_release(pid_t processID) {
 
     //TODO: start_exe2 will add a sigchild handler, Do we still require this call ?
     int ret = collect_waiting_process(processID, DIBBLER_CLIENT_TERMINATE_TIMEOUT);
-    sleep(5); // wait for dibbler to cleanup temp files
     return ret;
 }

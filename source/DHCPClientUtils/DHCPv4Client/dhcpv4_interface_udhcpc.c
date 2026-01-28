@@ -302,7 +302,6 @@ pid_t start_dhcpv4_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     DHCPMGR_LOG_INFO("%s %d: Started udhcpc. returning pid..\n", __FUNCTION__, __LINE__);
     udhcpc_pid = get_process_pid (UDHCPC_CLIENT, buff, true);
 #endif
-    sleep(2); //adding sleep for dhcpv4 client process to get stable
     return udhcpc_pid;
 }
 
@@ -327,7 +326,6 @@ int send_dhcpv4_release(pid_t processID)
         DHCPMGR_LOG_ERROR("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, processID);
         return FAILURE;    
     }
-    sleep(2); // wait for the udhcpc to send a release packet
     DHCPMGR_LOG_INFO("%s %d Calling stop after sending release. \n", __FUNCTION__, __LINE__);
     stop_dhcpv4_client(processID); //sending release may terminate the UDHCPC for some platforms. Calling stop API to have a common behavior.
     return SUCCESS;
@@ -351,6 +349,5 @@ int stop_dhcpv4_client(pid_t processID)
 
     //TODO: start_exe2 will add a sigchild handler, Do we still require this call ?
     int ret = collect_waiting_process(processID, UDHCPC_TERMINATE_TIMEOUT);
-    sleep(2); //give some time to stop udhcpc gracefully
     return ret;
 }

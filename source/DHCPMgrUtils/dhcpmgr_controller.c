@@ -705,7 +705,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 pDhcp6c->Cfg.Restart = FALSE;
                 DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
                 DhcpMgr_clearDHCPv6Lease(pDhcp6c);
-                sleep(2);
             }
         }
         else
@@ -815,7 +814,7 @@ void* DhcpMgr_MainController( void *args )
             if (errno == ETIMEDOUT) 
             {
                 DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for queue %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
-                if(DhcpMgr_LockInterfaceQueueMutexByName(mq_msg_info.if_info.if_name) != 0) //MUTEX lock to drain the queue
+                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) //MUTEX lock to drain the queue
                 {
                     DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
                 }
@@ -824,7 +823,7 @@ void* DhcpMgr_MainController( void *args )
             else 
             {
                 DHCPMGR_LOG_ERROR("%s %d: mq_timedreceive failed with error=%d\n", __FUNCTION__, __LINE__, errno);
-                if(DhcpMgr_LockInterfaceQueueMutexByName(mq_msg_info.if_info.if_name) != 0) //MUTEX lock to drain the queue
+                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) //MUTEX lock to drain the queue
                 {
                     DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
                 }
@@ -844,13 +843,13 @@ void* DhcpMgr_MainController( void *args )
         }
     }
 
-    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
-    mark_thread_stopped(mq_msg_info.msg_info.if_name);
+    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, inf_name);
+    mark_thread_stopped(inf_name);
     mq_close(mq_desc);
 
-    if(DhcpMgr_UnlockInterfaceQueueMutexByName(mq_msg_info.msg_info.if_name) != 0) //MUTEX unlock
+    if(DhcpMgr_UnlockInterfaceQueueMutexByName(inf_name) != 0) //MUTEX unlock
     {
-        DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
+        DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
     }
     
     /* Mark thread as stopped so new one can be created if needed */
