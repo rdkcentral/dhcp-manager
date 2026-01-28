@@ -181,39 +181,6 @@ INT PsmWriteParameter( char *pParamName, char *pParamVal );
 
 INT PsmReadParameter( char *pParamName, char *pReturnVal, int returnValLength );
 
-/**********************DHCPManager Queue requirements ***************************/
-
-/*typedef struct dml_set_msg_s {
-    char ParamName[MAX_STR_LEN];
-    union {
-        BOOL bValue;
-        int iValue;
-        ULONG uValue;
-        char strValue[MAX_STR_LEN];
-    } value;
-    enum {
-        DML_SET_MSG_TYPE_BOOL,
-        DML_SET_MSG_TYPE_INT,
-        DML_SET_MSG_TYPE_ULONG,
-        DML_SET_MSG_TYPE_STRING
-    } valueType;
-} dml_set_msg_t;
-
-typedef enum 
-{
-    DML_DHCPV4=1,
-    DML_DHCPV6
-}DML_DHCP_TYPE;*/
-
-/*typedef struct {
-    char if_name[MAX_STR_LEN];
-    char mq_name[MAX_STR_LEN];
-    BOOL thread_running;
-    pthread_mutex_t q_mutex; // Mutex for Queue operations
-    dml_set_msg_t msg;      // TODO need to do this in a separate struct
-    DML_DHCP_TYPE dhcpType; // TODO need to do this in a separate struct
-} interface_info_t; */
-
 typedef struct {
     char if_name[MAX_STR_LEN];
     char mq_name[MAX_STR_LEN];
@@ -250,13 +217,31 @@ typedef struct {
 
 
 /* Message queue operations */
+/* Create/open a POSIX message queue with the given name. */
 int create_message_queue(const char *mq_name, mqd_t *mq_desc);
+/* Close an opened message queue descriptor. */
 int delete_message_queue(mqd_t mq_desc);
+/* Remove (unlink) the named message queue from the system. */
 int unlink_message_queue(const char *mq_name);
+/* Find an existing interface entry or create a new one in the global registry. */
 int find_or_create_interface(char *info_name, interface_info_t *info_out);
+/* Create and start the per-interface controller thread. */
 int create_interface_thread(char *info_name);
+/* Update copyable fields of an interface entry in the global registry. */
 int update_interface_info(const char *alias_name, interface_info_t *info);
+/* Mark the per-interface controller thread as stopped in the global registry. */
 int mark_thread_stopped(const char *alias_name);
+
+/* Lock the canonical per-interface queue mutex.
+ * If the mutex is already locked, this call will wait until it can acquire it.
+ * Returns 0 on success, -1 on error.
+ */
+int DhcpMgr_LockInterfaceQueueMutexByName(const char *if_name);
+
+/* Unlock the canonical per-interface queue mutex.
+ * Returns 0 on success, -1 on error.
+ */
+int DhcpMgr_UnlockInterfaceQueueMutexByName(const char *if_name);
 
 void* DhcpMgr_MainController( void *args );
 
