@@ -997,17 +997,34 @@ Client3_SetParamBoolValue
         if(bValue)
         {
             char DhcpSysEveSet[64] = {0};
+            if (pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+                return FALSE;
+            }
             snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV6_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
-            commonSyseventSet(DhcpSysEveSet,pDhcpc->Cfg.Interface);
+            if(commonSyseventSet(DhcpSysEveSet,pDhcpc->Cfg.Interface) != 0)
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Failed to set sysevent %s\n", __FUNCTION__, __LINE__, DhcpSysEveSet);
+                //don't return FALSE here as we still want to update the event and act accordingly
+            }
         }
         else
         {
             char DhcpSysEveSet[64] = {0};
+            if (pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+                return FALSE;
+            }
             snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV6_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
-            commonSyseventSet(DhcpSysEveSet,"");
+            if(commonSyseventSet(DhcpSysEveSet,"") != 0)
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Failed to set sysevent %s\n", __FUNCTION__, __LINE__, DhcpSysEveSet);
+                //don't return FALSE here as we still want to update the event and act accordingly
+            }
         }
-            DHCPMGR_LOG_INFO("%s %d DHCPv6 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
-            ret_mq_send = 1;
+        ret_mq_send = 1;
     }
 
     if (strcmp(ParamName, "RequestAddresses") == 0)
@@ -1063,11 +1080,11 @@ Client3_SetParamBoolValue
 
     /*Adding the dml set values to message queue so that controller thread will process the values */
 
-    DHCPMGR_LOG_INFO("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
+    DHCPMGR_LOG_DEBUG("%s %d ret_mq_send=%d \n", __FUNCTION__, __LINE__, ret_mq_send );
     if(ret_mq_send)
     {
-        DHCPMGR_LOG_INFO("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-        if(pDhcpc->Cfg.Interface == NULL || strlen(pDhcpc->Cfg.Interface) == 0)
+        DHCPMGR_LOG_DEBUG("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+        if(pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
         {
             DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
             return FALSE;

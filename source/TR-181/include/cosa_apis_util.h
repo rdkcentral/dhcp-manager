@@ -211,7 +211,7 @@ typedef struct {
 
 typedef struct {
     interface_info_t if_info;
-    dhcp_info_t msg_info; // Mutex for global structure
+    dhcp_info_t msg_info; // DHCP message info  
 } mq_send_msg_t;
 
 

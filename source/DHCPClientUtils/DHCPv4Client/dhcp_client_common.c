@@ -47,8 +47,6 @@ int signal_process (pid_t pid, int signal)
         return FAILURE;
     }
 
-    sleep(5); //give some time to process the signal
-
     return SUCCESS;
 
 }
@@ -619,7 +617,6 @@ void sigchld_handler(int sig)
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) 
     {
         DBG_PRINT("Child process with PID %d terminated.\n", pid);
-        sleep(5); //give some time to process the termination <<DEBUG>>
         processKilled(pid);
     }
 }

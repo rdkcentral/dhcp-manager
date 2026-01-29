@@ -366,7 +366,7 @@ int DHCPMgr_storeDhcpv6Lease(PCOSA_DML_DHCPCV6_FULL data)
 
 static int load_v6dhcp_leases(ULONG clientCount)
 {
-    DHCPMGR_LOG_INFO("%s:%d ------ IN\n", __FUNCTION__, __LINE__);
+    DHCPMGR_LOG_DEBUG("%s:%d ------ IN\n", __FUNCTION__, __LINE__);
     int ret = EXIT_FAIL;
     ULONG ulIndex;
     ULONG instanceNum;
@@ -391,7 +391,7 @@ static int load_v6dhcp_leases(ULONG clientCount)
             pDhcp6cxtLink          = ACCESS_COSA_CONTEXT_DHCPCV6_LINK_OBJECT(pSListEntry);
             pDhcp6c            = (PCOSA_DML_DHCPCV6_FULL)pDhcp6cxtLink->hContext;
         }
-        DHCPMGR_LOG_INFO("%s:%d Loading data for DHCPv6.Client.%lu\n", __FUNCTION__, __LINE__, instanceNum);
+        DHCPMGR_LOG_DEBUG("%s:%d Loading data for DHCPv6.Client.%lu\n", __FUNCTION__, __LINE__, instanceNum);
 
         if (!pDhcp6c) 
         {
@@ -406,7 +406,7 @@ static int load_v6dhcp_leases(ULONG clientCount)
             FILE *file = fopen(FilePattern, "rb");
             if (!file) 
             {
-                DHCPMGR_LOG_ERROR("%s:%d Failed to open file %s , No file was store for DHCPv6.%lu.Client \n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
+                DHCPMGR_LOG_DEBUG("%s:%d Failed to open file %s , No file was store for DHCPv6.%lu.Client \n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
                 continue;
             }
 
@@ -459,7 +459,7 @@ static int load_v6dhcp_leases(ULONG clientCount)
                 }
                 else
                 {
-                    DHCPMGR_LOG_INFO("%s:%d Successfully read current lease from file %s\n", __FUNCTION__, __LINE__, FilePattern);
+                    DHCPMGR_LOG_DEBUG("%s:%d Successfully read current lease from file %s\n", __FUNCTION__, __LINE__, FilePattern);
                     pDhcp6c->currentLease->next = NULL;
                     ret=EXIT_SUCCESS;
                 }
@@ -471,17 +471,17 @@ static int load_v6dhcp_leases(ULONG clientCount)
         }
         else
         {
-            DHCPMGR_LOG_ERROR("%s:%d File %s does not exist, No file was stored for DHCPv6.Client.%lu\n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
+            DHCPMGR_LOG_DEBUG("%s:%d File %s does not exist, No file was stored for DHCPv6.Client.%lu\n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
         }
     }
-    DHCPMGR_LOG_INFO("%s:%d ------OUT\n", __FUNCTION__, __LINE__);
+    DHCPMGR_LOG_DEBUG("%s:%d ------OUT\n", __FUNCTION__, __LINE__);
     return ret;
 }
 
 
 static int load_v4dhcp_leases(ULONG clientCount) 
 {
-        DHCPMGR_LOG_INFO("%s:%d ------ IN\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_DEBUG("%s:%d ------ IN\n", __FUNCTION__, __LINE__);
         ULONG ulIndex;
         ULONG instanceNum;
         PSINGLE_LINK_ENTRY pSListEntry = NULL;
@@ -506,7 +506,7 @@ static int load_v4dhcp_leases(ULONG clientCount)
                 pDhcpCxtLink = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
                 pDhcpc = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
             }
-            DHCPMGR_LOG_INFO("%s:%d Loading data for DHCPv4.Client.%lu\n", __FUNCTION__, __LINE__, instanceNum);
+            DHCPMGR_LOG_DEBUG("%s:%d Loading data for DHCPv4.Client.%lu\n", __FUNCTION__, __LINE__, instanceNum);
 
             if (!pDhcpc) 
             {
@@ -521,7 +521,7 @@ static int load_v4dhcp_leases(ULONG clientCount)
                 FILE *file = fopen(FilePattern, "rb");
                 if (!file) 
                 {
-                    DHCPMGR_LOG_INFO("%s:%d Failed to open file %s , No file was store for DHCPv4.%lu.Client \n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
+                    DHCPMGR_LOG_DEBUG("%s:%d Failed to open file %s , No file was store for DHCPv4.%lu.Client \n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
                     continue;
                 }
 
@@ -574,7 +574,7 @@ static int load_v4dhcp_leases(ULONG clientCount)
                     }
                     else
                     {
-                        DHCPMGR_LOG_INFO("%s:%d Successfully read current lease from file %s\n",__FUNCTION__, __LINE__, FilePattern);
+                        DHCPMGR_LOG_DEBUG("%s:%d Successfully read current lease from file %s\n",__FUNCTION__, __LINE__, FilePattern);
                         pDhcpc->currentLease->next = NULL;
                     }
                     /*even if we fail to read current lease, we can continue as the dhcp client is running already and we don't need current lease right now.*/
@@ -586,10 +586,10 @@ static int load_v4dhcp_leases(ULONG clientCount)
             }
             else 
             {
-                DHCPMGR_LOG_INFO("%s:%d File %s does not exist, No file was stored for DHCPv4.Client.%lu\n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
+                DHCPMGR_LOG_DEBUG("%s:%d File %s does not exist, No file was stored for DHCPv4.Client.%lu\n", __FUNCTION__, __LINE__, FilePattern, instanceNum);
             }
         }
-        DHCPMGR_LOG_INFO("%s:%d ------OUT\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_DEBUG("%s:%d ------OUT\n", __FUNCTION__, __LINE__);
         return ret;
 }
 
@@ -619,7 +619,7 @@ static int DHCPMgr_loadDhcpLeases()
     }
     else
     {
-        DHCPMGR_LOG_INFO("%s:%d Loaded DHCP leases for v4 successfully\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_DEBUG("%s:%d Loaded DHCP leases for v4 successfully\n", __FUNCTION__, __LINE__);
     }
 
     ret=load_v6dhcp_leases(dhcpv6_client_count);
@@ -631,7 +631,7 @@ static int DHCPMgr_loadDhcpLeases()
     }
     else
     {
-        DHCPMGR_LOG_INFO("%s:%d Loaded DHCP leases for v6 successfully\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_DEBUG("%s:%d Loaded DHCP leases for v6 successfully\n", __FUNCTION__, __LINE__);
     }
 
     if (retv4 == EXIT_FAIL && retv6 == EXIT_FAIL) 

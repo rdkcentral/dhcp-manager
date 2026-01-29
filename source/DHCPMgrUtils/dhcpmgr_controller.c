@@ -18,15 +18,11 @@
 */
 
 /* ---- Include Files ---------------------------------------- */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -439,7 +435,7 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
 
 static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName ? dml_set_msg.ParamName : "NULL", if_name);
+    DHCPMGR_LOG_DEBUG("%s %d: Processing DHCPv4 Handler with :ParamName: %s and DHCPType=DHCPv4 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName ? dml_set_msg.ParamName : "NULL", if_name);
     PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
     ULONG ulIndex;
@@ -489,7 +485,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
-                DHCPMGR_LOG_INFO("%s %d: Selfheal_ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                DHCPMGR_LOG_DEBUG("%s %d: Selfheal_ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
             }
             else
             {
@@ -502,7 +498,6 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             continue;
         }
 
-        DHCPMGR_LOG_INFO("%s %d: DHCPv4 Client on pDhcpc->Info.Status=%s\n", __FUNCTION__, __LINE__, pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Disabled ? "Disabled" : "Enabled");
         if(pDhcpc->Cfg.bEnabled == TRUE )
         {
             if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
@@ -522,7 +517,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
 
                     pDhcpc->Info.ClientProcessId  = start_dhcpv4_client(pDhcpc->Cfg.Interface, req_opt_list, send_opt_list);
 
-                    //Free optios list
+                    //Free options list
                     if(req_opt_list)
                         free_opt_list_data (req_opt_list);
                     if(send_opt_list)
@@ -581,7 +576,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
 
 static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
 {
-    DHCPMGR_LOG_INFO("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName ? dml_set_msg.ParamName : "NULL", if_name);
+    DHCPMGR_LOG_DEBUG("%s %d: Processing DHCP Handler with :ParamName: %s and DHCPType=DHCPv6 if_name=%s\n", __FUNCTION__, __LINE__, dml_set_msg.ParamName ? dml_set_msg.ParamName : "NULL", if_name);
 
     PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pDhcp6cxtLink  = NULL;
     PSINGLE_LINK_ENTRY              pSListEntry   = NULL;
@@ -634,7 +629,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
-                DHCPMGR_LOG_INFO("%s %d: ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                DHCPMGR_LOG_DEBUG("%s %d: ClientRestart received for interface %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
             }
             else
             { 
@@ -646,7 +641,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
             continue;
         }
-        DHCPMGR_LOG_INFO("%s %d: Processing DHCPv6 client for interface %s\n", __FUNCTION__, __LINE__, pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Enabled ? "Enabled" : "Disabled");
         if(pDhcp6c->Cfg.bEnabled == TRUE )
         {
             if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
@@ -670,7 +664,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
 
                     pDhcp6c->Info.ClientProcessId  = start_dhcpv6_client(pDhcp6c->Cfg.Interface, req_opt_list, send_opt_list);
 
-                    //Free optios list
+                    //Free options list
                     if(req_opt_list)
                         free_opt_list_data (req_opt_list);
                     if(send_opt_list)
@@ -678,7 +672,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
 
                     if(pDhcp6c->Info.ClientProcessId > 0 ) 
                     {
-                        //Link local failed. Retry
                         pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Enabled;
                         DHCPMGR_LOG_INFO("%s %d: dhcpv6 client for %s started PID : %d \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
                         DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STARTED);
@@ -733,9 +726,8 @@ void* DhcpMgr_MainController( void *args )
 
     //detach thread from caller stack
     pthread_detach(pthread_self());
-    DHCPMGR_LOG_INFO("%s %d: Entered with arg %s\n",__FUNCTION__, __LINE__, (char*)args);
+    DHCPMGR_LOG_DEBUG("%s %d: Entered with arg %s\n",__FUNCTION__, __LINE__, (char*)args);
     mqd_t mq_desc;
-    struct timespec timeout;
     ssize_t bytes_read;
     mq_send_msg_t mq_msg_info;
     char inf_name[MAX_STR_LEN] = {0};
@@ -753,11 +745,19 @@ void* DhcpMgr_MainController( void *args )
     else
     {
         DHCPMGR_LOG_ERROR("%s %d: Thread argument is NULL\n", __FUNCTION__, __LINE__);
-        mark_thread_stopped(inf_name);
+        if(inf_name[0] != '\0')
+        {
+            mark_thread_stopped(inf_name);
+        }
+        else
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Interface name is empty, cannot mark thread stopped\n", __FUNCTION__, __LINE__);
+        }
+
         return NULL;
     }
 
-    DHCPMGR_LOG_INFO("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
+    DHCPMGR_LOG_DEBUG("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
 
     mq_desc = mq_open(mq_name, O_RDONLY);
     if (mq_desc == (mqd_t)-1) 
@@ -767,83 +767,64 @@ void* DhcpMgr_MainController( void *args )
         return NULL;
     }
 
-    DHCPMGR_LOG_INFO("%s %d: Message queue %s opened successfully\n", __FUNCTION__, __LINE__, mq_name);
+    DHCPMGR_LOG_DEBUG("%s %d: Message queue %s opened successfully\n", __FUNCTION__, __LINE__, mq_name);
 
+     const int sleep_us = 250000;      // 250ms
+    const int max_retries = 20;       // 20 * 250ms = 5s
+    int retry_count = 0;
     while (1)
     {
-        DHCPMGR_LOG_INFO("%s %d: Main controller loop iteration started\n", __FUNCTION__, __LINE__);
-        
-    /* Set timeout for 5s */
+        /* Try to receive message */
+        bytes_read = mq_receive(mq_desc,
+                                (char *)&mq_msg_info,
+                                sizeof(mq_msg_info),
+                                NULL);
+
+        if (bytes_read >= 0)
         {
-            /*
-             * mq_timedreceive() expects an absolute timeout in CLOCK_REALTIME.
-             * Compute the +5s interval using CLOCK_MONOTONIC, then translate it
-             * to an absolute CLOCK_REALTIME timestamp.
-             */
-            struct timespec now_mono;
-            struct timespec now_rt;
-            struct timespec deadline_mono;
+            /* Message received, reset retry counter */
+            retry_count = 0;
 
-            clock_gettime(CLOCK_MONOTONIC, &now_mono);
-            deadline_mono = now_mono;
-            deadline_mono.tv_sec += 5;
-            clock_gettime(CLOCK_REALTIME, &now_rt);
+            DHCPMGR_LOG_DEBUG("%s %d: mq_receive returned bytes_read=%zd\n",__FUNCTION__, __LINE__, bytes_read);
 
-            timeout = now_rt;
-            timeout.tv_sec += (deadline_mono.tv_sec - now_mono.tv_sec);
-            timeout.tv_nsec += (deadline_mono.tv_nsec - now_mono.tv_nsec);
-            if (timeout.tv_nsec >= 1000000000L)
+            if (mq_msg_info.msg_info.dhcpType == DML_DHCPV4)
             {
-                timeout.tv_sec += 1;
-                timeout.tv_nsec -= 1000000000L;
+                DHCPMGR_LOG_DEBUG("%s %d: Processing DHCPv4 for %s\n",__FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
+                Process_DHCPv4_Handler(mq_msg_info.msg_info.if_name, mq_msg_info.msg_info);
             }
-            else if (timeout.tv_nsec < 0)
+            else if (mq_msg_info.msg_info.dhcpType == DML_DHCPV6)
             {
-                timeout.tv_sec -= 1;
-                timeout.tv_nsec += 1000000000L;
+                DHCPMGR_LOG_DEBUG("%s %d: Processing DHCPv6 for %s\n",__FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
+                Process_DHCPv6_Handler(mq_msg_info.msg_info.if_name, mq_msg_info.msg_info);
             }
         }
-
-        DHCPMGR_LOG_INFO("%s %d: Waiting to receive message from queue %s\n", __FUNCTION__, __LINE__, mq_name);
-
-        /* Try to receive message with 5 timeout */
-        bytes_read = mq_timedreceive(mq_desc,(char*) &mq_msg_info, sizeof(mq_msg_info), NULL, &timeout);
-        DHCPMGR_LOG_INFO("%s %d: mq_timedreceive returned with bytes_read=%zd\n", __FUNCTION__, __LINE__, bytes_read);
-         if (bytes_read == -1) 
-         {
-            if (errno == ETIMEDOUT) 
+        else
+        {
+            if (errno == EAGAIN)
             {
-                DHCPMGR_LOG_INFO("%s %d: mq_timedreceive timed out for queue %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
-                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) //MUTEX lock to drain the queue
+                /* No message yet, wait 250ms */
+                usleep(sleep_us);
+                retry_count++;
+
+                if (retry_count >= max_retries)
                 {
-                    DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
+                    DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout after 5s on %s\n",__FUNCTION__, __LINE__, mq_name);
+                    break; // exit thread after timeout
                 }
+
+                continue; // retry loop
+            }
+            else
+            {
+                /* Real error, exit thread */
+                DHCPMGR_LOG_ERROR("%s %d: mq_receive failed errno=%d (%s)\n",__FUNCTION__, __LINE__, errno, strerror(errno));
                 break;
             }
-            else 
-            {
-                DHCPMGR_LOG_ERROR("%s %d: mq_timedreceive failed with error=%d\n", __FUNCTION__, __LINE__, errno);
-                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) //MUTEX lock to drain the queue
-                {
-                    DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, mq_msg_info.if_info.if_name);
-                }
-                break;
-            }
-        }
-
-        if (mq_msg_info.msg_info.dhcpType == DML_DHCPV4) 
-        {
-            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv4 Handler for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
-            Process_DHCPv4_Handler(mq_msg_info.msg_info.if_name, mq_msg_info.msg_info);
-        } 
-        else if (mq_msg_info.msg_info.dhcpType == DML_DHCPV6) 
-        {
-            DHCPMGR_LOG_INFO("%s %d: Processing DHCPv6 Handler for interface %s\n", __FUNCTION__, __LINE__, mq_msg_info.msg_info.if_name);
-            Process_DHCPv6_Handler(mq_msg_info.msg_info.if_name, mq_msg_info.msg_info);
         }
     }
 
-    DHCPMGR_LOG_INFO("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, inf_name);
+
+    DHCPMGR_LOG_DEBUG("%s %d: Cleaning up DhcpMgr_MainController thread for interface %s\n", __FUNCTION__, __LINE__, inf_name);
     mark_thread_stopped(inf_name);
     mq_close(mq_desc);
 
@@ -853,7 +834,7 @@ void* DhcpMgr_MainController( void *args )
     }
     
     /* Mark thread as stopped so new one can be created if needed */
-    DHCPMGR_LOG_INFO("%s %d: Exiting DhcpMgr_MainController thread for mq %s\n", __FUNCTION__, __LINE__, mq_name);
+    DHCPMGR_LOG_DEBUG("%s %d: Exiting DhcpMgr_MainController thread for mq %s\n", __FUNCTION__, __LINE__, mq_name);
     return NULL;
 
 }
@@ -1063,7 +1044,11 @@ void processKilled(pid_t pid)
             strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
             info.ParamName[sizeof(info.ParamName) - 1] = '\0';
             info.value.bValue = FALSE;
-            DhcpMgr_OpenQueueEnsureThread(info);
+            int ret = DhcpMgr_OpenQueueEnsureThread(info);
+            if (ret != 0) 
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue Selfheal_ClientRestart for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+            }
 
             return;
         }
@@ -1108,8 +1093,12 @@ void processKilled(pid_t pid)
             info.dhcpType = DML_DHCPV6;
             strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
             info.ParamName[sizeof(info.ParamName) - 1] = '\0';
-            info.value.bValue = 0;
-            DhcpMgr_OpenQueueEnsureThread(info);
+            info.value.bValue = FALSE;
+            int ret = DhcpMgr_OpenQueueEnsureThread(info);
+            if (ret != 0) 
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue Selfheal_ClientRestart for %s\n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+            }
             
             return;
         }

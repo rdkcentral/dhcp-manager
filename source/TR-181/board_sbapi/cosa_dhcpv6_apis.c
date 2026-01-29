@@ -1991,12 +1991,19 @@ CosaDmlDhcpv6cGetEntry
 #endif
 
     _ansc_memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_name, "DHCPCV6_ENABLE_%d", (INT)ulIndex);
+    _ansc_sprintf(param_name, "DHCPCV6_ENABLE_%lu", ulIndex);
     int ret = commonSyseventGet(param_name, DhcpStateSys, sizeof(DhcpStateSys));
     if (ret == 0 && DhcpStateSys[0] != '\0')
     {
         pEntry->Cfg.bEnabled = TRUE;
-        strcpy_s(pEntry->Cfg.Interface, sizeof(pEntry->Cfg.Interface), DhcpStateSys);
+        errno_t rc = strcpy_s(pEntry->Cfg.Interface, sizeof(pEntry->Cfg.Interface), DhcpStateSys);  
+        if (rc != EOK)  
+        {  
+            DHCPMGR_LOG_ERROR("%s:%d Failed to copy DHCPv6 interface name (err=%d)\n", __FUNCTION__, __LINE__, rc);  
+            /* Ensure interface name is empty and disable client on failure */  
+            pEntry->Cfg.Interface[0] = '\0';  
+            pEntry->Cfg.bEnabled = FALSE;  
+        }  
     }
     else
     {
