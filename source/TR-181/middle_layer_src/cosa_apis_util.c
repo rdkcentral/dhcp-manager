@@ -138,14 +138,12 @@ int mark_thread_stopped(const char *alias_name) {
 
 int find_or_create_interface(char *info_name, interface_info_t *info_out) {
     DHCPMGR_LOG_DEBUG("%s %d: Finding or creating interface entry for %s\n", __FUNCTION__, __LINE__, info_name);
-    pthread_mutex_lock(&global_mutex);
     
     /* Check if interface already exists */
     for (int i = 0; i < interface_count; i++) {
         if (strcmp(interfaces[i].if_name, info_name) == 0) {
             DHCPMGR_LOG_DEBUG("%s %d: Found existing interface entry for %s\n", __FUNCTION__, __LINE__, info_name);
             memcpy(info_out, &interfaces[i], sizeof(interface_info_t));
-            pthread_mutex_unlock(&global_mutex);
             return 0;
         }
     }
@@ -154,7 +152,6 @@ int find_or_create_interface(char *info_name, interface_info_t *info_out) {
     /* Create new interface entry */
     if (interface_count >= MAX_INTERFACES) {
         DHCPMGR_LOG_ERROR("%s %d Maximum number of interfaces reached\n", __FUNCTION__, __LINE__);
-        pthread_mutex_unlock(&global_mutex);
         return -1;
     }
     
@@ -169,7 +166,6 @@ int find_or_create_interface(char *info_name, interface_info_t *info_out) {
     interface_count++;
     
     memcpy(info_out, new_info, sizeof(interface_info_t));
-    pthread_mutex_unlock(&global_mutex);
     return 0;
 }
 
@@ -316,7 +312,7 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
     pthread_mutex_lock(&global_mutex);
     if (find_or_create_interface(info.if_name, &tmp_info) == 0)
     {
-        DHCPMGR_LOG_INFO("%s %d Thread running %d\n", __FUNCTION__, __LINE__, tmp_info.thread_running);
+        DHCPMGR_LOG_DEBUG("%s %d Thread running %d\n", __FUNCTION__, __LINE__, tmp_info.thread_running);
         if (!tmp_info.thread_running)
         {
             if (create_interface_thread(info.if_name) == 0)
