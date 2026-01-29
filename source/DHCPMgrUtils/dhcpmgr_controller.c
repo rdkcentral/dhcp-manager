@@ -769,7 +769,7 @@ void* DhcpMgr_MainController( void *args )
 
     DHCPMGR_LOG_DEBUG("%s %d: Message queue %s opened successfully\n", __FUNCTION__, __LINE__, mq_name);
 
-     const int sleep_us = 250000;      // 250ms
+    const int sleep_us = 250000;      // 250ms
     const int max_retries = 20;       // 20 * 250ms = 5s
     int retry_count = 0;
     while (1)
@@ -804,11 +804,16 @@ void* DhcpMgr_MainController( void *args )
             {
                 /* No message yet, wait 250ms */
                 usleep(sleep_us);
+                DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout, no message received yet on %s with retry count %d\n",__FUNCTION__, __LINE__, mq_name, retry_count);
                 retry_count++;
 
                 if (retry_count >= max_retries)
                 {
                     DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout after 5s on %s\n",__FUNCTION__, __LINE__, mq_name);
+                    if(DhcpMgr_UnlockInterfaceQueueMutexByName(inf_name) != 0) // Unlock the mutex on error
+                    {
+                        DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
+                    }
                     break; // exit thread after timeout
                 }
 
@@ -818,6 +823,10 @@ void* DhcpMgr_MainController( void *args )
             {
                 /* Real error, exit thread */
                 DHCPMGR_LOG_ERROR("%s %d: mq_receive failed errno=%d (%s)\n",__FUNCTION__, __LINE__, errno, strerror(errno));
+                if(DhcpMgr_UnlockInterfaceQueueMutexByName(inf_name) != 0) // Unlock the mutex on error
+                {
+                    DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
+                }
                 break;
             }
         }
