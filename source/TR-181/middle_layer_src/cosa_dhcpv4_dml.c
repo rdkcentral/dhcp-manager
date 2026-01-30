@@ -1125,17 +1125,33 @@ Client_SetParamBoolValue
     PCOSA_CONTEXT_DHCPC_LINK_OBJECT pCxtLink          = (PCOSA_CONTEXT_DHCPC_LINK_OBJECT)hInsContext;
     PCOSA_DML_DHCPC_FULL            pDhcpc            = (PCOSA_DML_DHCPC_FULL)pCxtLink->hContext;
 
+    int ret_mq_send =0;
     /* check the parameter name and set the corresponding value */
     if (strcmp(ParamName, "Enable") == 0)
     {
-        DHCPMGR_LOG_INFO("%s %d DHCPv4 Client %s is %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, bValue?"Enabled":"Disabled" );
-        pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-        /* save update to backup */
-        pDhcpc->Cfg.bEnabled = bValue;
-
-        pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
-
-        return  TRUE;
+        if(bValue)
+        {
+            char DhcpSysEveSet[64] = {0};
+            if( pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0' )
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+                return FALSE;
+            }
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV4_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            commonSyseventSet(DhcpSysEveSet,pDhcpc->Cfg.Interface);
+        }
+        else
+        {
+            char DhcpSysEveSet[64] = {0};
+            if( pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0' )
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+                return FALSE;
+            }
+            snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV4_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
+            commonSyseventSet(DhcpSysEveSet,"");
+        }
+        ret_mq_send=1;
     }
 
     if (strcmp(ParamName, "Renew") == 0)
@@ -1146,15 +1162,11 @@ Client_SetParamBoolValue
             if (pDhcpc->Cfg.bEnabled)
             {
                 DHCPMGR_LOG_INFO("%s %d Renew triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-                pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-                pDhcpc->Cfg.Renew = TRUE;
-                pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+                ret_mq_send=1;
             }
             else
                 return FALSE;
         }
-
-        return  TRUE;
     }
 
     if(strcmp(ParamName, "X_RDK_Restart") == 0)
@@ -1162,19 +1174,43 @@ Client_SetParamBoolValue
         if (pDhcpc->Cfg.bEnabled)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
-            pDhcpc->Cfg.Restart = TRUE;
-            pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+            ret_mq_send=1;
         }
         else
         {
             DHCPMGR_LOG_WARNING("%s %d DHCPv4 Client %s not enabled\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             return FALSE;
         }
-
-        return  TRUE;
     }
 
+    /*Adding the dml set values to message queue so that controller thread will process the values*/
+
+    if(ret_mq_send)
+    {
+        if(pDhcpc->Cfg.Interface == NULL || strlen(pDhcpc->Cfg.Interface) == 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+            return FALSE;
+        }
+
+        dhcp_info_t msg_info;
+        AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
+        strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+        msg_info.dhcpType = DML_DHCPV4;
+        strncpy(msg_info.ParamName, ParamName, sizeof(msg_info.ParamName) - 1);
+        msg_info.ParamName[sizeof(msg_info.ParamName) - 1] = '\0';
+        msg_info.value.bValue = bValue;
+        msg_info.valueType = DML_SET_MSG_TYPE_BOOL;
+        if (DhcpMgr_OpenQueueEnsureThread(msg_info) != 0) 
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Failed to enqueue status for %s\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+            return FALSE;
+        } 
+        else 
+        {
+            return TRUE;
+        }
+    }
     return  FALSE;
 }
 
