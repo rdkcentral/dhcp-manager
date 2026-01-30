@@ -759,7 +759,7 @@ void* DhcpMgr_MainController( void *args )
 
     DHCPMGR_LOG_DEBUG("%s %d DhcpMgr_MainController started with mq name %s\n", __FUNCTION__, __LINE__, mq_name);
 
-    mq_desc = mq_open(mq_name, O_RDONLY);
+    mq_desc = mq_open(mq_name, O_RDONLY | O_NONBLOCK);
     if (mq_desc == (mqd_t)-1) 
     {
         DHCPMGR_LOG_ERROR("%s %d: mq_open failed in thread\n", __FUNCTION__, __LINE__);
@@ -810,7 +810,7 @@ void* DhcpMgr_MainController( void *args )
                 if (retry_count >= max_retries)
                 {
                     DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout after 5s on %s\n",__FUNCTION__, __LINE__, mq_name);
-                    if(DhcpMgr_LockInterfaceQueueMutexByName(info.if_name) != 0) // Unlock the mutex on error
+                    if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // Unlock the mutex on error
                     {
                         DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
                     }
@@ -823,7 +823,7 @@ void* DhcpMgr_MainController( void *args )
             {
                 /* Real error, exit thread */
                 DHCPMGR_LOG_ERROR("%s %d: mq_receive failed errno=%d (%s)\n",__FUNCTION__, __LINE__, errno, strerror(errno));
-                if(DhcpMgr_LockInterfaceQueueMutexByName(info.if_name) != 0) // Unlock the mutex on error
+                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // Unlock the mutex on error
                 {
                     DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
                 }
