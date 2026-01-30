@@ -1196,6 +1196,7 @@ Client_SetParamBoolValue
         dhcp_info_t msg_info;
         AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
         strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+        msg_info.if_name[MAX_STR_LEN - 1] = '\0';
         msg_info.dhcpType = DML_DHCPV4;
         strncpy(msg_info.ParamName, ParamName, sizeof(msg_info.ParamName) - 1);
         msg_info.ParamName[sizeof(msg_info.ParamName) - 1] = '\0';

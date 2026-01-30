@@ -745,15 +745,7 @@ void* DhcpMgr_MainController( void *args )
     else
     {
         DHCPMGR_LOG_ERROR("%s %d: Thread argument is NULL\n", __FUNCTION__, __LINE__);
-        if(inf_name[0] != '\0')
-        {
-            mark_thread_stopped(inf_name);
-        }
-        else
-        {
-            DHCPMGR_LOG_ERROR("%s %d: Interface name is empty, cannot mark thread stopped\n", __FUNCTION__, __LINE__);
-        }
-
+        DHCPMGR_LOG_ERROR("%s %d: Interface name is empty, cannot mark thread stopped\n", __FUNCTION__, __LINE__);
         return NULL;
     }
 
@@ -810,7 +802,7 @@ void* DhcpMgr_MainController( void *args )
                 if (retry_count >= max_retries)
                 {
                     DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout after 5s on %s\n",__FUNCTION__, __LINE__, mq_name);
-                    if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // Unlock the mutex on error
+                    if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // lock the mutex
                     {
                         DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
                     }
@@ -823,7 +815,7 @@ void* DhcpMgr_MainController( void *args )
             {
                 /* Real error, exit thread */
                 DHCPMGR_LOG_ERROR("%s %d: mq_receive failed errno=%d (%s)\n",__FUNCTION__, __LINE__, errno, strerror(errno));
-                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // Unlock the mutex on error
+                if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // lock the mutex on error
                 {
                     DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
                 }
@@ -1049,6 +1041,7 @@ void processKilled(pid_t pid)
             dhcp_info_t info;
             memset(&info, 0, sizeof(info));
             strncpy(info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+            info.if_name[MAX_STR_LEN - 1] = '\0'; 
             info.dhcpType = DML_DHCPV4;
             strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
             info.ParamName[sizeof(info.ParamName) - 1] = '\0';
@@ -1099,6 +1092,7 @@ void processKilled(pid_t pid)
             dhcp_info_t info;
             memset(&info, 0, sizeof(info));
             strncpy(info.if_name, pDhcp6c->Cfg.Interface, MAX_STR_LEN - 1);
+            info.if_name[MAX_STR_LEN - 1] = '\0'; 
             info.dhcpType = DML_DHCPV6;
             strncpy(info.ParamName, "Selfheal_ClientRestart", sizeof(info.ParamName) - 1);
             info.ParamName[sizeof(info.ParamName) - 1] = '\0';

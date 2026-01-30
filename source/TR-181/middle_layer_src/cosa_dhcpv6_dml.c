@@ -993,15 +993,15 @@ Client3_SetParamBoolValue
     /* check the parameter name and set the corresponding value */
     if (strcmp(ParamName, "Enable") == 0)
     {
+        if (pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
+            return FALSE;
+        }
         /* save update to backup */
         if(bValue)
         {
             char DhcpSysEveSet[64] = {0};
-            if (pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
-            {
-                DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
-                return FALSE;
-            }
             snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV6_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
             if(commonSyseventSet(DhcpSysEveSet,pDhcpc->Cfg.Interface) != 0)
             {
@@ -1012,11 +1012,6 @@ Client3_SetParamBoolValue
         else
         {
             char DhcpSysEveSet[64] = {0};
-            if (pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
-            {
-                DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
-                return FALSE;
-            }
             snprintf(DhcpSysEveSet, sizeof(DhcpSysEveSet),"DHCPCV6_ENABLE_%lu", pDhcpc->Cfg.InstanceNumber);
             if(commonSyseventSet(DhcpSysEveSet,"") != 0)
             {
@@ -1084,15 +1079,10 @@ Client3_SetParamBoolValue
     if(ret_mq_send)
     {
         DHCPMGR_LOG_DEBUG("%s %d Preparing to send message to DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-        if(pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
-        {
-            DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
-            return FALSE;
-        }
-
         dhcp_info_t msg_info;
         AnscZeroMemory(&msg_info, sizeof(dhcp_info_t));
         strncpy(msg_info.if_name, pDhcpc->Cfg.Interface, MAX_STR_LEN - 1);
+        msg_info.if_name[MAX_STR_LEN - 1] = '\0';
         msg_info.dhcpType = DML_DHCPV6;
         strncpy(msg_info.ParamName, ParamName, sizeof(msg_info.ParamName) - 1);
         msg_info.ParamName[sizeof(msg_info.ParamName) - 1] = '\0';

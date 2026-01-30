@@ -333,9 +333,16 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         else
         {
             DHCPMGR_LOG_INFO("%s %d Thread already running for %s\n", __FUNCTION__, __LINE__, info.if_name);
+            pthread_mutex_unlock(&global_mutex);
         }
     }
-    pthread_mutex_unlock(&global_mutex);
+    else
+    {
+        DHCPMGR_LOG_ERROR("%s %d Failed to find or create interface entry for %s\n", __FUNCTION__, __LINE__, info.if_name);
+        pthread_mutex_unlock(&global_mutex);
+        mq_close(mq_desc);
+        return -1;
+    }
 
     mq_send_msg_t mq_msg;
     memset(&mq_msg, 0, sizeof(mq_msg));
@@ -352,7 +359,6 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
     if (mq_send(mq_desc, (char*)&mq_msg, sizeof(mq_msg), 0) == -1)
     {
         DHCPMGR_LOG_ERROR("%s %d Failed to send message to queue %s\n", __FUNCTION__, __LINE__, tmp_info.mq_name);
-        mark_thread_stopped(info.if_name);
         if(DhcpMgr_UnlockInterfaceQueueMutexByName(info.if_name) != 0) // Unlock the mutex on error
         {
             DHCPMGR_LOG_ERROR("%s %d Failed to unlock interface queue mutex for %s\n", __FUNCTION__, __LINE__, info.if_name);
