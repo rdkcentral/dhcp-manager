@@ -263,7 +263,7 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
 }
-
+#if 0
 rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
 {
     (void)rbusHandle;
@@ -271,7 +271,7 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
     (void)rbusProperty;
     return RBUS_ERROR_SUCCESS;
 }
-#if 0
+#endif
 rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
 {
     (void)rbusHandle;
@@ -359,7 +359,7 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,r
 
     return RBUS_ERROR_SUCCESS;
 }
-#endif
+
 /**
  * @brief Publishes DHCPv4 rbus events.
  *
