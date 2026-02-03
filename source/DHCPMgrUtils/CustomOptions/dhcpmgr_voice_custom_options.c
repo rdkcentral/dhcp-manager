@@ -295,9 +295,24 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     DHCPMGR_LOG_INFO("tgtSupport=%d\n", sVoicePktcCapabilities.tgtSupport);
     DHCPMGR_LOG_INFO("httpDownload=%d\n", sVoicePktcCapabilities.httpDownload);
     DHCPMGR_LOG_INFO("nvramInfoStorage=%d\n", sVoicePktcCapabilities.nvramInfoStorage);
-    DHCPMGR_LOG_INFO("supportedCodecs=%02x %02x %02x\n",
-        sVoicePktcCapabilities.supportedCodecs[0], sVoicePktcCapabilities.supportedCodecs[1],
-        sVoicePktcCapabilities.supportedCodecs[2]);
+    FILE *fp = fopen("/tmp/voice_pktc_capabilities.txt", "w");
+    if (fp)
+    {
+        fprintf(fp, "Supported Codecs Length=%d\n", sVoicePktcCapabilities.supportedCodecsLen);
+        fprintf(fp, "Supported Codecs=");
+        for (int i = 0; i < sVoicePktcCapabilities.supportedCodecsLen; i++)
+        {
+            fprintf(fp, "%02x ", sVoicePktcCapabilities.supportedCodecs[i]);
+        }
+        fprintf(fp, "\n");
+        fprintf(fp, "Supported Mibs Length=%d\n", sVoicePktcCapabilities.supportedMibsLen);
+        for (int i = 0; i < sVoicePktcCapabilities.supportedMibsLen; i++)
+        {
+            fprintf(fp, "supportedMibs[%d]=%02x ", i, sVoicePktcCapabilities.supportedMibs[i]);
+        }
+        fprintf(fp, "\n");
+        fclose(fp);
+    }
     DHCPMGR_LOG_INFO("silenceSuppression=%d\n", sVoicePktcCapabilities.silenceSuppression);
     DHCPMGR_LOG_INFO("echoCancellation=%d\n", sVoicePktcCapabilities.echoCancellation);
     DHCPMGR_LOG_INFO("ugsAd=%d\n", sVoicePktcCapabilities.ugsAd);
@@ -307,15 +322,12 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     DHCPMGR_LOG_INFO("t38ErrorCorrection=%d\n", sVoicePktcCapabilities.t38ErrorCorrection);
     DHCPMGR_LOG_INFO("rfc2833=%d\n", sVoicePktcCapabilities.rfc2833);
     DHCPMGR_LOG_INFO("voiceMetrics=%d\n", sVoicePktcCapabilities.voiceMetrics);
-    DHCPMGR_LOG_INFO("supportedMibs=%02x %02x %02x\n",
-        sVoicePktcCapabilities.supportedMibs[0], sVoicePktcCapabilities.supportedMibs[1],
-        sVoicePktcCapabilities.supportedMibs[2]);
     DHCPMGR_LOG_INFO("multiGrants=%d\n", sVoicePktcCapabilities.multiGrants);
     DHCPMGR_LOG_INFO("v_152=%d\n", sVoicePktcCapabilities.v_152);
     DHCPMGR_LOG_INFO("certBootstrapping=%d\n", sVoicePktcCapabilities.certBootstrapping);
     DHCPMGR_LOG_INFO("ipAddrProvCap=%d\n", sVoicePktcCapabilities.ipAddrProvCap);
 
-    unsigned char cHexBuf[256] = {0};
+    unsigned char cHexBuf[512] = {0};
     int iIndex = 0;
 
     /* Vendor prefix (Technicolor/Comcast specific) */
@@ -348,11 +360,11 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = sVoicePktcCapabilities.nvramInfoStorage;
 
     /* Suboption 11: supportedCodecs, commented until we get the update from broadcom  */
-    #if 0
+    #if 1
     cHexBuf[iIndex++] = 0x0b;
-    cHexBuf[iIndex++] = sizeof(sVoicePktcCapabilities.supportedCodecs);
-    memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedCodecs, sizeof(sVoicePktcCapabilities.supportedCodecs));
-    iIndex += sizeof(sVoicePktcCapabilities.supportedCodecs);
+    cHexBuf[iIndex++] = sVoicePktcCapabilities.supportedCodecsLen;
+    memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedCodecs, sVoicePktcCapabilities.supportedCodecsLen);
+    iIndex += sVoicePktcCapabilities.supportedCodecsLen;
     #else
     /* Subopt 11: supportedCodecs, As now hardcoded until we get the update from broadcom */
     cHexBuf[iIndex++] = 0x0b;
@@ -419,9 +431,9 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
 
     /* Suboption 23: supportedMibs */
     cHexBuf[iIndex++] = 0x17;
-    cHexBuf[iIndex++] = sizeof(sVoicePktcCapabilities.supportedMibs);
-    memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedMibs, sizeof(sVoicePktcCapabilities.supportedMibs));
-    iIndex += sizeof(sVoicePktcCapabilities.supportedMibs);
+    cHexBuf[iIndex++] = sVoicePktcCapabilities.supportedMibsLen;
+    memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedMibs, sVoicePktcCapabilities.supportedMibsLen);
+    iIndex += sVoicePktcCapabilities.supportedMibsLen;
 
     /* Suboption 24: multiGrants */
     cHexBuf[iIndex++] = 0x18;

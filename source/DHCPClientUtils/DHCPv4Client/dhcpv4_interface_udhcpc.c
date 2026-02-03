@@ -139,15 +139,15 @@ static int udhcpc_get_send_options (char * buff, dhcp_opt_list * send_opt_list)
         return SUCCESS;
     }
 
-    char args [BUFLEN_512] = {0};
+    char args [BUFLEN_1024] = {0};
     while ((send_opt_list != NULL) && (send_opt_list->dhcp_opt_val != NULL))
     {
-        memset (&args, 0, BUFLEN_512);
+        memset (&args, 0, BUFLEN_1024);
         if (send_opt_list->dhcp_opt == DHCPV4_OPT_60)
         {
             if(0== strncmp(send_opt_list->dhcp_opt_val,"pktc2.0:",strlen("pktc2.0:")))
             {
-                snprintf(args, BUFLEN_512, "-V %s ", send_opt_list->dhcp_opt_val);
+                snprintf(args, BUFLEN_1024, "-V %s ", send_opt_list->dhcp_opt_val);
             }
             else
             {
@@ -164,7 +164,7 @@ static int udhcpc_get_send_options (char * buff, dhcp_opt_list * send_opt_list)
         }
         else
         {
-            snprintf (args, BUFLEN_512, "-x 0x%02X:%s ", send_opt_list->dhcp_opt, send_opt_list->dhcp_opt_val);
+            snprintf (args, BUFLEN_1024, "-x 0x%02X:%s ", send_opt_list->dhcp_opt, send_opt_list->dhcp_opt_val);
         }
         send_opt_list = send_opt_list->next;
         strcat (buff,args);
