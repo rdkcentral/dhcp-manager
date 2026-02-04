@@ -297,7 +297,7 @@ static  int send_dhcp6_data_to_leaseMonitor (DHCPv6_PLUGIN_MSG *dhcpv6_data)
 
     for (int i = 0; i < MAX_SEND_THRESHOLD; i++)
     {
-        bytes = nn_send(sock, (char *) &msg, sz_msg, 0);
+        bytes = nn_send(sock, (char *) &msg, sz_msg, NN_DONTWAIT);
         if (bytes < 0)
         {
             sleep(1);

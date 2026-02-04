@@ -1140,7 +1140,18 @@ CosaDmlDhcpcGetCfg
     {
         return ANSC_STATUS_FAILURE;
     }
-   
+
+    //Required for the crash Recovery
+    char DhcpStateSys[64] = {0};
+    _ansc_sprintf(param_name, "DHCPCV4_ENABLE_%d", instancenum);
+    int ret = commonSyseventGet(param_name, DhcpStateSys, sizeof(DhcpStateSys));
+    if (ret == 0 && DhcpStateSys[0] != '\0')
+    {
+        pCfg->bEnabled = TRUE;
+        strcpy_s(pCfg->Interface, sizeof(pCfg->Interface), DhcpStateSys);
+    }
+    else
+    {
         pCfg->bEnabled = FALSE;
         commonSyseventGet("current_wan_ifname", ifname, sizeof(ifname));
         if (strlen(ifname) > 0)
@@ -1150,14 +1161,14 @@ CosaDmlDhcpcGetCfg
                 rc = strcpy_s(pCfg->Interface, sizeof(pCfg->Interface), ifname);
                 ERR_CHK(rc);
         }
-        
-        _PSM_READ_PARAM(PSM_DHCPMANAGER_CLIENTALIAS);
-        if (retPsmGet == CCSP_SUCCESS)
-        {
-             STRCPY_S_NOCLOBBER(pCfg->Alias, sizeof(pCfg->Alias), param_value);
-        }
-        pCfg->PassthroughEnable = TRUE;
-        pCfg->PassthroughDHCPPool[0] = 0;
+    }
+    _PSM_READ_PARAM(PSM_DHCPMANAGER_CLIENTALIAS);
+    if (retPsmGet == CCSP_SUCCESS)
+    {
+        STRCPY_S_NOCLOBBER(pCfg->Alias, sizeof(pCfg->Alias), param_value);
+    }
+    pCfg->PassthroughEnable = TRUE;
+    pCfg->PassthroughDHCPPool[0] = 0;
 
     return ANSC_STATUS_SUCCESS;
 }
