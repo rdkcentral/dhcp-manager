@@ -426,9 +426,26 @@ pid_t start_dhcpv6_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
 
     char cmd_args[BUFLEN_256] = {0};
     snprintf(cmd_args, sizeof(cmd_args), "%s -w %s", DIBBLER_CLIENT_RUN_CMD, config_path);
-    pid_t ret=1;
+   // pid_t ret=1;
    // pid_t ret = start_exe2(DIBBLER_CLIENT_PATH, cmd_args);
-    system("/usr/sbin/dibbler-client start -w /etc/dibbler/erouter0");
+    //system("/usr/sbin/dibbler-client start -w /etc/dibbler/erouter0");
+    system("/usr/sbin/dibbler-client start -w /etc/dibbler/erouter0 "
+       "& echo $! > /tmp/dibbler.pid");
+  
+    FILE *f = fopen("/tmp/dibbler.pid", "r");
+    if (!f) {
+        DHCPMGR_LOG_INFO("fopen(/tmp/dibbler.pid)");
+        return 1;
+    }
+
+    pid_t ret = 0;
+    if (fscanf(f, "%d", &ret) != 1 || ret <= 0) {
+        fprintf(stderr, "bad pid file contents\n");
+        
+        fclose(f);
+        return 1;
+    }
+    fclose(f);
     if (ret <= 0)
     {
         DHCPMGR_LOG_ERROR("%s %d: unable to start dibbler-client %d.\n", __FUNCTION__, __LINE__, ret);
@@ -441,7 +458,7 @@ pid_t start_dhcpv6_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
         DHCPMGR_LOG_WARNING("%s %d: unable to collect pid for %d.\n", __FUNCTION__, __LINE__, ret);
     }
 
-    DHCPMGR_LOG_INFO("%s %d: Started dibbler-client. returning pid..\n", __FUNCTION__, __LINE__);
+    DHCPMGR_LOG_INFO("%s %d: jothi Started dibbler-client. returning pid..\n", __FUNCTION__, __LINE__);
     return get_process_pid (DIBBLER_CLIENT, cmd_args, true);
 
 }
