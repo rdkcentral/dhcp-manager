@@ -305,6 +305,8 @@ int main(int argc, char* argv[])
     BOOL                            bRunAsDaemon       = TRUE;
     int                             cmdChar            = 0;
     int                             idx = 0;
+    FILE *fd = NULL;
+    char pid_buf[12]={0};
     appcaps.caps = NULL;
     appcaps.user_name = NULL;
     extern ANSC_HANDLE bus_handle;
@@ -363,7 +365,25 @@ int main(int argc, char* argv[])
         daemonize();
 
 DHCPMGR_LOG_INFO("\nAfter daemonize before signal\n");
-
+        /*This is used for DHCPMgr kill recovery */
+        fd = fopen("/var/tmp/CcspDHCPMgr.pid", "w+");
+        if ( !fd )
+        {
+            CcspTraceWarning(("Create /var/tmp/CcspDHCPMgr.pid error. \n"));
+        }
+        else
+        {
+            rc = sprintf_s(pid_buf, sizeof(pid_buf),"%d", getpid());
+            if(rc < EOK)
+            {
+            ERR_CHK(rc);
+            CcspTraceError(("exit ERROR %s:%d\n", __FUNCTION__, __LINE__));
+            fclose(fd);
+            exit(1);
+            }
+            fputs(pid_buf, fd);
+            fclose(fd);
+        }
 #ifdef INCLUDE_BREAKPAD
     breakpad_ExceptionHandler();
     signal(SIGUSR1, sig_handler);    
