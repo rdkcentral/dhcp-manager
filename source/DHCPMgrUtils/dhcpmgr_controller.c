@@ -643,12 +643,12 @@ static void* DhcpMgr_MainController( void *args )
                 else if( pDhcp6c->Cfg.Restart == TRUE)
                 {
                     //Only stoping the client here, restart will be done in the next iteration
-                    DHCPMGR_LOG_INFO("%s %d: jothi Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
+                    DHCPMGR_LOG_INFO("%s %d: jothi1 Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
                     send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
                     pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                     pDhcp6c->Cfg.Restart = FALSE;
-                    //DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
-                    //DhcpMgr_clearDHCPv6Lease(pDhcp6c);
+                    DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
+                    DhcpMgr_clearDHCPv6Lease(pDhcp6c);
                 }
 
                 //Process new lease
