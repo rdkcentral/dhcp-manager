@@ -93,6 +93,24 @@ extern ANSC_HANDLE g_Dhcpv6Object;
 //extern void dhcpv6_server_init();
 int dhcpv6_server_enabled = 1;
 #endif
+/* ===== OneStack Feature Support Patch ===== */
+
+#ifdef _ONESTACK_PRODUCT_REQ_
+
+#ifndef FEATURE_IPV6_DELEGATION
+#define FEATURE_IPV6_DELEGATION  1
+#endif
+
+/* Dummy runtime feature check — always enabled */
+static inline bool isFeatureSupportedInCurrentMode(int feature)
+{
+    (void)feature;
+    return true;
+}
+
+#endif /* _ONESTACK_PRODUCT_REQ_ */
+
+/* ========================================== */
 
 /***********************************************************************
  IMPORTANT NOTE:
@@ -4616,6 +4634,7 @@ Pool1_GetParamStringValue
     PCOSA_DML_DHCPSV6_POOL_FULL       pPool             = (PCOSA_DML_DHCPSV6_POOL_FULL)pCxtLink->hContext;
     PUCHAR                            pString           = NULL;
     errno_t   rc = -1;
+    int                               prefixdelegation_enabled = 0;
 
     /* check the parameter name and return the corresponding value */
     if (strcmp(ParamName, "Alias") == 0)
@@ -4627,46 +4646,60 @@ Pool1_GetParamStringValue
     if (strcmp(ParamName, "Interface") == 0)
     {
         /* collect value */
-     #ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
-        pString = CosaUtilGetFullPathNameByKeyword
-                    (
-                        (PUCHAR)"Device.IP.Interface.",
-                        (PUCHAR)"Name",
-                        (PUCHAR)pPool->Cfg.Interface // When brlan0 works ,change to "brlan0"
-                    );
-     #elif defined (MULTILAN_FEATURE)
-        pString = (PUCHAR)pPool->Cfg.Interface;
-     #else
-        pString = CosaUtilGetFullPathNameByKeyword
-                    (
-                        (PUCHAR)"Device.IP.Interface.",
-                        (PUCHAR)"Name",
-                        (PUCHAR)"brlan0" // When brlan0 works ,change to "brlan0"
-                    );
-     #endif
+
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION)
+	prefixdelegation_enabled = 1;
+#endif
+
+#ifdef _ONESTACK_PRODUCT_REQ_
+	prefixdelegation_enabled = isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION);
+#endif
+	if (prefixdelegation_enabled)
+	{
+	    pString = CosaUtilGetFullPathNameByKeyword(
+		    (PUCHAR)"Device.IP.Interface.",
+		    (PUCHAR)"Name",
+		    (PUCHAR)pPool->Cfg.Interface); // When brlan0 works ,change to "brlan0"
+	}
+#if defined(MULTILAN_FEATURE)
+	else
+	{
+	    pString = (PUCHAR)pPool->Cfg.Interface;
+	}
+#else
+	else
+	{
+	    pString = CosaUtilGetFullPathNameByKeyword(
+		    (PUCHAR)"Device.IP.Interface.",
+		    (PUCHAR)"Name",
+		    (PUCHAR)"brlan0"); // When brlan0 works ,change to "brlan0"
+	}
+#endif
 
         if ( pString )
         {
             if ( AnscSizeOfString((const char*)pString) < *pUlSize)
             {
                 rc = strcpy_s(pValue, *pUlSize, (char*) pString);
-                ERR_CHK(rc);
+		ERR_CHK(rc);
 #if defined (MULTILAN_FEATURE)
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
-                AnscFreeMemory(pString);
-#endif
+		if (prefixdelegation_enabled)
+		{
+		    AnscFreeMemory(pString);
+		}
 #else
-                AnscFreeMemory(pString);
+		AnscFreeMemory(pString);
 #endif
-                return 0;
+		return 0;
             }
             else
             {
                 *pUlSize = AnscSizeOfString((const char*)pString)+1;
 #if defined (MULTILAN_FEATURE)
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
-                AnscFreeMemory(pString);
-#endif
+		if (prefixdelegation_enabled)
+		{
+		    AnscFreeMemory(pString);
+		}
 #else
                 AnscFreeMemory(pString);
 #endif
@@ -4730,11 +4763,12 @@ Pool1_GetParamStringValue
     if (strcmp(ParamName, "IAPDPrefixes") == 0)
     {
         /* collect value */
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
-                return CosaDmlDhcpv6sGetIAPDPrefixes2(&pPool->Cfg, pValue, pUlSize);
-#else
-
+	if (prefixdelegation_enabled)
+	{
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+	    return CosaDmlDhcpv6sGetIAPDPrefixes2(&pPool->Cfg, pValue, pUlSize);
 #endif
+	}
 
         return  update_pValue(pValue,pUlSize, (char*)pPool->Info.IAPDPrefixes);
     }

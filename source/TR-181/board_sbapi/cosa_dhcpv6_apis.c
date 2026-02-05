@@ -83,6 +83,26 @@
 #include "ifl.h"
 //#include <libnet.h>
 
+
+/* ===== OneStack Feature Support Patch ===== */
+
+#ifdef _ONESTACK_PRODUCT_REQ_
+
+#ifndef FEATURE_IPV6_DELEGATION
+#define FEATURE_IPV6_DELEGATION  1
+#endif
+
+/* Dummy runtime feature check — always enabled */
+static inline bool isFeatureSupportedInCurrentMode(int feature)
+{
+    (void)feature;
+    return true;
+}
+
+#endif /* _ONESTACK_PRODUCT_REQ_ */
+
+/* ========================================== */
+
 #define DHCPV6_BINARY   "dibbler-client"
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE bus_handle;
@@ -1046,7 +1066,7 @@ BOOL tagPermitted(int tag)
 #include "cosa_drg_common.h"
 #include "cosa_common_util.h"
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
+#if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)) || defined(_ONESTACK_PRODUCT_REQ_)
 #include <netinet/in.h>
 #endif
 
@@ -1117,7 +1137,7 @@ enum {
     DHCPV6_SERVER_TYPE_STATELESS
 };
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
+#if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)) || defined(_ONESTACK_PRODUCT_REQ_)
 #define MAX_LAN_IF_NUM              3
 
 /*erouter topology mode*/
@@ -1227,10 +1247,21 @@ void setpool_into_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1Inde
     SETI_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "instancenumber", pEntry->Cfg.InstanceNumber)
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "alias", pEntry->Cfg.Alias)
     SETI_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Order", pEntry->Cfg.Order)
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IAInterface", pEntry->Cfg.Interface)
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Interface", pEntry->Cfg.Interface)
+    }
 #endif
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "VendorClassID", pEntry->Cfg.VendorClassID)
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "UserClassID", pEntry->Cfg.UserClassID)
@@ -1251,10 +1282,21 @@ void setpool_into_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1Inde
     SETI_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "DUIDExclude", pEntry->Cfg.DUIDExclude)
     SETI_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "bEnabled", pEntry->Cfg.bEnabled)
     SETI_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Status", pEntry->Info.Status)
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IANAInterfacePrefixes", pEntry->Info.IANAPrefixes)
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IANAPrefixes", pEntry->Info.IANAPrefixes)
+    }
 #endif
     SETS_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IAPDPrefixes", pEntry->Info.IAPDPrefixes)
     SETI_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "RapidEnable", pEntry->Cfg.RapidEnable)
@@ -1280,10 +1322,21 @@ void unsetpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1In
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "instancenumber" )
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "alias")
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Order")
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IAInterface")
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Interface")
+    }
 #endif
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "VendorClassID")
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "UserClassID")
@@ -1304,10 +1357,21 @@ void unsetpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1In
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "DUIDExclude")
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "bEnabled")
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Status")
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IANAInterfacePrefixes")
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IANAPrefixes")
+    }
 #endif
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IAPDPrefixes")
     UNSET_INTO_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "RapidEnable")
@@ -1326,7 +1390,7 @@ void unsetpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1In
 void getpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1Index, PCOSA_DML_DHCPSV6_POOL_FULL pEntry )
 {
     UtopiaContext utctx = {0};
- #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_BCI_FEATURE_REQ)
+ #if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_BCI_FEATURE_REQ))
     char *INVALID_IANAInterfacePrefixes = "Device.IP.Interface.4.IPv6Prefix.1.";
     char *FIXED_IANAInterfacePrefixes   = "Device.IP.Interface.1.IPv6Prefix.1.";
 #endif
@@ -1337,10 +1401,21 @@ void getpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1Inde
     GETI_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "instancenumber", pEntry->Cfg.InstanceNumber)
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "alias", pEntry->Cfg.Alias)
     GETI_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Order", pEntry->Cfg.Order)
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IAInterface", pEntry->Cfg.Interface)
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Interface", pEntry->Cfg.Interface)
+    }
 #endif
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "VendorClassID", pEntry->Cfg.VendorClassID)
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "UserClassID", pEntry->Cfg.UserClassID)
@@ -1361,7 +1436,11 @@ void getpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1Inde
     GETI_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "DUIDExclude", pEntry->Cfg.DUIDExclude)
     GETI_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "bEnabled", pEntry->Cfg.bEnabled)
     GETI_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "Status", pEntry->Info.Status)
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IANAInterfacePrefixes", pEntry->Info.IANAPrefixes)
  #if defined(_BCI_FEATURE_REQ)
     DHCPMGR_LOG_INFO("%s table1Name: %s, table1Index: %lu, get IANAInterfacePrefixes: %s\n",
@@ -1376,8 +1455,15 @@ void getpool_from_utopia( PUCHAR uniqueName, PUCHAR table1Name, ULONG table1Inde
        DHCPMGR_LOG_INFO("%s Try again to get IANAInterfacePrefixes: %s\n", __func__, pEntry->Info.IANAPrefixes);
       }
  #endif
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IANAPrefixes", pEntry->Info.IANAPrefixes)
+    }
 #endif
     GETS_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "IAPDPrefixes", pEntry->Info.IAPDPrefixes)
     GETI_FROM_UTOPIA(uniqueName, table1Name, table1Index, "", 0, "RapidEnable", pEntry->Cfg.RapidEnable)
@@ -1479,7 +1565,7 @@ extern int CosaDmlDHCPv6sTriggerRestart(BOOL OnlyTrigger);
 
 #define DHCPS6V_SERVER_RESTART_FIFO "/tmp/ccsp-dhcpv6-server-restart-fifo.txt"
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ)
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ) && !defined(_ONESTACK_PRODUCT_REQ_)
 
 #else
 ANSC_STATUS
@@ -1489,6 +1575,13 @@ CosaDmlDhcpv6SMsgHandler
     )
 {
     UNREFERENCED_PARAMETER(hContext);
+#ifdef _ONESTACK_PRODUCT_REQ_
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    {
+        /* Prefix Delegation mode — this function should behave as "not present" */
+        return ANSC_STATUS_SUCCESS;
+    }
+#endif
     char ret[16] = {0};
 
     /*We may restart by DM manager when pam crashed. We need to get current two status values */
@@ -1728,10 +1821,17 @@ CosaDmlDhcpv6Init
     SETI_INTO_UTOPIA(DHCPV6S_NAME,  "", 0, "", 0, "serverenable", g_dhcpv6_server)
     Utopia_Free(&utctx,1);
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ)
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ) && !defined(_ONESTACK_PRODUCT_REQ_)
 
 #else
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    {
+        /* PD mode — skip callback registration */
+    }
+    else
+#endif
+    {
     /*register callback function to handle message from wan dchcp6 client */
     /* CosaDmlDhcpv6SMsgHandler will be directly called from CosaDhcpv6Initialize
     pEntry = (PDSLHDMAGNT_CALLBACK)AnscAllocateMemory(sizeof(*pEntry));
@@ -1741,6 +1841,7 @@ CosaDmlDhcpv6Init
     /*register callback function to restart dibbler-server at right time*/
     DHCPMGR_LOG_WARNING("%s -- %d register lan-status to event dispatcher \n", __FUNCTION__, __LINE__);
     EvtDispterRgstCallbackForEvent("lan-status", CosaDmlDhcpv6sRestartOnLanStarted, NULL);
+    }
 #endif
 
     return ANSC_STATUS_SUCCESS;
@@ -2121,8 +2222,13 @@ static int _dibbler_client_operation(char * arg)
         DHCPMGR_LOG_INFO("%s stop\n", __func__);
         /*TCXB6 is also calling service_dhcpv6_client.sh but the actuall script is installed from meta-rdk-oem layer as the intel specific code
                    had to be removed */
-#if defined (FEATURE_RDKB_DHCP_MANAGER) || defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
+#if defined (FEATURE_RDKB_DHCP_MANAGER) || defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX) || defined (_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
         commonSyseventSet("dhcpv6_client-stop", "");
+    }
 #endif
 
 #if defined (_COSA_BCM_ARM_) && !defined (FEATURE_RDKB_DHCP_MANAGER)
@@ -2156,8 +2262,16 @@ static int _dibbler_client_operation(char * arg)
         /*This is for ArrisXB6 */
         /*TCXB6 is also calling service_dhcpv6_client.sh but the actuall script is installed from meta-rdk-oem layer as the intel specific code
          had to be removed */
-#if defined (FEATURE_RDKB_DHCP_MANAGER) || defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
+#if defined(FEATURE_RDKB_DHCP_MANAGER) || (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && !defined(DHCPV6_PREFIX_FIX)) || \
+   defined(_ONESTACK_PRODUCT_REQ_)
+
+#ifdef _ONESTACK_PRODUCT_REQ_
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+#endif
+    {
         commonSyseventSet("dhcpv6_client-start", "");
+    }
+
 #endif
 
 #if defined (_COSA_BCM_ARM_) && !defined (FEATURE_RDKB_DHCP_MANAGER)
@@ -3015,10 +3129,17 @@ int remove_single_quote (char *buf)
   return 0;
 }
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
+#if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_))
+
 // adding new logics to handle pd-class
 static int get_ipv6_tpmode (int *tpmod)
 {
+#ifdef _ONESTACK_PRODUCT_REQ_
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    {
+        return 0;  /* behave as non-PD build */
+    }
+#endif
   char buf[16] = { 0 };
   char fixed_buf[16] = { 0 };
   int  mode;
@@ -3176,17 +3297,27 @@ CosaDmlDhcpv6sEnable
        DHCPMGR_LOG_INFO("Disable DHCPv6. Stopping Dibbler-Server and Zebra Process\n ");
        #endif
       /* we need disable server. */
+       int pd_enabled = 0;
 
-       #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
-        commonSyseventSet("dhcpv6_server-stop", "");
-       #else
+       #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && !defined(DHCPV6_PREFIX_FIX)
+       pd_enabled = 1;
+       #endif
 
+       #ifdef _ONESTACK_PRODUCT_REQ_
+       pd_enabled = isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION);
+       #endif
+
+       if (pd_enabled)
+       {
+	   commonSyseventSet("dhcpv6_server-stop", "");
+       }
+       else
+       {
        #ifdef DHCPV6_SERVER_SUPPORT
-        _dibbler_server_operation("stop");
+	   _dibbler_server_operation("stop");
 	//sysevent_set(sysevent_fd_server, sysevent_token_server, "dibbler_server_operation", "stop", 0);
        #endif
-
-       #endif
+       }
     }
 
     return ANSC_STATUS_SUCCESS;
@@ -3625,7 +3756,7 @@ CosaDmlDhcpv6sGetIAPDPrefixes
 
     return ret;
 }
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
 /*this function gets IAPD prefixes from sysevent, the value is PD prefix range*/
 int
 CosaDmlDhcpv6sGetIAPDPrefixes2
@@ -3635,6 +3766,12 @@ CosaDmlDhcpv6sGetIAPDPrefixes2
         ULONG*                      pSize
     )
 {
+#ifdef _ONESTACK_PRODUCT_REQ_
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    {
+        return 0;  /* behave as non-PD build */
+    }
+#endif
     ULONG size = 0;
     int ret = 0;
     char pd_pool[128] = {0};
