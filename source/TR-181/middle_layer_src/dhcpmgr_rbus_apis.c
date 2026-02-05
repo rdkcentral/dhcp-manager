@@ -248,11 +248,16 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
     if(src->mapt.Assigned == TRUE)
     {
-        unsigned char  maptContainer[BUFLEN_256]; /* MAP-T option 95 in hex format*/
+        unsigned char  maptContainer[BUFLEN_256] = {0}; /* MAP-T option 95 in hex format*/
         memset(maptContainer, 0, sizeof(maptContainer));
         memcpy(maptContainer, src->mapt.Container, sizeof(src->mapt.Container));
-        DhcpMgr_MaptParseOpt95Response(dest->sitePrefix, maptContainer, &dest->mapt);
-        dest->maptAssigned = TRUE;
+        if (DhcpMgr_MaptParseOpt95Response(dest->sitePrefix, maptContainer, &dest->mapt) == ANSC_STATUS_SUCCESS)
+        {
+            dest->maptAssigned = TRUE;
+        } else {
+            DHCPMGR_LOG_ERROR("%s: MAP-T option95 parsing failed. Set maptAssigned to FALSE.\n", __FUNCTION__);
+            dest->maptAssigned = FALSE;
+        }
     }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
 }
