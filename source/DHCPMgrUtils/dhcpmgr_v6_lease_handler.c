@@ -19,8 +19,7 @@
 
 #include "cosa_dhcpv6_apis.h"
 #include "dhcpv6_interface.h"
-#include <stdlib.h>
-#include <sys/wait.h>
+#include "secure_wrapper.h"
 #include "dhcpmgr_rbus_apis.h"
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
@@ -49,7 +48,7 @@ typedef struct
 
 static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
 static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
-static int exec_shell_cmd(char * command);
+
 /**
  * @brief processv6LesSysevents This function will set the sysevent values for IA_PD and IA_NA
  *
@@ -57,27 +56,6 @@ static int exec_shell_cmd(char * command);
  *
  * @return void
  */
-
-static int exec_shell_cmd(char * command)
-{
-    int status = system(command);
-    if (status == -1) {
-        DHCPMGR_LOG_ERROR("%s: %d system() failed to run shell\n",__FUNCTION__,__LINE__);
-        return -1;
-    }
-
-    if (WIFEXITED(status)) {
-        int exit_code = WEXITSTATUS(status);
-
-        if (exit_code != 0) 
-        {
-            return -1;
-        }
-    } else if (WIFSIGNALED(status)) {
-        DHCPMGR_LOG_ERROR("%s %d :Command was terminated by signal %d\n",__FUNCTION__,__LINE__,WTERMSIG(status));
-    }
-    return 0;
-}
 
 static void processv6LesSysevents(IPv6Events* eventMaps, size_t size, const char* IfaceName)
 {
@@ -221,10 +199,7 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
             DHCPMGR_LOG_INFO("%s %d: NewLease nameserver2 %s  \n", __FUNCTION__, __LINE__, newLease->dns.nameserver1);
             DHCPMGR_LOG_INFO("%s %d: NewLease PreferedLifeTime %d  \n", __FUNCTION__, __LINE__, newLease->ia_pd.PreferedLifeTime);
             DHCPMGR_LOG_INFO("%s %d: NewLease ValidLifeTime %d  \n", __FUNCTION__, __LINE__, newLease->ia_pd.ValidLifeTime);
-            if(newLease->ia_na.assigned == TRUE)
-            {
-                configureNetworkInterface(pDhcp6c);
-            }
+            configureNetworkInterface(pDhcp6c);
             ConfigureIpv6Sysevents(pDhcp6c);
             if(newLease->vendor.Assigned == TRUE)
             {
@@ -359,10 +334,12 @@ static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
     // Use system calls or platform-specific APIs to configure the network interface
     char command[256];
     snprintf(command, sizeof(command), "ip -6 addr add %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
-    if(exec_shell_cmd(command) != 0)
+    int ret = v_secure_system("ip -6 addr add %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
+    if (ret != 0) 
     {
         DHCPMGR_LOG_ERROR("%s %d: Failed to configure IPv6 address on interface %s. Command: %s\n", __FUNCTION__, __LINE__, interface, command);
     }
+
     return;
 }
 
