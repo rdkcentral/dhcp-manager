@@ -149,7 +149,7 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
     (void)handle;
     (void)filter;
     (void)(interval);
-    (void)(autoPublish);
+     *autoPublish = false;
 
     char *subscribe_action = action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribed" : "unsubscribed";
     DHCPMGR_LOG_INFO("%s %d - Event %s has been  %s \n", __FUNCTION__, __LINE__,eventName, subscribe_action );
@@ -263,6 +263,7 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
 }
+
 rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
 {
     (void)rbusHandle;
@@ -274,16 +275,16 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,r
     if (0 != strncmp(pName, DHCP_MGR_DHCPv4_TABLE, strlen(DHCP_MGR_DHCPv4_TABLE)))
     {
         DHCPMGR_LOG_ERROR("%s %d - Unsupported property name %s\n", __FUNCTION__, __LINE__, pName);
-        return RBUS_ERROR_INVALID_INPUT;
+        return RBUS_ERROR_SUCCESS;
     }
 
     sscanf(pName, DHCPv4_EVENT_FORMAT, &iDmIndex);
     DHCPMGR_LOG_INFO("%s %d - Getting data for property %s with index %d\n", __FUNCTION__, __LINE__, pName, iDmIndex);
 
-    if (-1 == iDmIndex || 1 == iDmIndex)
+    if (-1 == iDmIndex)
     {
-        // For erouter0 or invalid index, return empty/null
-        return RBUS_ERROR_INVALID_INPUT;
+        DHCPMGR_LOG_ERROR("%s %d - Invalid index %d for property %s\n", __FUNCTION__, __LINE__, iDmIndex, pName);
+       return RBUS_ERROR_SUCCESS;
     }
 
     // Get DHCP client context
@@ -304,7 +305,7 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,r
     {
         // Boot case: no lease yet, return invalid/empty
         DHCPMGR_LOG_INFO("%s %d - No current lease for index %d\n", __FUNCTION__, __LINE__, iDmIndex);
-        return RBUS_ERROR_INVALID_INPUT;
+        return RBUS_ERROR_SUCCESS;
     }
 
     DHCPMGR_LOG_INFO("%s %d - Ifname: %s, index: %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, iDmIndex);
@@ -337,9 +338,9 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,r
     rbusValue_Release(leaseInfoVal);
 
     rbusProperty_SetObject(rbusProperty, rdata);
-
     rbusObject_Release(rdata);
-    DHCPMGR_LOG_INFO("%s %d - Exiting --getDataHandler\n", __FUNCTION__, __LINE__);
+
+    DHCPMGR_LOG_INFO("%s %d - Exiting, getDataHandler\n", __FUNCTION__, __LINE__);
     return RBUS_ERROR_SUCCESS;
 }
 
