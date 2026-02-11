@@ -93,24 +93,6 @@ extern ANSC_HANDLE g_Dhcpv6Object;
 //extern void dhcpv6_server_init();
 int dhcpv6_server_enabled = 1;
 #endif
-/* ===== OneStack Feature Support Patch ===== */
-
-#ifdef _ONESTACK_PRODUCT_REQ_
-
-#ifndef FEATURE_IPV6_DELEGATION
-#define FEATURE_IPV6_DELEGATION  1
-#endif
-
-/* Dummy runtime feature check — always enabled */
-static inline bool isFeatureSupportedInCurrentMode(int feature)
-{
-    (void)feature;
-    return true;
-}
-
-#endif /* _ONESTACK_PRODUCT_REQ_ */
-
-/* ========================================== */
 
 /***********************************************************************
  IMPORTANT NOTE:
