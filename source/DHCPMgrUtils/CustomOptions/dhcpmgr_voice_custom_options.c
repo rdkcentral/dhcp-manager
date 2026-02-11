@@ -295,8 +295,8 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     DHCPMGR_LOG_INFO("tgtSupport=%d\n", sVoicePktcCapabilities.tgtSupport);
     DHCPMGR_LOG_INFO("httpDownload=%d\n", sVoicePktcCapabilities.httpDownload);
     DHCPMGR_LOG_INFO("nvramInfoStorage=%d\n", sVoicePktcCapabilities.nvramInfoStorage);
-    #if 0
-    if (0 == access("nvram/dumpCodec_and_Mibs.txt", F_OK))
+    #if 1
+    if (0 == access("/nvram/dumpCodec_and_Mibs.txt", F_OK))
     {
         FILE *fp = fopen("/tmp/voice_pktc_capabilities.txt", "w");
         if (fp)
@@ -373,7 +373,7 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = sVoicePktcCapabilities.nvramInfoStorage;
 
     /* Suboption 11: supportedCodecs, commented until we get the update from broadcom  */
-    #if 0
+    #if 1
     cHexBuf[iIndex++] = 0x0b;
     cHexBuf[iIndex++] = sVoicePktcCapabilities.supportedCodecsLen;
     memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedCodecs, sVoicePktcCapabilities.supportedCodecsLen);
@@ -443,7 +443,7 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = sVoicePktcCapabilities.voiceMetrics;
 
     /* Suboption 23: supportedMibs */
-    #if 0
+    #if 1
     cHexBuf[iIndex++] = 0x17;
     cHexBuf[iIndex++] = sVoicePktcCapabilities.supportedMibsLen;
     memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedMibs, sVoicePktcCapabilities.supportedMibsLen);
