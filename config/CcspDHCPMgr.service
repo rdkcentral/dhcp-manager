@@ -26,6 +26,8 @@ Type=forking
 PIDFile=/var/tmp/CcspDHCPMgr.pid
 Environment="Subsys=eRT."
 Environment="LOG4C_RCPATH=/etc"
+Environment="LD_PRELOAD=/usr/lib/libmtrace_watcher.so.0:/lib/libc_malloc_debug.so.0"
+Environment="MALLOC_TRACE=/tmp/mtrace.dhcpmgr.$$.log"
 EnvironmentFile=/etc/device.properties
 WorkingDirectory=/usr/ccsp/dhcpmgr
 #ExecStartPre=/bin/sh -c "sleep 30"
