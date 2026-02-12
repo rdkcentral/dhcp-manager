@@ -109,12 +109,13 @@ static bool compare_dhcpv6_plugin_msg(const DHCPv6_PLUGIN_MSG *currentLease, con
         return false; // Null pointers cannot be compared
     }
 
+
     bool ia_na_eq = (currentLease->ia_na.assigned == newLease->ia_na.assigned) &&
-                    (strcmp(currentLease->ia_na.address, newLease->ia_na.address) == 0) &&
+                    (strncmp(currentLease->ia_na.address, newLease->ia_na.address, sizeof(currentLease->ia_na.address)) == 0) &&
                     (currentLease->ia_na.IA_ID == newLease->ia_na.IA_ID);
 
     bool ia_pd_eq = (currentLease->ia_pd.assigned == newLease->ia_pd.assigned) &&
-                    (strcmp(currentLease->ia_pd.Prefix, newLease->ia_pd.Prefix) == 0) &&
+                    (strncmp(currentLease->ia_pd.Prefix, newLease->ia_pd.Prefix, sizeof(currentLease->ia_pd.Prefix)) == 0) &&
                     (currentLease->ia_pd.PrefixLength == newLease->ia_pd.PrefixLength) &&
                     (currentLease->ia_pd.IA_ID == newLease->ia_pd.IA_ID);
 
