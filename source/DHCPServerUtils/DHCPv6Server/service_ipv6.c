@@ -653,14 +653,13 @@ static int get_active_lanif(unsigned int insts[], unsigned int *num)
 
         p = strtok(NULL, " ");
     }
-        }
+    }
 #endif
 #if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
     #if defined(_ONESTACK_PRODUCT_REQ_)
     if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
     #endif
     {
-#else
     /* Get active bridge count from PSM */
     if (!bus_handle) {
         DHCPMGR_LOG_INFO("DBUS not connected, returning \n");

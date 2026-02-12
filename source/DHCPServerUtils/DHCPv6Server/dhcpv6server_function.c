@@ -77,8 +77,8 @@ extern int executeCmd(char *cmd);
 #include "cosa_drg_common.h"
 //#include "cosa_ip_apis.h"
 #include "cosa_common_util.h"
-
-#if defined((CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)) || defined(_ONESTACK_PRODUCT_REQ_)
+#if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)) \
+     || defined(_ONESTACK_PRODUCT_REQ_)
 #include <netinet/in.h>
 #endif
 
@@ -296,7 +296,7 @@ int CosaDmlDHCPv6sTriggerRestart(BOOL OnlyTrigger)
     //OnlyTrigger = (int *)arg;
     
     DHCPVS_DEBUG_PRINT
-  #if defined ((CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)) || defined(_ONESTACK_PRODUCT_REQ_)
+  #if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && !defined(DHCPV6_PREFIX_FIX)) || defined(_ONESTACK_PRODUCT_REQ_).
     UNREFERENCED_PARAMETER(OnlyTrigger);
     ifl_set_event("dhcpv6_server-restart", "");
   #else
