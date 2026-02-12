@@ -56,7 +56,9 @@
 #include <ccsp_base_api.h>
 #include "ccsp_memory.h"
 #endif
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+#include <rdkb_feature_mode_gate.h>
+#endif
 #define PROG_NAME       "SERVICE-IPV6"
 
 #if defined(INTEL_PUMA7) || defined(MULTILAN_FEATURE)

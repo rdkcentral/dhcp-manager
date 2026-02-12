@@ -85,7 +85,9 @@
 #define WEEKS 604800
 #define MINSECS 120
 #define MAXSECS 999
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+#include <rdkb_feature_mode_gate.h>
+#endif
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE g_Dhcpv6Object;
 

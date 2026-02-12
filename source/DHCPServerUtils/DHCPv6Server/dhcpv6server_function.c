@@ -47,7 +47,9 @@
 #include "sysevent/sysevent.h"
 #include "cosa_apis_util.h"
 #include "ifl.h"
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+#include <rdkb_feature_mode_gate.h>
+#endif
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];

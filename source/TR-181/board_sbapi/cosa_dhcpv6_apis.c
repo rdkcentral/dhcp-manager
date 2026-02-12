@@ -83,7 +83,9 @@
 #include "ifl.h"
 //#include <libnet.h>
 
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+#include <rdkb_feature_mode_gate.h>
+#endif
 #define DHCPV6_BINARY   "dibbler-client"
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE bus_handle;
