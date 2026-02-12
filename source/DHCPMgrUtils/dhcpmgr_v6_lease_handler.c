@@ -109,10 +109,20 @@ static bool compare_dhcpv6_plugin_msg(const DHCPv6_PLUGIN_MSG *currentLease, con
         return false; // Null pointers cannot be compared
     }
 
+
+    bool ia_na_eq = (currentLease->ia_na.assigned == newLease->ia_na.assigned) &&
+                    (strncmp(currentLease->ia_na.address, newLease->ia_na.address, sizeof(currentLease->ia_na.address)) == 0) &&
+                    (currentLease->ia_na.IA_ID == newLease->ia_na.IA_ID);
+
+    bool ia_pd_eq = (currentLease->ia_pd.assigned == newLease->ia_pd.assigned) &&
+                    (strncmp(currentLease->ia_pd.Prefix, newLease->ia_pd.Prefix, sizeof(currentLease->ia_pd.Prefix)) == 0) &&
+                    (currentLease->ia_pd.PrefixLength == newLease->ia_pd.PrefixLength) &&
+                    (currentLease->ia_pd.IA_ID == newLease->ia_pd.IA_ID);
+
     // Compare all fields except the `next` pointer
     if (currentLease->isExpired != newLease->isExpired ||
-        memcmp(&currentLease->ia_na, &newLease->ia_na, sizeof(currentLease->ia_na)) != 0 ||
-        memcmp(&currentLease->ia_pd, &newLease->ia_pd, sizeof(currentLease->ia_pd)) != 0 ||
+        !ia_na_eq ||
+        !ia_pd_eq ||
         memcmp(&currentLease->dns, &newLease->dns, sizeof(currentLease->dns)) != 0 ||
         memcmp(&currentLease->mapt, &newLease->mapt, sizeof(currentLease->mapt)) != 0 ||
         strcmp(currentLease->domainName, newLease->domainName) != 0 ||
