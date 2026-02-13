@@ -5,7 +5,8 @@
 #include "util.h"
 #include "udhcpc_msg.h"
 
-#if 1  // Uncomment the following code to enable plugin logs
+
+#if 0  // Uncomment the following code to enable plugin logs
 
 #define PLUGIN_DBG_PRINT(fmt ...)     {\
     FILE     *fp        = NULL;\
@@ -264,7 +265,7 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] MTA IPv4 option is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] MTA DHCP option 122 (IPv4 option) is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
         if ((env = getenv(DHCP_MTA_IPV6)) != NULL)
         {
@@ -277,7 +278,7 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] MTA IPv6 option is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] MTA DHCP option 125 (IPv6 option) is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
         if ((env = getenv(DHCP_BOOT_FILE)) != NULL)
         {
@@ -289,7 +290,7 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] MTA option67 is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] MTA bootfile (option67) is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
         /** TFTP server address */
         if ((env = getenv (DHCP_TFTP_SERVER)) != NULL)
@@ -302,7 +303,7 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] TFTP server address is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] TFTP server address is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
         if ((env = getenv(DHCP_HOST_NAME)) != NULL)
         {
@@ -314,7 +315,7 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] HostName is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] HostName is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
         if((env = getenv(DHCP_DOMAIN_NAME)) != NULL)
         {
@@ -326,7 +327,7 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] DomainName is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] DomainName is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
         /** UpstreamCurrRate. **/
         if ((env = getenv(DHCP_UPSTREAMRATE)) != NULL)

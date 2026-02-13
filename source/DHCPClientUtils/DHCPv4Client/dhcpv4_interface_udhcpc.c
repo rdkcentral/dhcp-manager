@@ -159,7 +159,7 @@ static int udhcpc_get_send_options (char * buff, dhcp_opt_list * send_opt_list)
                 char ascii_val[BUFLEN_128] = {0};
                 if( hex_to_ascii(send_opt_list->dhcp_opt_val, ascii_val, sizeof(ascii_val)) == 0)
                 {
-                    snprintf(args, BUFLEN_128, "-V %s ", ascii_val);
+                    snprintf(args, BUFLEN_1024, "-V %s ", ascii_val);
                 }
             }
         }

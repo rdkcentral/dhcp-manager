@@ -28,7 +28,7 @@ lib_LTLIBRARIES = libcustomoptions.la
 # Source files for the library
 libcustomoptions_la_SOURCES = dhcpmgr_custom_options.c
 
-if DHCP_VOICE_OPTIONS_SUPPORT
+if VOICE_MTA_SUPPORT
 libcustomoptions_la_SOURCES += dhcpmgr_voice_custom_options.c
 endif
 # Include directories

@@ -295,10 +295,10 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     DHCPMGR_LOG_INFO("tgtSupport=%d\n", sVoicePktcCapabilities.tgtSupport);
     DHCPMGR_LOG_INFO("httpDownload=%d\n", sVoicePktcCapabilities.httpDownload);
     DHCPMGR_LOG_INFO("nvramInfoStorage=%d\n", sVoicePktcCapabilities.nvramInfoStorage);
-    #if 1
-    if (0 == access("/nvram/dumpCodec_and_Mibs.txt", F_OK))
+
+    if (access("/tmp/logCodecMibs.txt", F_OK) == 0) // Only write if file exists
     {
-        FILE *fp = fopen("/tmp/voice_pktc_capabilities.txt", "w");
+        FILE *fp = fopen("/tmp/dumpCodec_and_Mibs.txt", "w");
         if (fp)
         {
             fprintf(fp, "Supported Codecs Length=%d\n", sVoicePktcCapabilities.supportedCodecsLen);
@@ -316,14 +316,6 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
             fprintf(fp, "\n");
             fclose(fp);
         }
-    }
-    else
-    #endif
-    {
-        DHCPMGR_LOG_INFO("Supported Codec: %02x %02x %02x\n", sVoicePktcCapabilities.supportedCodecs[0],
-            sVoicePktcCapabilities.supportedCodecs[1], sVoicePktcCapabilities.supportedCodecs[2]);
-        DHCPMGR_LOG_INFO("Supported Mibs: %02x %02x %02x\n", sVoicePktcCapabilities.supportedMibs[0],
-            sVoicePktcCapabilities.supportedMibs[1], sVoicePktcCapabilities.supportedMibs[2]);
     }
 
     DHCPMGR_LOG_INFO("silenceSuppression=%d\n", sVoicePktcCapabilities.silenceSuppression);
@@ -373,12 +365,11 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = sVoicePktcCapabilities.nvramInfoStorage;
 
     /* Suboption 11: supportedCodecs, commented until we get the update from broadcom  */
-    #if 1
     cHexBuf[iIndex++] = 0x0b;
     cHexBuf[iIndex++] = sVoicePktcCapabilities.supportedCodecsLen;
     memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedCodecs, sVoicePktcCapabilities.supportedCodecsLen);
     iIndex += sVoicePktcCapabilities.supportedCodecsLen;
-    #else
+#if 0//if the HAL is not returning expected value, we can use below stubbed code
     /* Subopt 11: supportedCodecs, As now hardcoded until we get the update from broadcom */
     cHexBuf[iIndex++] = 0x0b;
     cHexBuf[iIndex++] = 0x0b;  // Length = 11 bytes
@@ -394,7 +385,7 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = 0x00;
     cHexBuf[iIndex++] = 0x01;
     cHexBuf[iIndex++] = 0x01;
-    #endif
+#endif
 
     /* Suboption 12: silenceSuppression */
     cHexBuf[iIndex++] = 0x0C;
@@ -443,17 +434,10 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
     cHexBuf[iIndex++] = sVoicePktcCapabilities.voiceMetrics;
 
     /* Suboption 23: supportedMibs */
-    #if 1
     cHexBuf[iIndex++] = 0x17;
     cHexBuf[iIndex++] = sVoicePktcCapabilities.supportedMibsLen;
     memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedMibs, sVoicePktcCapabilities.supportedMibsLen);
     iIndex += sVoicePktcCapabilities.supportedMibsLen;
-    #else
-    cHexBuf[iIndex++] = 0x17;
-    cHexBuf[iIndex++] = 0x03; // Length = 3 bytes
-    memcpy(&cHexBuf[iIndex], sVoicePktcCapabilities.supportedMibs, 3);
-    iIndex += 3;
-    #endif
 
     /* Suboption 24: multiGrants */
     cHexBuf[iIndex++] = 0x18;
@@ -462,7 +446,7 @@ static int prepareDhcpOption60(char *pOptionValue, size_t iOptionValueSize)
 
     /* Suboption 25: v_152 */
     cHexBuf[iIndex++] = 0x19;
-    cHexBuf[iIndex++] = sizeof(sVoicePktcCapabilities.v_152);;
+    cHexBuf[iIndex++] = sizeof(sVoicePktcCapabilities.v_152);
     cHexBuf[iIndex++] = sVoicePktcCapabilities.v_152;
 
     /* Suboption 26: certBootstrapping */

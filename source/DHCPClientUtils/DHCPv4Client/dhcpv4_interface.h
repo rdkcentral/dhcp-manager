@@ -26,16 +26,14 @@
 #include "util.h"
 
 
-//#if defined (EROUTER_DHCP_OPTION_MTA)
 typedef struct MTA_OPTION
 {
     BOOL Assigned122;
     BOOL Assigned125;
-    char option_122[BUFLEN_256];
-    char option_125[BUFLEN_256];
-    char cOption67[BUFLEN_64];
+    char option_122[BUFLEN_256]; //IPv4
+    char option_125[BUFLEN_256]; // IPv6
+    char cOption67[BUFLEN_64]; //Bootfile
 }mta_Option;
-//#endif
 
 typedef struct _DHCPv4_PLUGIN_MSG
 {
