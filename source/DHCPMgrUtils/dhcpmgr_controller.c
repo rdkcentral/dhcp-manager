@@ -145,7 +145,7 @@ static int DhcpMgr_build_dhcpv4_opt_list (PCOSA_CONTEXT_DHCPC_LINK_OBJECT hInsCo
             if(pDhcpSentOpt->Tag == DHCPV4_OPT_60 && strlen((char *)pDhcpSentOpt->Value) <= 0)
             {
                 DHCPMGR_LOG_INFO("%s %d: DHCPv4 option 60 (Vendor Class Identifier) entry found without value. \n", __FUNCTION__, __LINE__);
-                char optionValue[BUFLEN_256] = {0};
+                char optionValue[BUFLEN_512] = {0};
                 int ret = Get_DhcpV4_CustomOption60(pDhcpc->Cfg.Interface, optionValue, sizeof(optionValue));
                 if (ret == 0)
                 {
@@ -167,7 +167,7 @@ static int DhcpMgr_build_dhcpv4_opt_list (PCOSA_CONTEXT_DHCPC_LINK_OBJECT hInsCo
             else if(pDhcpSentOpt->Tag == DHCPV4_OPT_43 && strlen((char *)pDhcpSentOpt->Value) <= 0)
             {
                 DHCPMGR_LOG_INFO("%s %d: DHCPv4 option 43 (Vendor-Specific Information) entry found without value. \n", __FUNCTION__, __LINE__);
-                char optionValue[BUFLEN_256] = {0};
+                char optionValue[BUFLEN_512] = {0};
                 int ret = Get_DhcpV4_CustomOption43(pDhcpc->Cfg.Interface, optionValue, sizeof(optionValue));
                 if (ret == 0)
                 {
@@ -899,6 +899,7 @@ void DHCPMgr_AddDhcpv4Lease(char * ifName, DHCPv4_PLUGIN_MSG *newLease)
             newLease->next = NULL;
             interfaceFound = TRUE;
             DHCPMGR_LOG_INFO("%s %d: New dhcpv4 lease msg added for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+
             pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX release before break
             break;
         }

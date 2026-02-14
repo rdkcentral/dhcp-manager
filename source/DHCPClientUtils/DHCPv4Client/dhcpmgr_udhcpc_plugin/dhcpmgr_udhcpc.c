@@ -5,6 +5,7 @@
 #include "util.h"
 #include "udhcpc_msg.h"
 
+
 #if 0  // Uncomment the following code to enable plugin logs
 
 #define PLUGIN_DBG_PRINT(fmt ...)     {\
@@ -252,22 +253,24 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         {
             DHCPMGR_LOG_ERROR("[%s-%d] Timeoffset is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
-
-#if defined (EROUTER_DHCP_OPTION_MTA)
         /* opt122 and opt125 for MTA */
         if ((env = getenv(DHCP_MTA_IPV4)) != NULL)
         {
             strncpy(dhcpv4_data->mtaOption.option_122, env, sizeof(dhcpv4_data->mtaOption.option_122));
-            if (dhcpv4_data->mtaOption.option_122 == NULL)
+            if ('\0' == dhcpv4_data->mtaOption.option_122[0])
             {
                 DHCPMGR_LOG_ERROR("[%s-%d] Failed to copy data for MTA IPv4 option \n", __FUNCTION__, __LINE__);
             }
             dhcpv4_data->mtaOption.Assigned122 = 1;
         }
-        else if ((env = getenv(DHCP_MTA_IPV6)) != NULL)
+        else
+        {
+            DHCPMGR_LOG_WARNING("[%s-%d] MTA DHCP option 122 (IPv4 option) is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+        }
+        if ((env = getenv(DHCP_MTA_IPV6)) != NULL)
         {
             strncpy(dhcpv4_data->mtaOption.option_125, env, sizeof(dhcpv4_data->mtaOption.option_125));
-            if (dhcpv4_data->mtaOption.option_125 == NULL)
+            if ('\0' == dhcpv4_data->mtaOption.option_125[0])
             {
                 DHCPMGR_LOG_ERROR("[%s-%d] Failed to copy data for MTA IPv6 option \n", __FUNCTION__, __LINE__);
             }
@@ -275,9 +278,57 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         }
         else
         {
-            DHCPMGR_LOG_ERROR("[%s-%d] MTA option is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+            DHCPMGR_LOG_WARNING("[%s-%d] MTA DHCP option 125 (IPv6 option) is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
         }
-#endif
+        if ((env = getenv(DHCP_BOOT_FILE)) != NULL)
+        {
+            strncpy(dhcpv4_data->mtaOption.cOption67, env, sizeof(dhcpv4_data->mtaOption.cOption67));
+            if ('\0' == dhcpv4_data->mtaOption.cOption67[0])
+            {
+                DHCPMGR_LOG_ERROR("[%s-%d] Failed to copy data for MTA option 67 \n", __FUNCTION__, __LINE__);
+            }
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("[%s-%d] MTA bootfile (option67) is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+        }
+        /** TFTP server address */
+        if ((env = getenv (DHCP_TFTP_SERVER)) != NULL)
+        {
+            strncpy(dhcpv4_data->cTftpServer, env, sizeof(dhcpv4_data->cTftpServer));
+            if ('\0' == dhcpv4_data->cTftpServer[0])
+            {
+                DHCPMGR_LOG_ERROR("[%s-%d] Failed to copy data for TFTP server address \n", __FUNCTION__, __LINE__);
+            }
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("[%s-%d] TFTP server address is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+        }
+        if ((env = getenv(DHCP_HOST_NAME)) != NULL)
+        {
+            strncpy(dhcpv4_data->cHostName, env, sizeof(dhcpv4_data->cHostName));
+            if ('\0' == dhcpv4_data->cHostName[0])
+            {
+                DHCPMGR_LOG_ERROR("[%s-%d] Failed to copy data for HostName \n", __FUNCTION__, __LINE__);
+            }
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("[%s-%d] HostName is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+        }
+        if((env = getenv(DHCP_DOMAIN_NAME)) != NULL)
+        {
+            strncpy(dhcpv4_data->cDomainName, env, sizeof(dhcpv4_data->cDomainName));
+            if ('\0' == dhcpv4_data->cDomainName[0])
+            {
+                DHCPMGR_LOG_ERROR("[%s-%d] Failed to copy data for DomainName \n", __FUNCTION__, __LINE__);
+            }
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("[%s-%d] DomainName is not available in dhcp ack \n",  __FUNCTION__,__LINE__);
+        }
         /** UpstreamCurrRate. **/
         if ((env = getenv(DHCP_UPSTREAMRATE)) != NULL)
         {
@@ -422,6 +473,12 @@ static int handle_events (udhcpc_env_t *pinfo)
         DHCPMGR_LOG_INFO("[%s][%d] TimeZone        = %s \n", __FUNCTION__, __LINE__, data.timeZone);
         DHCPMGR_LOG_INFO("[%s][%d] DHCP Server ID  = %s \n", __FUNCTION__, __LINE__, data.dhcpServerId);
         DHCPMGR_LOG_INFO("[%s][%d] DHCP State      = %s \n", __FUNCTION__, __LINE__, data.dhcpState);
+        DHCPMGR_LOG_INFO("[%s][%d] DHCP opt122     = %s \n", __FUNCTION__, __LINE__, data.mtaOption.option_122);
+        DHCPMGR_LOG_INFO("[%s][%d] DHCP opt125     = %s \n", __FUNCTION__, __LINE__, data.mtaOption.option_125);
+        DHCPMGR_LOG_INFO("[%s][%d] DHCP bootFile      = %s \n", __FUNCTION__, __LINE__, data.mtaOption.cOption67);
+        DHCPMGR_LOG_INFO("[%s][%d] TFTP Server    = %s \n", __FUNCTION__, __LINE__, data.cTftpServer);
+        DHCPMGR_LOG_INFO("[%s][%d] HostName       = %s \n", __FUNCTION__, __LINE__, data.cHostName);
+        DHCPMGR_LOG_INFO("[%s][%d] DomainName     = %s \n", __FUNCTION__, __LINE__, data.cDomainName);
     }
 
     ret = send_dhcp4_data_to_leaseMonitor(&data);

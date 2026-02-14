@@ -25,6 +25,8 @@
 
 #include "util.h"
 #include "dhcpv4_interface.h"
+#include "cosa_dhcpv4_internal.h"
+#include "cosa_dhcpv4_dml.h"
 #include "dhcpv6_interface.h"
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 #include "dhcpmgr_map_apis.h"
@@ -45,7 +47,7 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
  ***********************************************************************/
 rbusDataElement_t DhcpMgrRbusDataElements[] = {
     {DHCP_MGR_DHCPv4_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
-    {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
+    {DHCP_MGR_DHCPv4_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {getDataHandler, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
     {DHCP_MGR_DHCPv6_IFACE, RBUS_ELEMENT_TYPE_TABLE, {NULL, NULL, NULL, NULL, NULL, NULL}},
     {DHCP_MGR_DHCPv6_STATUS,  RBUS_ELEMENT_TYPE_PROPERTY, {NULL, NULL, NULL, NULL, DhcpMgr_Rbus_SubscribeHandler, NULL}},
 };
@@ -139,7 +141,7 @@ ANSC_STATUS DhcpMgr_Rbus_Init()
  *
  * @return rbusError_t
  * @retval RBUS_ERROR_SUCCESS if the subscription is handled successfully.
- * @retval RBUS_ERROR_FAILURE if there is an error handling the subscription.
+ * @retval RBUS_ERROR_BUS_ERROR if there is an error handling the subscription.
  */
 
 rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish)
@@ -147,7 +149,7 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
     (void)handle;
     (void)filter;
     (void)(interval);
-    (void)(autoPublish);
+     *autoPublish = false;
 
     char *subscribe_action = action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribed" : "unsubscribed";
     DHCPMGR_LOG_INFO("%s %d - Event %s has been  %s \n", __FUNCTION__, __LINE__,eventName, subscribe_action );
@@ -173,6 +175,11 @@ static void DhcpMgr_createLeaseInfoMsg(DHCPv4_PLUGIN_MSG *src, DHCP_MGR_IPV4_MSG
     strncpy(dest->dnsServer, src->dnsServer, sizeof(dest->dnsServer) - 1);
     strncpy(dest->dnsServer1, src->dnsServer1, sizeof(dest->dnsServer1) - 1);
     strncpy(dest->timeZone, src->timeZone, sizeof(dest->timeZone) - 1);
+    strncpy(dest->cOption122, src->mtaOption.option_122, sizeof(dest->cOption122) - 1);
+    strncpy(dest->cOption67, src->mtaOption.cOption67, sizeof(dest->cOption67) - 1);
+    strncpy(dest->cTftpServer, src->cTftpServer, sizeof(dest->cTftpServer) - 1);
+    strncpy(dest->cHostName, src->cHostName, sizeof(dest->cHostName) - 1);
+    strncpy(dest->cDomainName, src->cDomainName, sizeof(dest->cDomainName) - 1);
     dest->mtuSize = src->mtuSize;
     dest->timeOffset = src->timeOffset;
     dest->isTimeOffsetAssigned = src->isTimeOffsetAssigned;
@@ -262,6 +269,86 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
 }
 
+rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
+{
+    (void)rbusHandle;
+    (void)pRbusGetHandlerOptions;
+
+    char const *pName = rbusProperty_GetName(rbusProperty);
+    int iDmIndex = -1;
+
+    if (0 != strncmp(pName, DHCP_MGR_DHCPv4_TABLE, strlen(DHCP_MGR_DHCPv4_TABLE)))
+    {
+        DHCPMGR_LOG_ERROR("%s %d - Unsupported property name %s\n", __FUNCTION__, __LINE__, pName);
+        return RBUS_ERROR_SUCCESS;
+    }
+
+    sscanf(pName, DHCPv4_EVENT_FORMAT, &iDmIndex);
+    DHCPMGR_LOG_INFO("%s %d - Getting data for property %s with index %d\n", __FUNCTION__, __LINE__, pName, iDmIndex);
+
+    if (-1 == iDmIndex)
+    {
+        DHCPMGR_LOG_ERROR("%s %d - Invalid index %d for property %s\n", __FUNCTION__, __LINE__, iDmIndex, pName);
+       return RBUS_ERROR_SUCCESS;
+    }
+
+    // Get DHCP client context
+    PCOSA_DML_DHCPC_FULL pDhcpc = NULL;
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink = NULL;
+    PSINGLE_LINK_ENTRY pSListEntry = NULL;
+    unsigned long ulInstanceNum;
+
+    int iIndex = iDmIndex - 1;
+    pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL, iIndex, &ulInstanceNum);
+    if (pSListEntry)
+    {
+        pDhcpCxtLink = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
+        pDhcpc = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
+    }
+
+    if (!pDhcpc || !pDhcpc->currentLease)
+    {
+        // Boot case: no lease yet, return invalid/empty
+        DHCPMGR_LOG_INFO("%s %d - No current lease for index %d\n", __FUNCTION__, __LINE__, iDmIndex);
+        return RBUS_ERROR_SUCCESS;
+    }
+
+    DHCPMGR_LOG_INFO("%s %d - Ifname: %s, index: %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, iDmIndex);
+
+    // Create the SAME structure as publish function
+    rbusObject_t rdata;
+    rbusValue_t ifNameVal, typeVal, leaseInfoVal;
+
+    rbusObject_Init(&rdata, NULL);
+
+    // Set Interface Name
+    rbusValue_Init(&ifNameVal);
+    rbusValue_SetString(ifNameVal, (char*)pDhcpc->Cfg.Interface);
+    rbusObject_SetValue(rdata, "IfName", ifNameVal);
+    rbusValue_Release(ifNameVal);
+
+    // Set Message Type
+    rbusValue_Init(&typeVal);
+    rbusValue_SetUInt32(typeVal, DHCP_LEASE_UPDATE);
+    rbusObject_SetValue(rdata, "MsgType", typeVal);
+    rbusValue_Release(typeVal);
+
+    // Set Lease Info - EXACTLY like publish function
+    DHCP_MGR_IPV4_MSG leaseInfo;
+    memset(&leaseInfo, 0, sizeof(leaseInfo));
+    DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
+    rbusValue_Init(&leaseInfoVal);
+    rbusValue_SetBytes(leaseInfoVal, (uint8_t*)&leaseInfo, sizeof(leaseInfo));
+    rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
+    rbusValue_Release(leaseInfoVal);
+
+    rbusProperty_SetObject(rbusProperty, rdata);
+    rbusObject_Release(rdata);
+
+    DHCPMGR_LOG_INFO("%s %d - Exiting, getDataHandler\n", __FUNCTION__, __LINE__);
+    return RBUS_ERROR_SUCCESS;
+}
+
 /**
  * @brief Publishes DHCPv4 rbus events.
  *
@@ -295,6 +382,7 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
     rbusObject_t rdata;
     rbusValue_t ifNameVal , typeVal, leaseInfoVal;
 
+    DHCPMGR_LOG_INFO("%s %d - Publishing DHCPv4 Event for Interface %s with MsgType %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, msgType);
     /*Set Interface Name */
     rbusObject_Init(&rdata, NULL);
     rbusValue_Init(&ifNameVal);
@@ -312,6 +400,11 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
         DHCP_MGR_IPV4_MSG leaseInfo;
         memset(&leaseInfo, 0, sizeof(leaseInfo));
         DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease,&leaseInfo);
+        DHCPMGR_LOG_INFO("%s %d - Mta Option 122: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->mtaOption.option_122);
+        DHCPMGR_LOG_INFO("%s %d - Mta Option 67: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->mtaOption.cOption67);
+        DHCPMGR_LOG_INFO("%s %d - cTftpServer: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->cTftpServer);
+        DHCPMGR_LOG_INFO("%s %d - HostName: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->cHostName);
+        DHCPMGR_LOG_INFO("%s %d - DomainName: %s\n", __FUNCTION__, __LINE__, pDhcpc->currentLease->cDomainName);
         rbusValue_Init(&leaseInfoVal);
         rbusValue_SetBytes(leaseInfoVal, &leaseInfo, sizeof(leaseInfo));
         rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
