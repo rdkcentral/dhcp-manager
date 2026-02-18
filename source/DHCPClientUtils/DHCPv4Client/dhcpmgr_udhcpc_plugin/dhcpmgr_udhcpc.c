@@ -6,7 +6,7 @@
 #include "udhcpc_msg.h"
 
 
-#if 0  // Uncomment the following code to enable plugin logs
+#if 1  // Uncomment the following code to enable plugin logs
 
 #define PLUGIN_DBG_PRINT(fmt ...)     {\
     FILE     *fp        = NULL;\
