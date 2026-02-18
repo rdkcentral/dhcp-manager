@@ -228,6 +228,16 @@ AC_ARG_ENABLE([bci_support],
 esac],[bci_support=false])
 AM_CONDITIONAL(BCI_SUPPORT, test x"$bci_support" = x"true")
 
+# Checks for Voice_support
+AC_ARG_ENABLE([voice_mta_support],
+[  --enable-voice_mta_support=val Turn on voice support, val=yes or no],
+[case "${enableval}" in
+  yes) voice_support=yes;;
+  no)  voice_support=no;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-voice_mta_support]) ;;
+esac],[voice_mta_support=no])
+AM_CONDITIONAL(VOICE_MTA_SUPPORT, test x"$voice_support" = x"yes")
+
 # Check ra_monitor_support
 AM_CONDITIONAL([RA_MONITOR_SUPPORT], [test "$RA_MONITOR_SUPPORT" = "yes"])
 
