@@ -459,6 +459,7 @@ ANSC_STATUS DhcpMgr_MapParseOptResponse
   {
        MAP_LOG_ERROR("MAP Psid and IPv4 Suffix Validation Failed !!");
        memset (&g_stMapData, 0, sizeof(g_stMapData));
+       ret = STATUS_FAILURE;
   }
 
   if( ret == STATUS_SUCCESS )

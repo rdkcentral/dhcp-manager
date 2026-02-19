@@ -19,6 +19,7 @@
 
 #include "dhcpv6_interface.h"
 #include <stdio.h>
+#include <time.h>
 
 #define DIBBLER_CLIENT                    "dibbler-client"
 #define DIBBLER_CLIENT_PATH               "/usr/sbin/"DIBBLER_CLIENT
@@ -444,7 +445,8 @@ pid_t start_dhcpv6_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     {
         DHCPMGR_LOG_WARNING("%s %d: unable to collect pid for %d.\n", __FUNCTION__, __LINE__, ret);
     }
-
+    struct timespec ts = {3, 0};
+    nanosleep(&ts, NULL);
     DHCPMGR_LOG_INFO("%s %d: Started dibbler-client. returning pid..\n", __FUNCTION__, __LINE__);
     return get_process_pid (DIBBLER_CLIENT, cmd_args, true);
 
@@ -510,7 +512,8 @@ int send_dhcpv6_release(pid_t processID) {
         DHCPMGR_LOG_ERROR("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, processID);
          return FAILURE;
     }
-
+    struct timespec ts = {2, 0};
+    nanosleep(&ts, NULL);
     //TODO: start_exe2 will add a sigchild handler, Do we still require this call ?
     int ret = collect_waiting_process(processID, DIBBLER_CLIENT_TERMINATE_TIMEOUT);
     return ret;

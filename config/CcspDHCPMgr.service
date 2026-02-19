@@ -23,6 +23,7 @@ After=gwprovapp.service CcspCrSsp.service PsmSsp.service
 
 [Service]
 Type=forking
+PIDFile=/var/tmp/CcspDHCPMgr.pid
 Environment="Subsys=eRT."
 Environment="LOG4C_RCPATH=/etc"
 EnvironmentFile=/etc/device.properties

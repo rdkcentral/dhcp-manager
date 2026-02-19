@@ -19,7 +19,8 @@
 
 #include "cosa_dhcpv6_apis.h"
 #include "dhcpv6_interface.h"
-#include "secure_wrapper.h"
+#include <stdlib.h>
+#include <sys/wait.h>
 #include "dhcpmgr_rbus_apis.h"
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
@@ -48,7 +49,7 @@ typedef struct
 
 static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
 static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
-
+static int exec_shell_cmd(char * command);
 /**
  * @brief processv6LesSysevents This function will set the sysevent values for IA_PD and IA_NA
  *
@@ -56,6 +57,27 @@ static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
  *
  * @return void
  */
+
+static int exec_shell_cmd(char * command)
+{
+    int status = system(command);
+    if (status == -1) {
+        DHCPMGR_LOG_ERROR("%s: %d system() failed to run shell\n",__FUNCTION__,__LINE__);
+        return -1;
+    }
+
+    if (WIFEXITED(status)) {
+        int exit_code = WEXITSTATUS(status);
+
+        if (exit_code != 0) 
+        {
+            return -1;
+        }
+    } else if (WIFSIGNALED(status)) {
+        DHCPMGR_LOG_ERROR("%s %d :Command was terminated by signal %d\n",__FUNCTION__,__LINE__,WTERMSIG(status));
+    }
+    return 0;
+}
 
 static void processv6LesSysevents(IPv6Events* eventMaps, size_t size, const char* IfaceName)
 {
@@ -87,10 +109,20 @@ static bool compare_dhcpv6_plugin_msg(const DHCPv6_PLUGIN_MSG *currentLease, con
         return false; // Null pointers cannot be compared
     }
 
+
+    bool ia_na_eq = (currentLease->ia_na.assigned == newLease->ia_na.assigned) &&
+                    (strncmp(currentLease->ia_na.address, newLease->ia_na.address, sizeof(currentLease->ia_na.address)) == 0) &&
+                    (currentLease->ia_na.IA_ID == newLease->ia_na.IA_ID);
+
+    bool ia_pd_eq = (currentLease->ia_pd.assigned == newLease->ia_pd.assigned) &&
+                    (strncmp(currentLease->ia_pd.Prefix, newLease->ia_pd.Prefix, sizeof(currentLease->ia_pd.Prefix)) == 0) &&
+                    (currentLease->ia_pd.PrefixLength == newLease->ia_pd.PrefixLength) &&
+                    (currentLease->ia_pd.IA_ID == newLease->ia_pd.IA_ID);
+
     // Compare all fields except the `next` pointer
     if (currentLease->isExpired != newLease->isExpired ||
-        memcmp(&currentLease->ia_na, &newLease->ia_na, sizeof(currentLease->ia_na)) != 0 ||
-        memcmp(&currentLease->ia_pd, &newLease->ia_pd, sizeof(currentLease->ia_pd)) != 0 ||
+        !ia_na_eq ||
+        !ia_pd_eq ||
         memcmp(&currentLease->dns, &newLease->dns, sizeof(currentLease->dns)) != 0 ||
         memcmp(&currentLease->mapt, &newLease->mapt, sizeof(currentLease->mapt)) != 0 ||
         memcmp(&currentLease->mape, &newLease->mape, sizeof(currentLease->mape)) != 0 ||
@@ -201,7 +233,10 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
             DHCPMGR_LOG_INFO("%s %d: NewLease nameserver2 %s  \n", __FUNCTION__, __LINE__, newLease->dns.nameserver1);
             DHCPMGR_LOG_INFO("%s %d: NewLease PreferedLifeTime %d  \n", __FUNCTION__, __LINE__, newLease->ia_pd.PreferedLifeTime);
             DHCPMGR_LOG_INFO("%s %d: NewLease ValidLifeTime %d  \n", __FUNCTION__, __LINE__, newLease->ia_pd.ValidLifeTime);
-            configureNetworkInterface(pDhcp6c);
+            if(newLease->ia_na.assigned == TRUE)
+            {
+                configureNetworkInterface(pDhcp6c);
+            }
             ConfigureIpv6Sysevents(pDhcp6c);
             if(newLease->vendor.Assigned == TRUE)
             {
@@ -237,6 +272,7 @@ static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
     char iana_t2[32] = {0};
     char iana_pretm[32] = {0};
     char iana_vldtm[32] = {0};
+    char ia_pd_prefix[56] = {0};
 
     //Do configure the sysevents only if prefix assigned
     if(pDhcp6c->currentLease->ia_pd.assigned)
@@ -247,9 +283,10 @@ static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
         snprintf(iapd_t2, sizeof(iapd_t2), "%u", pDhcp6c->currentLease->ia_pd.T2);
         snprintf(iapd_pretm, sizeof(iapd_pretm), "%u", pDhcp6c->currentLease->ia_pd.PreferedLifeTime);
         snprintf(iapd_vldtm, sizeof(iapd_vldtm), "%u", pDhcp6c->currentLease->ia_pd.ValidLifeTime);
+        snprintf(ia_pd_prefix,sizeof(ia_pd_prefix),"%s/%u",pDhcp6c->currentLease->ia_pd.Prefix,pDhcp6c->currentLease->ia_pd.PrefixLength);
 
         IPv6Events eventv6[] = {
-        {pDhcp6c->currentLease->ia_pd.Prefix, COSA_DML_WANIface_PREF_SYSEVENT_NAME},
+        {ia_pd_prefix, COSA_DML_WANIface_PREF_SYSEVENT_NAME},
         {iapd_iaid, COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME},
         {iapd_t1,   COSA_DML_WANIface_PREF_T1_SYSEVENT_NAME},
         {iapd_t2,   COSA_DML_WANIface_PREF_T2_SYSEVENT_NAME},
@@ -334,12 +371,10 @@ static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
     // Use system calls or platform-specific APIs to configure the network interface
     char command[256];
     snprintf(command, sizeof(command), "ip -6 addr add %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
-    int ret = v_secure_system("ip -6 addr add %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
-    if (ret != 0) 
+    if(exec_shell_cmd(command) != 0)
     {
         DHCPMGR_LOG_ERROR("%s %d: Failed to configure IPv6 address on interface %s. Command: %s\n", __FUNCTION__, __LINE__, interface, command);
     }
-
     return;
 }
 
