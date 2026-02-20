@@ -63,29 +63,29 @@ extern token_t sysevent_token;
 /*
  * Static function prototypes
  */
-static RETURN_STATUS CosaDmlMaptParseResponse (PUCHAR pOptionBuf, UINT16 uiOptionBufLen);
-static RETURN_STATUS CosaDmlMaptGetIPv6StringFromHex (PUCHAR pIPv6AddrH, PCHAR pIPv6AddrS);
-static RETURN_STATUS CosaDmlMaptConvertStringToHexStream (PUCHAR pOptionBuf, PUINT16 uiOptionBufLen);
+static RETURN_STATUS CosaDmlMapParseResponse (PUCHAR pOptionBuf, UINT16 uiOptionBufLen);
+static RETURN_STATUS CosaDmlMapGetIPv6StringFromHex (PUCHAR pIPv6AddrH, PCHAR pIPv6AddrS);
+static RETURN_STATUS CosaDmlMapConvertStringToHexStream (PUCHAR pOptionBuf, PUINT16 uiOptionBufLen);
 /*
  * Global definitions
  */
-static COSA_DML_MAPT_DATA   g_stMaptData;
+static COSA_DML_MAP_DATA   g_stMapData;
 
 /*
  * Static function definitions
  */
 static RETURN_STATUS
-CosaDmlMaptGetIPv6StringFromHex
+CosaDmlMapGetIPv6StringFromHex
 (
     PUCHAR         pIPv6AddrH,
     PCHAR          pIPv6AddrS
 )
 {
-  MAPT_LOG_INFO("Entry");
+  MAP_LOG_INFO("Entry");
 
   if ( !(pIPv6AddrH && pIPv6AddrS) )
   {
-       MAPT_LOG_ERROR("NULL inputs(%s - %s) for IPv6 hex to string conversion!",
+       MAP_LOG_ERROR("NULL inputs(%s - %s) for IPv6 hex to string conversion!",
                        pIPv6AddrH, pIPv6AddrS);
        return STATUS_FAILURE;
   }
@@ -95,7 +95,7 @@ CosaDmlMaptGetIPv6StringFromHex
 
   if ( !inet_ntop(AF_INET6, pIPv6AddrH, pIPv6AddrS, BUFLEN_40) )
   {
-       MAPT_LOG_ERROR("Invalid IPv6 hex address");
+       MAP_LOG_ERROR("Invalid IPv6 hex address");
        return STATUS_FAILURE;
   }
 
@@ -103,70 +103,70 @@ CosaDmlMaptGetIPv6StringFromHex
 }
 
 static RETURN_STATUS
-CosaDmlMaptParseResponse
+CosaDmlMapParseResponse
 (
     PUCHAR         pOptionBuf,
     UINT16         uiOptionBufLen
 )
 {
   RETURN_STATUS retStatus = STATUS_SUCCESS;
-  PCOSA_DML_MAPT_OPTION  pStartBuf  = NULL;
-  PCOSA_DML_MAPT_OPTION  pNxtOption = NULL;
-  PCOSA_DML_MAPT_OPTION  pEndBuf    = NULL;
+  PCOSA_DML_MAP_OPTION  pStartBuf  = NULL;
+  PCOSA_DML_MAP_OPTION  pNxtOption = NULL;
+  PCOSA_DML_MAP_OPTION  pEndBuf    = NULL;
   UINT16  uiOptionLen = 0;
   UINT16  uiOption    = 0;
   PUCHAR  pCurOption  = 0;
 
-  MAPT_LOG_INFO("Entry");
+  MAP_LOG_INFO("Entry");
 
   if ( !(pOptionBuf && *(pOptionBuf+1)) )
   {
-       MAPT_LOG_ERROR("MAPT Option-95 Response is NULL !!");
+       MAP_LOG_ERROR("MAP Option Response is NULL !!");
        return STATUS_FAILURE;
   }
 
-  pStartBuf = (PCOSA_DML_MAPT_OPTION)pOptionBuf;
-  pEndBuf   = (PCOSA_DML_MAPT_OPTION)((PCHAR)pOptionBuf + uiOptionBufLen);
-  MAPT_LOG_INFO("<<<TRACE>>> Start : %p | End : %p", pStartBuf,pEndBuf);
+  pStartBuf = (PCOSA_DML_MAP_OPTION)pOptionBuf;
+  pEndBuf   = (PCOSA_DML_MAP_OPTION)((PCHAR)pOptionBuf + uiOptionBufLen);
+  MAP_LOG_INFO("<<<TRACE>>> Start : %p | End : %p", pStartBuf,pEndBuf);
   for ( ;pStartBuf + 1 <= pEndBuf; pStartBuf = pNxtOption )
   {
        uiOptionLen = ntohs(pStartBuf->OptLen);
        uiOption    = ntohs(pStartBuf->OptType);
 
        pCurOption  = (PUCHAR)(pStartBuf + 1);
-       pNxtOption  = (PCOSA_DML_MAPT_OPTION)(pCurOption + uiOptionLen);
-       MAPT_LOG_INFO("<<<TRACE>>> Cur : %p | Nxt : %p", pCurOption,pNxtOption);
-       MAPT_LOG_INFO("<<<TRACE>>> Opt : %u | OpLen : %u", uiOption,uiOptionLen);
+       pNxtOption  = (PCOSA_DML_MAP_OPTION)(pCurOption + uiOptionLen);
+       MAP_LOG_INFO("<<<TRACE>>> Cur : %p | Nxt : %p", pCurOption,pNxtOption);
+       MAP_LOG_INFO("<<<TRACE>>> Opt : %u | OpLen : %u", uiOption,uiOptionLen);
 
        /* option length field overrun */
        if ( pNxtOption > pEndBuf )
        {
-            MAPT_LOG_ERROR("Malformed MAP options!");
+            MAP_LOG_ERROR("Malformed MAP options!");
             retStatus = STATUS_FAILURE; //STATUS_BAD_PAYLOAD
             break;
        }
 
        switch ( uiOption )
        {
-            case MAPT_OPTION_S46_RULE:
+            case MAP_OPTION_S46_RULE:
             {
                UINT8 bytesLeftOut  = 0;
                UINT8 v6ByteLen     = 0;
                UINT8 v6BitLen      = 0;
                UCHAR v6Addr[BUFLEN_24];
 
-               g_stMaptData.bFMR    = (*pCurOption & 0x01)? TRUE : FALSE;
-               g_stMaptData.EaLen   =  *++pCurOption;
-               g_stMaptData.RuleIPv4PrefixLen =  *++pCurOption;
+               g_stMapData.bFMR    = (*pCurOption & 0x01)? TRUE : FALSE;
+               g_stMapData.EaLen   =  *++pCurOption;
+               g_stMapData.RuleIPv4PrefixLen =  *++pCurOption;
                pCurOption++;
 
-               snprintf (g_stMaptData.RuleIPv4Prefix, sizeof(g_stMaptData.RuleIPv4Prefix),
+               snprintf (g_stMapData.RuleIPv4Prefix, sizeof(g_stMapData.RuleIPv4Prefix),
                                "%d.%d.%d.%d",
                                pCurOption[0], pCurOption[1], pCurOption[2], pCurOption[3]);
 
-               g_stMaptData.RuleIPv6PrefixLen = *(pCurOption += 4);
-               v6ByteLen = g_stMaptData.RuleIPv6PrefixLen / 8;
-               v6BitLen  = g_stMaptData.RuleIPv6PrefixLen % 8;
+               g_stMapData.RuleIPv6PrefixLen = *(pCurOption += 4);
+               v6ByteLen = g_stMapData.RuleIPv6PrefixLen / 8;
+               v6BitLen  = g_stMapData.RuleIPv6PrefixLen % 8;
                pCurOption++;
 
                memset (&v6Addr, 0, sizeof(v6Addr));
@@ -177,17 +177,17 @@ CosaDmlMaptParseResponse
                     *((PCHAR)&v6Addr + v6ByteLen) &= 0xFF << (8 - v6BitLen);
                }
 
-               memcpy (&g_stMaptData.RuleIPv6PrefixH, v6Addr,
+               memcpy (&g_stMapData.RuleIPv6PrefixH, v6Addr,
                                                          (v6ByteLen+(v6BitLen?1:0))*sizeof(CHAR));
-               CosaDmlMaptGetIPv6StringFromHex (g_stMaptData.RuleIPv6PrefixH,
-                       g_stMaptData.RuleIPv6Prefix);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.bFMR              : %d", g_stMaptData.bFMR);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.EaLen             : %u", g_stMaptData.EaLen);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.RuleIPv4PrefixLen : %u", g_stMaptData.RuleIPv4PrefixLen);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.RuleIPv4Prefix    : %s", g_stMaptData.RuleIPv4Prefix);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.RuleIPv6PrefixLen : %u", g_stMaptData.RuleIPv6PrefixLen);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.RuleIPv6Prefix    : %s", g_stMaptData.RuleIPv6Prefix);
-               MAPT_LOG_INFO("Parsing OPTION_S46_RULE Successful.");
+               CosaDmlMapGetIPv6StringFromHex (g_stMapData.RuleIPv6PrefixH,
+                       g_stMapData.RuleIPv6Prefix);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.bFMR              : %d", g_stMapData.bFMR);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.EaLen             : %u", g_stMapData.EaLen);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv4PrefixLen : %u", g_stMapData.RuleIPv4PrefixLen);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv4Prefix    : %s", g_stMapData.RuleIPv4Prefix);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv6PrefixLen : %u", g_stMapData.RuleIPv6PrefixLen);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv6Prefix    : %s", g_stMapData.RuleIPv6Prefix);
+               MAP_LOG_INFO("Parsing OPTION_S46_RULE Successful.");
 
                /*
                 * check port parameter option:
@@ -197,12 +197,12 @@ CosaDmlMaptParseResponse
                 */
                bytesLeftOut = uiOptionLen - 8 - v6ByteLen - (v6BitLen?1:0);
 
-               g_stMaptData.Ratio = 1 << (g_stMaptData.EaLen -
-                                                    (BUFLEN_32 - g_stMaptData.RuleIPv4PrefixLen));
+               g_stMapData.Ratio = 1 << (g_stMapData.EaLen -
+                                                    (BUFLEN_32 - g_stMapData.RuleIPv4PrefixLen));
                /* RFC default */
-               g_stMaptData.PsidOffset = 6;
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.Ratio             : %u", g_stMaptData.Ratio);
-               MAPT_LOG_INFO("<<<TRACE>>> bytesLeftOut                   : %u", bytesLeftOut);
+               g_stMapData.PsidOffset = 6;
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.Ratio             : %u", g_stMapData.Ratio);
+               MAP_LOG_INFO("<<<TRACE>>> bytesLeftOut                   : %u", bytesLeftOut);
                if ( bytesLeftOut > 0 )
                {
                     /* this rule option includes port param option */
@@ -212,104 +212,113 @@ CosaDmlMaptParseResponse
                          UINT16 uiSubOption    = 0;
 
                          pCurOption += v6ByteLen + (v6BitLen?1:0);
-                         uiSubOptionLen = ntohs(((PCOSA_DML_MAPT_OPTION)pCurOption)->OptLen);
-                         uiSubOption    = ntohs(((PCOSA_DML_MAPT_OPTION)pCurOption)->OptType);
+                         uiSubOptionLen = ntohs(((PCOSA_DML_MAP_OPTION)pCurOption)->OptLen);
+                         uiSubOption    = ntohs(((PCOSA_DML_MAP_OPTION)pCurOption)->OptType);
 
-                         if ( uiSubOption == MAPT_OPTION_S46_PORT_PARAMS &&
+                         if ( uiSubOption == MAP_OPTION_S46_PORT_PARAMS &&
                               uiSubOptionLen == 4 )
                          {
-                              g_stMaptData.PsidOffset  = (*(pCurOption += uiSubOptionLen))?
+                              g_stMapData.PsidOffset  = (*(pCurOption += uiSubOptionLen))?
                                                                  *pCurOption:6;
-                              g_stMaptData.PsidLen     = *++pCurOption;
+                              g_stMapData.PsidLen     = *++pCurOption;
 
-                              if ( !g_stMaptData.EaLen )
+                              if ( !g_stMapData.EaLen )
                               {
-                                   g_stMaptData.Ratio = 1 << g_stMaptData.PsidLen;
+                                   g_stMapData.Ratio = 1 << g_stMapData.PsidLen;
                               }
                               /*
                                * RFC 7598: 4.5: 16 bits long. The first k bits on the left of
                                * this field contain the PSID binary value. The remaining (16 - k)
                                * bits on the right are padding zeros.
                                */
-                              g_stMaptData.Psid = ntohs(*((PUINT16)++pCurOption)) >>
-                                  (16 - g_stMaptData.PsidLen);
-                              MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.Psid       : %u", g_stMaptData.Psid);
-                              MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.PsidLen    : %u", g_stMaptData.PsidLen);
-                              MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.PsidOffset : %u", g_stMaptData.PsidOffset);
-                              MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.Ratio      : %u", g_stMaptData.Ratio);
-                              MAPT_LOG_INFO("Parsing OPTION_S46_PORT_PARAM Successful.");
+                              g_stMapData.Psid = ntohs(*((PUINT16)++pCurOption)) >>
+                                  (16 - g_stMapData.PsidLen);
+                              MAP_LOG_INFO("<<<TRACE>>> g_stMapData.Psid       : %u", g_stMapData.Psid);
+                              MAP_LOG_INFO("<<<TRACE>>> g_stMapData.PsidLen    : %u", g_stMapData.PsidLen);
+                              MAP_LOG_INFO("<<<TRACE>>> g_stMapData.PsidOffset : %u", g_stMapData.PsidOffset);
+                              MAP_LOG_INFO("<<<TRACE>>> g_stMapData.Ratio      : %u", g_stMapData.Ratio);
+                              MAP_LOG_INFO("Parsing OPTION_S46_PORT_PARAM Successful.");
                          }
                          else
                          {
-                              MAPT_LOG_WARNING("OPTION_S46_PORT_PARAM option length(%d) varies!"
+                              MAP_LOG_WARNING("OPTION_S46_PORT_PARAM option length(%d) varies!"
                                               , uiSubOptionLen);
                          }
                     }
                     else
                     {
-                         MAPT_LOG_WARNING("Port param option length(%d) not equal to 8"
+                         MAP_LOG_WARNING("Port param option length(%d) not equal to 8"
                                          , bytesLeftOut);
                     }
                }
                break;
             }
 
-            case MAPT_OPTION_S46_BR:
+            case MAP_OPTION_S46_BR:
             {
-               MAPT_LOG_WARNING("Parsing OPTION_S46_BR is not supported !");
-               //retStatus = STATUS_NOT_SUPPORTED;
+               UCHAR br_ipv6Addr[BUFLEN_24];  // Buffer to hold the BR IPv6 address
+
+               //Directly copy the 16-byte IPv6 address from the current option buffer
+               memset(&br_ipv6Addr, 0, sizeof(br_ipv6Addr));
+               memcpy(&br_ipv6Addr, pCurOption, 16);
+
+               CosaDmlMapGetIPv6StringFromHex(br_ipv6Addr, g_stMapData.BrIPv6Prefix);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.BrIPv6Address : %s", g_stMapData.BrIPv6Prefix);
+               MAP_LOG_INFO("Parsing MAP_OPTION_S46_BR Successful.");
                break;
             }
 
-            case MAPT_OPTION_S46_DMR:
+            case MAP_OPTION_S46_DMR:
             {
                UCHAR ipv6Addr[BUFLEN_24];
 
-               g_stMaptData.BrIPv6PrefixLen = *pCurOption++;
+               g_stMapData.BrIPv6PrefixLen = *pCurOption++;
 
-               /* RFC 6052: 2.2: g_stMaptData.BrIPv6PrefixLen%8 must be 0! */
+               /* RFC 6052: 2.2: g_stMapData.BrIPv6PrefixLen%8 must be 0! */
                memset (&ipv6Addr, 0, sizeof(ipv6Addr));
-               memcpy (&ipv6Addr, pCurOption, g_stMaptData.BrIPv6PrefixLen/8);
+               memcpy (&ipv6Addr, pCurOption, g_stMapData.BrIPv6PrefixLen/8);
                
-               CosaDmlMaptGetIPv6StringFromHex (ipv6Addr, g_stMaptData.BrIPv6Prefix);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.BrIPv6PrefixLen : %u", g_stMaptData.BrIPv6PrefixLen);
-               MAPT_LOG_INFO("<<<TRACE>>> g_stMaptData.BrIPv6Prefix    : %s", g_stMaptData.BrIPv6Prefix);
-               MAPT_LOG_INFO("Parsing OPTION_S46_DMR Successful.");
+               CosaDmlMapGetIPv6StringFromHex (ipv6Addr, g_stMapData.BrIPv6Prefix);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.BrIPv6PrefixLen : %u", g_stMapData.BrIPv6PrefixLen);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.BrIPv6Prefix    : %s", g_stMapData.BrIPv6Prefix);
+               MAP_LOG_INFO("Parsing OPTION_S46_DMR Successful.");
                break;
             }
 
             default:
-               MAPT_LOG_ERROR("Unknown or unexpected MAP option : %d | option len : %d"
+               MAP_LOG_ERROR("Unknown or unexpected MAP option : %d | option len : %d"
                              , uiOption, uiOptionLen);
                //retStatus = STATUS_NOT_SUPPORTED;
                break;
        }
   }
 
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
   /* Check a parameter from each mandatory options */
-  if ( !g_stMaptData.RuleIPv6PrefixLen || !g_stMaptData.BrIPv6PrefixLen)
+  if ( !g_stMapData.RuleIPv6PrefixLen || !g_stMapData.BrIPv6PrefixLen)
   {
-       MAPT_LOG_ERROR("Mandatory mapt options are missing !");
+       MAP_LOG_ERROR("Mandatory mapt options are missing !");
        retStatus = STATUS_FAILURE;
   }
+#endif
 
   return retStatus;
 }
 
 
 static RETURN_STATUS
-CosaDmlMaptConvertStringToHexStream
+CosaDmlMapConvertStringToHexStream
 (
     PUCHAR         pWriteBf,
     PUINT16        uiOptionBufLen
 )
 {
   PUCHAR pReadBf  = pWriteBf;
-  MAPT_LOG_INFO("Entry");
+  MAP_LOG_INFO("Entry");
 
   if ( !pWriteBf )
   {
-       MAPT_LOG_ERROR("MAPT string buffer is empty !!");
+       MAP_LOG_ERROR("MAP string buffer is empty !!");
        return STATUS_FAILURE;
   }
 
@@ -320,7 +329,7 @@ CosaDmlMaptConvertStringToHexStream
        pReadBf[strlen((PCHAR)pReadBf)-1] = '\0';
   }
 
-  MAPT_LOG_INFO("<<<Trace>>> pOptionBuf is %p : %s",pReadBf, pReadBf);
+  MAP_LOG_INFO("<<<Trace>>> pOptionBuf is %p : %s",pReadBf, pReadBf);
   while ( *pReadBf && *(pReadBf+1) )
   {
       if ( *pReadBf == ':' && pReadBf++ ) {}
@@ -333,13 +342,13 @@ CosaDmlMaptConvertStringToHexStream
       ++*uiOptionBufLen;
   }
   *pWriteBf = '\0';
-  MAPT_LOG_INFO("<<<Trace>>> BufLen : %d", *uiOptionBufLen);
+  MAP_LOG_INFO("<<<Trace>>> BufLen : %d", *uiOptionBufLen);
 
   return STATUS_SUCCESS;
 }
 
 static RETURN_STATUS
-CosaDmlMaptValidate
+CosaDmlMapValidate
 (
     PCHAR          pPdIPv6Prefix,
     UINT16         ui16PdPrefixLen,
@@ -351,7 +360,7 @@ CosaDmlMaptValidate
   UINT8 ui8EaLen       = 0 ;
   struct in6_addr ipv6Addr;
 
-  MAPT_LOG_INFO("Entry");
+  MAP_LOG_INFO("Entry");
 
   // V4 suffix bits length
   ui8v4BitIdxLen = BUFLEN_32 - ui16v4PrefixLen;
@@ -362,122 +371,119 @@ CosaDmlMaptValidate
   // PSID length
   ui8PsidBitIdxLen = ui8EaLen - ui8v4BitIdxLen;
 
-  MAPT_LOG_INFO("<<<Trace>>> ui8v4BitIdxLen(IPV4 Suffix Bits): %u", ui8v4BitIdxLen);
-  MAPT_LOG_INFO("<<<Trace>>> ui8EaLen (EA bits)                    : %u", ui8EaLen);
-  MAPT_LOG_INFO("<<<Trace>>> ui8PsidBitIdxLen(PSID length)         : %u", ui8PsidBitIdxLen);
+  MAP_LOG_INFO("<<<Trace>>> ui8v4BitIdxLen(IPV4 Suffix Bits): %u", ui8v4BitIdxLen);
+  MAP_LOG_INFO("<<<Trace>>> ui8EaLen (EA bits)                    : %u", ui8EaLen);
+  MAP_LOG_INFO("<<<Trace>>> ui8PsidBitIdxLen(PSID length)         : %u", ui8PsidBitIdxLen);
 
-  if (ui8EaLen != g_stMaptData.EaLen)
+  if (ui8EaLen != g_stMapData.EaLen)
   {
-       MAPT_LOG_INFO("Calculated EA-bits and received MAP EA-bits does not match!");
+       MAP_LOG_INFO("Calculated EA-bits and received MAP EA-bits does not match!");
        return STATUS_FAILURE;
   }
 
   if ( ui16PdPrefixLen < ui16v6PrefixLen )
   {
-       MAPT_LOG_ERROR("Invalid MAPT option, ui16PdPrefixLen(%d) < ui16v6PrefixLen(%d)",
+       MAP_LOG_ERROR("Invalid MAP option, ui16PdPrefixLen(%d) < ui16v6PrefixLen(%d)",
                ui16PdPrefixLen, ui16v6PrefixLen);
        return STATUS_FAILURE;
   }
 
   if ( inet_pton(AF_INET6, pPdIPv6Prefix, &ipv6Addr) <= 0 )
   {
-       MAPT_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
+       MAP_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
        return STATUS_FAILURE;
   }
 
-   MAPT_LOG_INFO("MAPT validation successful.");
+   MAP_LOG_INFO("MAP validation successful.");
   return STATUS_SUCCESS;
 }
 
 /**
- * @brief Parses the MAPT option 95 response.
+ * @brief Parses the MAPE/MAPT options 94 & 95 response respectively.
  *
- * This function processes the MAPT option 95 response, extracts the relevant information and updates ipc_dhcpv6_data_t struct with mapt details
+ * This function processes the MAPE/MAPT options response, extracts the relevant information and updates ipc_map_data_t struct with map details
  *
  * @param[in] pPdIPv6Prefix Pointer to the IPv6 prefix.
- * @param[in] pOptionBuf Pointer to the buffer containing the option 95 data.
- * @param[out] mapt Pointer to the structure where the parsed MAP-T data will be stored.
+ * @param[in] pOptionBuf Pointer to the buffer containing the option 94/95 data.
+ * @param[out] map Pointer to the structure where the parsed MAP data will be stored.
 
  *
  * @return ANSC_STATUS indicating the success or failure of the operation.
  */
 
-ANSC_STATUS DhcpMgr_MaptParseOpt95Response
+ANSC_STATUS DhcpMgr_MapParseOptResponse
 (
     const PCHAR          pPdIPv6Prefix,
-    PUCHAR         pOptionBuf,
-    ipc_mapt_data_t *mapt
+    PUCHAR               pOptionBuf,
+    ipc_map_data_t       *map
 )
 {
   RETURN_STATUS ret = STATUS_SUCCESS;
   UINT16  uiOptionBufLen = 0;
 
-  MAPT_LOG_INFO("Entry");
+  MAP_LOG_INFO("Entry");
 
   /* Convert the received string buffer into hex stream */
-  memset (&g_stMaptData, 0, sizeof(g_stMaptData));
-  if ( CosaDmlMaptConvertStringToHexStream (pOptionBuf, &uiOptionBufLen) != STATUS_SUCCESS )
+  memset (&g_stMapData, 0, sizeof(g_stMapData));
+  if ( CosaDmlMapConvertStringToHexStream (pOptionBuf, &uiOptionBufLen) != STATUS_SUCCESS )
   {
-       MAPT_LOG_ERROR("MAPT string buffer to HexStream conversion Failed !!");
+       MAP_LOG_ERROR("MAP string buffer to HexStream conversion Failed !!");
        ret = STATUS_FAILURE;
   }
 
   /* Store IPv6 prefix and length */
-  memcpy (&g_stMaptData.PdIPv6Prefix, pPdIPv6Prefix,
+  memcpy (&g_stMapData.PdIPv6Prefix, pPdIPv6Prefix,
                                               (strchr(pPdIPv6Prefix, '/') - pPdIPv6Prefix));
-  g_stMaptData.PdIPv6PrefixLen = strtol((strchr(pPdIPv6Prefix, '/') + 1), NULL, 10);
-  MAPT_LOG_INFO("<<<Trace>>> Received PdIPv6Prefix : %s/%u", g_stMaptData.PdIPv6Prefix
-                                                         , g_stMaptData.PdIPv6PrefixLen);
-  if ( !ret && !g_stMaptData.PdIPv6Prefix[0] )
+  g_stMapData.PdIPv6PrefixLen = strtol((strchr(pPdIPv6Prefix, '/') + 1), NULL, 10);
+  MAP_LOG_INFO("<<<Trace>>> Received PdIPv6Prefix : %s/%u", g_stMapData.PdIPv6Prefix
+                                                         , g_stMapData.PdIPv6PrefixLen);
+  if ( !ret && !g_stMapData.PdIPv6Prefix[0] )
   {
-       MAPT_LOG_ERROR("PdIPv6Prefix is NULL !!");
+       MAP_LOG_ERROR("PdIPv6Prefix is NULL !!");
        ret = STATUS_FAILURE;
   }
 
   /* Parse the hex buffer for mapt options */
-  if ( !ret && CosaDmlMaptParseResponse (pOptionBuf, uiOptionBufLen) != STATUS_SUCCESS )
+  if ( !ret && CosaDmlMapParseResponse (pOptionBuf, uiOptionBufLen) != STATUS_SUCCESS )
   {
-       MAPT_LOG_ERROR("MAPT Parsing Response Failed !!");
+       MAP_LOG_ERROR("MAP Parsing Response Failed !!");
        ret = STATUS_FAILURE;
   }
 
-    /* validate MAPT responce */
-  if ( !ret && CosaDmlMaptValidate ( g_stMaptData.PdIPv6Prefix
-                                                   , g_stMaptData.PdIPv6PrefixLen
-                                                   , g_stMaptData.RuleIPv6PrefixLen
-                                                   , g_stMaptData.RuleIPv4PrefixLen 
+    /* validate MAPT/MAPE responce */
+  if ( !ret && CosaDmlMapValidate ( g_stMapData.PdIPv6Prefix
+                                                   , g_stMapData.PdIPv6PrefixLen
+                                                   , g_stMapData.RuleIPv6PrefixLen
+                                                   , g_stMapData.RuleIPv4PrefixLen
                                                   ) != STATUS_SUCCESS )
   {
-       MAPT_LOG_ERROR("MAPT Psid and IPv4 Suffix Validation Failed !!");
-       memset (&g_stMaptData, 0, sizeof(g_stMaptData));
+       MAP_LOG_ERROR("MAP Psid and IPv4 Suffix Validation Failed !!");
+       memset (&g_stMapData, 0, sizeof(g_stMapData));
        ret = STATUS_FAILURE;
   }
 
   if( ret == STATUS_SUCCESS )
   {
-     //Fill Required MAP-T information
-     mapt->v6Len = g_stMaptData.RuleIPv6PrefixLen;
-     mapt->isFMR = g_stMaptData.bFMR ? TRUE : FALSE;
-     mapt->eaLen = g_stMaptData.EaLen;
-     mapt->v4Len = g_stMaptData.RuleIPv4PrefixLen;
-     mapt->psidOffset = g_stMaptData.PsidOffset;
-     mapt->psidLen = g_stMaptData.PsidLen;
-     mapt->psid = g_stMaptData.Psid;
-     mapt->iapdPrefixLen = g_stMaptData.PdIPv6PrefixLen;
-     mapt->ratio = g_stMaptData.Ratio;
+     //Fill Required MAP information
+     map->v6Len = g_stMapData.RuleIPv6PrefixLen;
+     map->isFMR = g_stMapData.bFMR ? TRUE : FALSE;
+     map->eaLen = g_stMapData.EaLen;
+     map->v4Len = g_stMapData.RuleIPv4PrefixLen;
+     map->psidOffset = g_stMapData.PsidOffset;
+     map->psidLen = g_stMapData.PsidLen;
+     map->psid = g_stMapData.Psid;
+     map->iapdPrefixLen = g_stMapData.PdIPv6PrefixLen;
+     map->ratio = g_stMapData.Ratio;
 
-     snprintf (mapt->pdIPv6Prefix, BUFLEN_40, "%s", g_stMaptData.PdIPv6Prefix);
-     snprintf (mapt->ruleIPv4Prefix, BUFLEN_40, "%s", g_stMaptData.RuleIPv4Prefix);
-     snprintf (mapt->ruleIPv6Prefix, BUFLEN_40, "%s/%u", g_stMaptData.RuleIPv6Prefix
-                                                                      , g_stMaptData.RuleIPv6PrefixLen);
-     snprintf (mapt->brIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMaptData.BrIPv6Prefix
-                                                                      , g_stMaptData.BrIPv6PrefixLen);
+     snprintf (map->pdIPv6Prefix, BUFLEN_40, "%s", g_stMapData.PdIPv6Prefix);
+     snprintf (map->ruleIPv4Prefix, BUFLEN_40, "%s", g_stMapData.RuleIPv4Prefix);
+     snprintf (map->ruleIPv6Prefix, BUFLEN_40, "%s/%u", g_stMapData.RuleIPv6Prefix
+                                                                      , g_stMapData.RuleIPv6PrefixLen);
+     snprintf (map->brIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMapData.BrIPv6Prefix
+                                                                      , g_stMapData.BrIPv6PrefixLen);
      
-     MAPT_LOG_INFO("MAPT configuration complete.\n");
+     MAP_LOG_INFO("MAP configuration complete.\n");
   }
 
   return ((ret) ? ANSC_STATUS_FAILURE : ANSC_STATUS_SUCCESS);
 }
-
-
-

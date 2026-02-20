@@ -94,6 +94,7 @@ typedef  unsigned long              ULONG;
 #define DHCPV6_OPT_82  82  // OPTION_SOL_MAX_RT: Solicite Maximum Retry Time
 #define DHCPV6_OPT_23  23  // OPTION_SOL_MAX_RT: Solicite Maximum Retry Time
 #define DHCPV6_OPT_95  95  // OPTION_SOL_MAX_RT: Solicite Maximum Retry Time
+#define DHCPV6_OPT_94  94
 #define DHCPV6_OPT_24  24  // OPTION_DOMAIN_LIST
 #define DHCPV6_OPT_83  83  // OPTION_INF_MAX_RT
 #define DHCPV6_OPT_17  17  // OPTION_VENDOR_OPTS

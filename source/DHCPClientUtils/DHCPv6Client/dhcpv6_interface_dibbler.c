@@ -148,6 +148,11 @@ static int dibbler_get_req_options(FILE * fout,  dhcp_opt_list * req_opt_list)
                 fputs(args, fout);
                 break;
 
+            case DHCPV6_OPT_94:
+                snprintf(args, sizeof(args), "\n\toption 00%d hex \n", opt_list->dhcp_opt);
+                fputs(args, fout);
+                break;
+
             case DHCPV6_OPT_64:
                 fputs("\n\toption aftr\n", fout);
                 break;
