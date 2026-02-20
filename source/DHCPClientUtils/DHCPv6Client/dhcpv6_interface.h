@@ -68,13 +68,11 @@ typedef struct _DHCPv6_PLUGIN_MSG
         unsigned char  Container[BUFLEN_256]; /* MAP-T option 95 in hex format*/
     }mapt;
  
-    #if 0
-    //TODO: MAPE support not added yet
+    //MAPE
     struct {
         bool Assigned;     /**< Have we been assigned mape config ? */
         unsigned char  Container[BUFLEN_256]; /* MAP-E option 94 in hex format*/
     }mape;
-    #endif
 
     //Vendor Specific Options
     struct {

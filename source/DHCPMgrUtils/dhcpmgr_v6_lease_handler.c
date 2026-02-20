@@ -125,6 +125,7 @@ static bool compare_dhcpv6_plugin_msg(const DHCPv6_PLUGIN_MSG *currentLease, con
         !ia_pd_eq ||
         memcmp(&currentLease->dns, &newLease->dns, sizeof(currentLease->dns)) != 0 ||
         memcmp(&currentLease->mapt, &newLease->mapt, sizeof(currentLease->mapt)) != 0 ||
+        memcmp(&currentLease->mape, &newLease->mape, sizeof(currentLease->mape)) != 0 ||
         strcmp(currentLease->domainName, newLease->domainName) != 0 ||
         strcmp(currentLease->ntpserver, newLease->ntpserver) != 0 ||
         strcmp(currentLease->aftr, newLease->aftr) != 0) 
@@ -183,6 +184,7 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
                 memcpy(&newLease->ia_pd, &current->ia_pd, sizeof(current->ia_pd));
                 //mapt is part of IAPD. If IAPD is renewed, mapt is also renewed.
                 memcpy(&newLease->mapt, &current->mapt, sizeof(current->mapt));
+                memcpy(&newLease->mape, &current->mape, sizeof(current->mape));
             }
             
             if(compare_dhcpv6_plugin_msg(current, newLease) == FALSE)

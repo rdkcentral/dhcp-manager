@@ -28,7 +28,7 @@
 #include "cosa_dhcpv4_internal.h"
 #include "cosa_dhcpv4_dml.h"
 #include "dhcpv6_interface.h"
-#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46) || defined(FEATURE_MAPE)
 #include "dhcpmgr_map_apis.h"
 #endif
 
@@ -202,7 +202,7 @@ static void DhcpMgr_UpdateDhcpv6MapInfo(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MG
         return;
 
     PDML_DHCPCV6_MAP_INFO mapInfo = &pDhcpv6c->Info.MapInfo;
-    ipc_mapt_data_t *mapt = &src->mapt;
+    ipc_map_data_t *mapt = &src->map;
 
     mapInfo->MaptAssigned = src->maptAssigned ? TRUE : FALSE;
     mapInfo->IsFMR = mapt->isFMR ? TRUE : FALSE;
@@ -244,6 +244,11 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     dest->prefixAssigned = src->ia_pd.assigned;
     dest->domainNameAssigned = (strlen(src->domainName) > 0);
 
+    // Default to UNKNOWN
+    dest->map.mapType = MAP_TYPE_UNKNOWN;
+    dest->maptAssigned = FALSE;
+    dest->mapeAssigned = FALSE;
+
     if(src->ipv6_TimeOffset)
     {
         dest->ipv6_TimeOffset = src->ipv6_TimeOffset;
@@ -252,21 +257,38 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     {
         dest->ipv6_TimeOffset = 0; // Default value if not assigned
     }
-#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
     if(src->mapt.Assigned == TRUE)
     {
+#if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         unsigned char  maptContainer[BUFLEN_256] = {0}; /* MAP-T option 95 in hex format*/
         memset(maptContainer, 0, sizeof(maptContainer));
         memcpy(maptContainer, src->mapt.Container, sizeof(src->mapt.Container));
-        if (DhcpMgr_MaptParseOpt95Response(dest->sitePrefix, maptContainer, &dest->mapt) == ANSC_STATUS_SUCCESS)
+        if (DhcpMgr_MapParseOptResponse(dest->sitePrefix, maptContainer, &dest->map) == ANSC_STATUS_SUCCESS)
         {
             dest->maptAssigned = TRUE;
+            dest->map.mapType = MAP_TYPE_MAPT;
         } else {
             DHCPMGR_LOG_ERROR("%s: MAP-T option95 parsing failed. Set maptAssigned to FALSE.\n", __FUNCTION__);
             dest->maptAssigned = FALSE;
         }
-    }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
+    }
+    else if (src->mape.Assigned == TRUE)
+    {
+#ifdef FEATURE_MAPE
+        unsigned char  mapeContainer[BUFLEN_256]; /* MAP-E option 94 in hex format*/
+        memset(mapeContainer, 0, sizeof(mapeContainer));
+        memcpy(mapeContainer, src->mape.Container, sizeof(src->mape.Container));
+        if (DhcpMgr_MapParseOptResponse(dest->sitePrefix, mapeContainer, &dest->map) == ANSC_STATUS_SUCCESS)
+        {
+            dest->mapeAssigned = TRUE;
+            dest->map.mapType = MAP_TYPE_MAPE;
+        } else {
+            DHCPMGR_LOG_ERROR("%s: MAP-E option94 parsing failed. Set mapeAssigned to FALSE.\n", __FUNCTION__);
+            dest->mapeAssigned = FALSE;
+        } 
+#endif
+    }
 }
 
 rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)

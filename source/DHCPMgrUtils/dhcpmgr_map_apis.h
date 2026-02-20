@@ -40,13 +40,13 @@
 #include "ipc_msg.h"
 #include "cosa_apis.h"
 /*
- * DHCP MAPT options macro definitions
+ * DHCP MAP options macro definitions
  */
-#define MAPT_OPTION_S46_RULE            89
-#define MAPT_OPTION_S46_BR              90
-#define MAPT_OPTION_S46_DMR             91
-#define MAPT_OPTION_S46_PORT_PARAMS     93
-#define MAPT_OPTION_S46_CONT_MAPT       95
+#define MAP_OPTION_S46_RULE            89
+#define MAP_OPTION_S46_BR              90
+#define MAP_OPTION_S46_DMR             91
+#define MAP_OPTION_S46_PORT_PARAMS     93
+#define MAP_OPTION_S46_CONT_MAPT       95
 
 #define BUFLEN_4                        4
 #define BUFLEN_8                        8
@@ -143,13 +143,13 @@
  #define BOOLEAN     unsigned char
 #endif
 
-#define MAPT_LOG_INFO(format, ...)     \
+#define MAP_LOG_INFO(format, ...)     \
                               CcspTraceInfo   (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define MAPT_LOG_ERROR(format, ...)    \
+#define MAP_LOG_ERROR(format, ...)    \
                               CcspTraceError  (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define MAPT_LOG_NOTICE(format, ...)   \
+#define MAP_LOG_NOTICE(format, ...)   \
                               CcspTraceNotice (("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
-#define MAPT_LOG_WARNING(format, ...)  \
+#define MAP_LOG_WARNING(format, ...)  \
                               CcspTraceWarning(("%s - "format"\n", __FUNCTION__, ##__VA_ARGS__))
 
 
@@ -165,7 +165,7 @@ _RETURN_STATUS
 } RETURN_STATUS;
 
 typedef struct
-_COSA_DML_MAPT_DATA
+_COSA_DML_MAP_DATA
 {
    CHAR       RuleIPv4Prefix[BUFLEN_16];
    CHAR       RuleIPv6Prefix[BUFLEN_40];
@@ -187,32 +187,32 @@ _COSA_DML_MAPT_DATA
    UINT16     IPv4PsidLen;
    UINT32     Ratio;
    BOOLEAN    bFMR;
-} COSA_DML_MAPT_DATA, *PCOSA_DML_MAPT_DATA;
+} COSA_DML_MAP_DATA, *PCOSA_DML_MAP_DATA;
 
 
 typedef struct
-_COSA_DML_MAPT_OPTION
+_COSA_DML_MAP_OPTION
 {
    UINT16     OptType;
    UINT16     OptLen;
-} __attribute__ ((__packed__)) COSA_DML_MAPT_OPTION, *PCOSA_DML_MAPT_OPTION;
+} __attribute__ ((__packed__)) COSA_DML_MAP_OPTION, *PCOSA_DML_MAP_OPTION;
 
 /**
- * @brief Parses the MAPT option 95 response.
+ * @brief Parses the MAPE/MAPT options 94 & 95 response respectively.
  *
- * This function processes the MAPT option 95 response, extracts the relevant information and updates ipc_dhcpv6_data_t struct with mapt details
+ * This function processes the MAPE/MAPT options response, extracts the relevant information and updates ipc_map_data_t struct with map details
  *
  * @param[in] pPdIPv6Prefix Pointer to the IPv6 prefix.
- * @param[in] pOptionBuf Pointer to the buffer containing the option 95 data.
- * @param[out] mapt Pointer to the structure where the parsed MAP-T data will be stored.
+ * @param[in] pOptionBuf Pointer to the buffer containing the option 94/95 data.
+ * @param[out] map Pointer to the structure where the parsed MAP data will be stored.
  *
  * @return ANSC_STATUS indicating the success or failure of the operation.
  */
 
-ANSC_STATUS DhcpMgr_MaptParseOpt95Response
+ANSC_STATUS DhcpMgr_MapParseOptResponse
     (
         const PCHAR          pPdIPv6Prefix,
-        PUCHAR         pOptionBuf,
-        ipc_mapt_data_t *mapt
+        PUCHAR               pOptionBuf,
+        ipc_map_data_t       *map
     );
 #endif
