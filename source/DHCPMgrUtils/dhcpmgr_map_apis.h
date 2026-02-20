@@ -213,6 +213,6 @@ ANSC_STATUS DhcpMgr_MaptParseOpt95Response
     (
         const PCHAR          pPdIPv6Prefix,
         PUCHAR         pOptionBuf,
-        ipc_mapt_data_t *mapt
+        ipc_map_data_t *mapt
     );
 #endif

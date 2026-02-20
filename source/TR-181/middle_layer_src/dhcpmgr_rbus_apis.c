@@ -202,7 +202,7 @@ static void DhcpMgr_UpdateDhcpv6MapInfo(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MG
         return;
 
     PDML_DHCPCV6_MAP_INFO mapInfo = &pDhcpv6c->Info.MapInfo;
-    ipc_mapt_data_t *mapt = &src->mapt;
+    ipc_map_data_t *mapt = &src->mapt;
 
     mapInfo->MaptAssigned = src->maptAssigned ? TRUE : FALSE;
     mapInfo->IsFMR = mapt->isFMR ? TRUE : FALSE;
