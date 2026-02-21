@@ -241,6 +241,7 @@ AM_CONDITIONAL(VOICE_MTA_SUPPORT, test x"$voice_support" = x"yes")
 # Check ra_monitor_support
 AM_CONDITIONAL([RA_MONITOR_SUPPORT], [test "$RA_MONITOR_SUPPORT" = "yes"])
 
+AM_CONDITIONAL([ONESTACK_PRODUCT_REQ], [test "x$ONESTACK_PRODUCT_REQ" = "xtrue"])
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
 

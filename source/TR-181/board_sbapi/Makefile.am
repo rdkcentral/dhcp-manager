@@ -37,3 +37,6 @@ libCcspDhcpMgr_board_sbapi_la_CPPFLAGS = -I$(top_srcdir)/source/TR-181/include \
 libCcspDhcpMgr_board_sbapi_la_SOURCES = cosa_dhcpv6_apis.c cosa_dhcpv4_apis.c ../middle_layer_src/cosa_apis_util.c cosa_dhcpv4_webconfig_apis.c lan_webconfig_param.c macbinding_webconfig_param.c cosa_x_cisco_com_devicecontrol_apis.c
 
 libCcspDhcpMgr_board_sbapi_la_LDFLAGS = -lccsp_common -lhal_moca -lulog -lsyscfg -lsysevent -ltime_conversion -llmapi -lwebconfig_framework -lmsgpackc -lcm_mgnt  -lnanomsg
+if ONESTACK_PRODUCT_REQ
+libCcspDhcpMgr_board_sbapi_la_LDFLAGS += -ldevicemode -lonestack_syscfg -lonestack_log -lrdkb_feature_mode_gate
+endif

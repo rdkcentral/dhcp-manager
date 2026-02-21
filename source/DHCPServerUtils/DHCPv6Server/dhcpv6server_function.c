@@ -47,7 +47,9 @@
 #include "sysevent/sysevent.h"
 #include "cosa_apis_util.h"
 #include "ifl.h"
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+#include <rdkb_feature_mode_gate.h>
+#endif
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE bus_handle;
 extern char g_Subsystem[32];
@@ -75,8 +77,8 @@ extern int executeCmd(char *cmd);
 #include "cosa_drg_common.h"
 //#include "cosa_ip_apis.h"
 #include "cosa_common_util.h"
-
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)
+#if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && defined(_COSA_BCM_MIPS_)) \
+     || defined(_ONESTACK_PRODUCT_REQ_)
 #include <netinet/in.h>
 #endif
 
@@ -223,11 +225,15 @@ void dhcpv6_server_init()
 
 #define DHCPS6V_SERVER_RESTART_FIFO "/tmp/ccsp-dhcpv6-server-restart-fifo.txt"
 
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(_CBR_PRODUCT_REQ_) && ! defined(_BCI_FEATURE_REQ)
+#if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && \
+     !defined(_CBR_PRODUCT_REQ_) && \
+     !defined(_BCI_FEATURE_REQ_)) || \
+    defined(_ONESTACK_PRODUCT_REQ_)
+
 
 #else
 /*
-
+//Todo: Adapt for One stack Product 
 void CosaDmlDhcpv6sRestartOnLanStarted(void * arg)
 {
     UNREFERENCED_PARAMETER(arg);
@@ -290,7 +296,7 @@ int CosaDmlDHCPv6sTriggerRestart(BOOL OnlyTrigger)
     //OnlyTrigger = (int *)arg;
     
     DHCPVS_DEBUG_PRINT
-  #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
+  #if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && !defined(DHCPV6_PREFIX_FIX)) || defined(_ONESTACK_PRODUCT_REQ_).
     UNREFERENCED_PARAMETER(OnlyTrigger);
     ifl_set_event("dhcpv6_server-restart", "");
   #else
@@ -1479,7 +1485,7 @@ void __cosa_dhcpsv6_refresh_config()
     char responseCode[10];
     struct stat check_ConfigFile;
     errno_t rc = -1;
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
     pd_pool_t           pd_pool;
     ia_pd_t             ia_pd;
 #endif
@@ -1490,7 +1496,11 @@ void __cosa_dhcpsv6_refresh_config()
     BOOL  bBadPrefixFormat = FALSE;
     if (!fp)
         goto EXIT;
-#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION)
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     /* handle logic:
      *  1) divide the Operator-delegated prefix to sub-prefixes
      *  2) further break the first of these sub-prefixes into /64 interface-prefixes for lan interface
@@ -1504,6 +1514,7 @@ void __cosa_dhcpsv6_refresh_config()
         // sysevent_set(si6->sefd, si6->setok, "service_ipv6-status", "error", 0);
         ifl_set_event("service_ipv6-status", "error");
         return;
+    }
     }
 #endif
     /*Begin write configuration */
@@ -1670,9 +1681,13 @@ void __cosa_dhcpsv6_refresh_config()
                     fprintf(fp, "       valid-lifetime %lu\n", validTime);
                 }
                 fprintf(fp, "   }\n");
-            }
-            AnscFreeMemory(pTmp3);
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+	    }
+	    AnscFreeMemory(pTmp3);
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+#if defined(_ONESTACK_PRODUCT_REQ_)
+	    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+#endif
+	    {
             DHCPMGR_LOG_INFO("[%s]  %d - See if need to emit pd-class, sDhcpv6ServerPool[Index].Cfg.IAPDEnable: %d, Index: %d\n",
                            __FUNCTION__, __LINE__, sDhcpv6ServerPool[Index].Cfg.IAPDEnable, Index);
             if (sDhcpv6ServerPool[Index].Cfg.IAPDEnable) {
@@ -1683,7 +1698,7 @@ void __cosa_dhcpsv6_refresh_config()
                 DHCPMGR_LOG_INFO("[%s]  %d emit            pd-length pd_pool.pd_length: %d\n",
                                __FUNCTION__, __LINE__, pd_pool.pd_length);
                 fprintf(fp, "   pd-class {\n");
-#if defined (_CBR_PRODUCT_REQ_) || defined (CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION)
+#if defined (_CBR_PRODUCT_REQ_) || defined (CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_) 
                 fprintf(fp, "       pd-pool %s /%d\n", pd_pool.start, pd_pool.prefix_length);
 #else
                 fprintf(fp, "       pd-pool %s - %s /%d\n", pd_pool.start, pd_pool.end, pd_pool.prefix_length);
@@ -1694,12 +1709,13 @@ void __cosa_dhcpsv6_refresh_config()
                   fprintf(fp, "       T2 %s\n", ia_pd.t2);
                   fprintf(fp, "       prefered-lifetime %s\n", ia_pd.pretm);
                   fprintf(fp, "       valid-lifetime %s\n", ia_pd.vldtm);
-                }
-                fprintf(fp, "   }\n");
-              }
-            }
+		}
+		fprintf(fp, "   }\n");
+	      }
+	    }
+	    }
 #endif
-        }
+	}
 OPTIONS:
         /* For options */
         for ( Index2 = 0 ; Index2 < uDhcpv6ServerPoolOptionNum[Index]; Index2++ )

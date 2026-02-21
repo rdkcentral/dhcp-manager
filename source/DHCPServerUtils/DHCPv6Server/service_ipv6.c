@@ -56,7 +56,9 @@
 #include <ccsp_base_api.h>
 #include "ccsp_memory.h"
 #endif
-
+#ifdef _ONESTACK_PRODUCT_REQ_
+#include <rdkb_feature_mode_gate.h>
+#endif
 #define PROG_NAME       "SERVICE-IPV6"
 
 #if defined(INTEL_PUMA7) || defined(MULTILAN_FEATURE)
@@ -380,10 +382,21 @@ static int get_dhcpv6s_pool_cfg(dhcpv6s_pool_cfg_t *cfg)
     DHCPV6S_SYSCFG_GETI(DHCPV6S_NAME, "pool", cfg->index, "", 0, "X_RDKCENTRAL_COM_DNSServersEnabled", cfg->X_RDKCENTRAL_COM_DNSServersEnabled);
 
 #ifdef MULTILAN_FEATURE
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     DHCPV6S_SYSCFG_GETS(DHCPV6S_NAME, "pool", cfg->index, "", 0, "IAInterface", iface_name);
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     DHCPV6S_SYSCFG_GETS(DHCPV6S_NAME, "pool", cfg->index, "", 0, "Interface", iface_name);
+    }
 #endif
 #else
     DHCPV6S_SYSCFG_GETS(DHCPV6S_NAME, "pool", cfg->index, "", 0, "IAInterface", cfg->interface);
@@ -594,7 +607,7 @@ static int get_prefix_info(const char *prefix,  char *value, unsigned int val_le
 static int get_active_lanif(unsigned int insts[], unsigned int *num)
 {
     int i = 0;
-#if !defined(MULTILAN_FEATURE) || defined CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if !defined(MULTILAN_FEATURE) || defined CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION || defined(_ONESTACK_PRODUCT_REQ_)
     char active_insts[32] = {0};
     char lan_pd_if[128] = {0};
     char *p = NULL;
@@ -616,7 +629,11 @@ static int get_active_lanif(unsigned int insts[], unsigned int *num)
     unsigned int max_active_if_count = 0;
     int primary_l3_instance = 0;
 
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+    #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     syscfg_get(NULL, "lan_pd_interfaces", lan_pd_if, sizeof(lan_pd_if));
     if (lan_pd_if[0] == '\0') {
         *num = 0;
@@ -636,7 +653,13 @@ static int get_active_lanif(unsigned int insts[], unsigned int *num)
 
         p = strtok(NULL, " ");
     }
-#else
+    }
+#endif
+#if !defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
+    #if defined(_ONESTACK_PRODUCT_REQ_)
+    if (!isFeatureSupportedInCurrentMode(FEATURE_IPV6_DELEGATION))
+    #endif
+    {
     /* Get active bridge count from PSM */
     if (!bus_handle) {
         DHCPMGR_LOG_INFO("DBUS not connected, returning \n");
@@ -706,6 +729,7 @@ static int get_active_lanif(unsigned int insts[], unsigned int *num)
     }
     /* Set active IPv6 instances */
     ifl_set_event( "ipv6_active_inst", active_if_list);
+    }
 #endif
 
 

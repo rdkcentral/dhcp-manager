@@ -111,7 +111,7 @@ extern int g_recv_option_num;
 #define COSA_DML_DHCPV6C_ADDR_PRETM_SYSEVENT_NAME     "tr_"COSA_DML_DHCPV6_CLIENT_IFNAME"_dhcpv6_client_addr_pretm"
 #define COSA_DML_DHCPV6C_ADDR_VLDTM_SYSEVENT_NAME     "tr_"COSA_DML_DHCPV6_CLIENT_IFNAME"_dhcpv6_client_addr_vldtm"
 
-#if defined (CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined (INTEL_PUMA7)
+#if defined (CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined (INTEL_PUMA7) || defined(_ONESTACK_PRODUCT_REQ_)
 #define COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME      "ipv6_"COSA_DML_DHCPV6_SERVER_IFNAME"-addr"
 #else
 #define COSA_DML_DHCPV6S_ADDR_SYSEVENT_NAME      "tr_"COSA_DML_DHCPV6_SERVER_IFNAME"_dhcpv6_server_v6addr"
@@ -717,7 +717,7 @@ CosaDmlDhcpv6sGetIAPDPrefixes
         ULONG*                      pSize
      );
 
-#ifdef CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION
+#if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) || defined(_ONESTACK_PRODUCT_REQ_)
 int 
 CosaDmlDhcpv6sGetIAPDPrefixes2
     (

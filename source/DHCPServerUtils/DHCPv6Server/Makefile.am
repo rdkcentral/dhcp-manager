@@ -38,3 +38,6 @@ libCcspDhcpMgr_Dhcpv6Server_la_SOURCES += service_ipv6.c
 endif
 
 libCcspDhcpMgr_Dhcpv6Server_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsyscfg -lsysevent -ltime_conversion -lprint_uptime -lnet
+if ONESTACK_PRODUCT_REQ
+libCcspDhcpMgr_Dhcpv6Server_la_LIBADD += -ldevicemode -lonestack_syscfg -lonestack_log -lrdkb_feature_mode_gate
+endif
