@@ -181,7 +181,7 @@ struct DHCP_TAG tagList[] =
 
 extern COSA_DML_DHCPCV6_RECV * g_recv_options;
 
-#if defined(_CBR_PRODUCT_REQ_) && !defined(_CBR2_PRODUCT_REQ_)
+#if (defined(_CBR_PRODUCT_REQ_) && !defined(_CBR2_PRODUCT_REQ_)) || defined(_ONESTACK_PRODUCT_REQ_)
 int serv_ipv6_init();
 int serv_ipv6_start(void *args);
 int serv_ipv6_stop(void *args);
@@ -207,7 +207,7 @@ void dhcpv6_server_init()
 
   //ifl_register_event_handler(DHCPV6S_REBOOT_SERVER, 1, DHCPV6S_CALLER_CTX, CosaDmlDhcpv6sRebootServer);
   //ifl_register_event_handler(DHCPV6S_REFRESH_CONFIG, 1, DHCPV6S_CALLER_CTX, _cosa_dhcpsv6_refresh_config);
-#if defined(_CBR_PRODUCT_REQ_) && !defined(_CBR2_PRODUCT_REQ_)
+#if (defined(_CBR_PRODUCT_REQ_) && !defined(_CBR2_PRODUCT_REQ_)) || defined(_ONESTACK_PRODUCT_REQ_)
   if (IFL_SUCCESS != ifl_init_ctx(DHCPV6S_CALLER_CTX, IFL_CTX_DYNAMIC))
   {
       DHCPMGR_LOG_ERROR("Failed to init ifl ctx for %s", DHCPV6S_CALLER_CTX);
@@ -290,7 +290,7 @@ int CosaDmlDHCPv6sTriggerRestart(BOOL OnlyTrigger)
     //OnlyTrigger = (int *)arg;
     
     DHCPVS_DEBUG_PRINT
-  #if defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)
+  #if (defined(CISCO_CONFIG_DHCPV6_PREFIX_DELEGATION) && ! defined(DHCPV6_PREFIX_FIX)) || defined(_ONESTACK_PRODUCT_REQ_)
     UNREFERENCED_PARAMETER(OnlyTrigger);
     ifl_set_event("dhcpv6_server-restart", "");
   #else
