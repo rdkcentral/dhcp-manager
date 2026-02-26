@@ -45,3 +45,6 @@ libCcspDhcpMgrUtils_la_LIBADD = -lccsp_common -ltelemetry_msgsender -lulog -lsys
         ${top_builddir}/source/DHCPClientUtils/DHCPv6Client/libCcspDhcpMgr_Dhcpv6Client.la \
         -lhal_platform \
         ${top_builddir}/source/DHCPMgrUtils/CustomOptions/libcustomoptions.la
+if ONESTACK_PRODUCT_REQ
+AM_LDFLAGS += -lrdkb_feature_mode_gate -ldevicemode
+endif
