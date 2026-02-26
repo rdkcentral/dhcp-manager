@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <time.h>
 
 #define UDHCPC_CLIENT                    "udhcpc"
 #define UDHCPC_CLIENT_PATH               "/sbin/"UDHCPC_CLIENT
@@ -139,27 +140,32 @@ static int udhcpc_get_send_options (char * buff, dhcp_opt_list * send_opt_list)
         return SUCCESS;
     }
 
-    char args [BUFLEN_128] = {0};
+    char args [BUFLEN_1024] = {0};
     while ((send_opt_list != NULL) && (send_opt_list->dhcp_opt_val != NULL))
     {
-        memset (&args, 0, BUFLEN_128);
+        memset (&args, 0, BUFLEN_1024);
         if (send_opt_list->dhcp_opt == DHCPV4_OPT_60)
         {
-            /* Option 60 - Vendor Class Identifier has udhcp cmd line arg "-V <option-str>"
-             * If this option is not set with '-V' then udhcpc will add a default vendor class option with its name and version. 
-             * So we need to set this option with '-V' with ACSII string.
-             */
-              
-            char ascii_val[BUFLEN_128] = {0};
-            if( hex_to_ascii(send_opt_list->dhcp_opt_val, ascii_val, sizeof(ascii_val)) == 0)
+            if(0== strncmp(send_opt_list->dhcp_opt_val,"pktc2.0:",strlen("pktc2.0:")))
             {
-
-                snprintf(args, BUFLEN_128, "-V %s ", ascii_val);
+                snprintf(args, BUFLEN_1024, "-V %s ", send_opt_list->dhcp_opt_val);
+            }
+            else
+            {
+                /* Option 60 - Vendor Class Identifier has udhcp cmd line arg "-V <option-str>"
+                 * If this option is not set with '-V' then udhcpc will add a default vendor class option with its name and version.
+                 * So we need to set this option with '-V' with ACSII string.
+                 */
+                char ascii_val[BUFLEN_128] = {0};
+                if( hex_to_ascii(send_opt_list->dhcp_opt_val, ascii_val, sizeof(ascii_val)) == 0)
+                {
+                    snprintf(args, BUFLEN_1024, "-V %s ", ascii_val);
+                }
             }
         }
         else
         {
-            snprintf (args, BUFLEN_128, "-x 0x%02X:%s ", send_opt_list->dhcp_opt, send_opt_list->dhcp_opt_val);
+            snprintf (args, BUFLEN_1024, "-x 0x%02X:%s ", send_opt_list->dhcp_opt, send_opt_list->dhcp_opt_val);
         }
         send_opt_list = send_opt_list->next;
         strcat (buff,args);
@@ -277,7 +283,7 @@ pid_t start_dhcpv4_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     }
 
 
-    char buff [BUFLEN_512] = {0};
+    char buff [BUFLEN_1024] = {0};
     udhcpc_args_generator(buff,interfaceName, req_opt_list, send_opt_list);
 
 
@@ -302,6 +308,8 @@ pid_t start_dhcpv4_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     DHCPMGR_LOG_INFO("%s %d: Started udhcpc. returning pid..\n", __FUNCTION__, __LINE__);
     udhcpc_pid = get_process_pid (UDHCPC_CLIENT, buff, true);
 #endif
+    struct timespec ts = {2, 0};
+    nanosleep(&ts, NULL);
     return udhcpc_pid;
 }
 
@@ -326,9 +334,13 @@ int send_dhcpv4_release(pid_t processID)
         DHCPMGR_LOG_ERROR("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, processID);
         return FAILURE;    
     }
-    sleep(2); // wait for the udhcpc to send a release packet
+    // Allow time for the release packet to be sent before stopping the client  
+    struct timespec ts = {2, 0};  
+    nanosleep(&ts, NULL);
+
     DHCPMGR_LOG_INFO("%s %d Calling stop after sending release. \n", __FUNCTION__, __LINE__);
     stop_dhcpv4_client(processID); //sending release may terminate the UDHCPC for some platforms. Calling stop API to have a common behavior.
+    
     return SUCCESS;
 }
 
@@ -347,6 +359,10 @@ int stop_dhcpv4_client(pid_t processID)
         DHCPMGR_LOG_ERROR("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, processID);
          return FAILURE;
     }
+
+    // Sleep for 1 seconds to allow graceful stop of udhcpc
+    struct timespec ts = {1, 0};
+    nanosleep(&ts, NULL);
 
     //TODO: start_exe2 will add a sigchild handler, Do we still require this call ?
     int ret = collect_waiting_process(processID, UDHCPC_TERMINATE_TIMEOUT);
