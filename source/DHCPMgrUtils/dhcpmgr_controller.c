@@ -29,6 +29,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <mqueue.h>
+#include <malloc.h> 
 #include "util.h"
 #include "ansc_platform.h"
 #include "cosa_apis.h"
@@ -571,6 +572,9 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
         pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
         break;
     }
+
+    int trimmed = malloc_trim(0);
+    DHCPMGR_LOG_INFO("%s %d malloc_trim(0) returned: %d (1=released, 0=not released)\n",__FUNCTION__,__LINE__, trimmed);
 }
 
 
@@ -719,6 +723,9 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
         pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
         break;
     }
+
+    int trimmed = malloc_trim(0);
+    DHCPMGR_LOG_INFO("%s %d malloc_trim(0) returned: %d (1=released, 0=not released)\n",__FUNCTION__,__LINE__, trimmed);
 }
 
 void* DhcpMgr_MainController( void *args )
