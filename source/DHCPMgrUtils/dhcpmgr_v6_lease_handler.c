@@ -26,10 +26,7 @@
 #include "dhcpmgr_custom_options.h"
 #include "ifl.h"
 #if defined(_ONESTACK_PRODUCT_REQ_)
-#include <rdkb_feature_mode_gate.h>
-#endif // _ONESTACK_PRODUCT_REQ_
-#if defined(_ONESTACK_PRODUCT_REQ_)
-#define COSA_DML_WANIface_PREF_DELEGATION_SYSEVENT_NAME           "ipv6_prefix_delegation"
+#define COSA_DML_WANIface_PREF_DELEGATION_SYSEVENT_NAME    "ipv6_prefix_delegation"
 #endif
 #define COSA_DML_WANIface_PREF_SYSEVENT_NAME           "tr_%s_dhcpv6_client_v6pref"
 #define COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME      "tr_%s_dhcpv6_client_pref_iaid"
