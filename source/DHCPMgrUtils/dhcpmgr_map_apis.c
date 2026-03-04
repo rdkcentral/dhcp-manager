@@ -450,7 +450,7 @@ ANSC_STATUS DhcpMgr_MapParseOptResponse
        ret = STATUS_FAILURE;
   }
 
-    /* validate MAPT/MAPE responce */
+    /* validate MAPT/MAPE response */
   if ( !ret && CosaDmlMapValidate ( g_stMapData.PdIPv6Prefix
                                                    , g_stMapData.PdIPv6PrefixLen
                                                    , g_stMapData.RuleIPv6PrefixLen
