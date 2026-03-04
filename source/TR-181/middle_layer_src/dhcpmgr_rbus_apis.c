@@ -263,7 +263,7 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
         unsigned char  maptContainer[BUFLEN_256] = {0}; /* MAP-T option 95 in hex format*/
         memset(maptContainer, 0, sizeof(maptContainer));
         memcpy(maptContainer, src->mapt.Container, sizeof(src->mapt.Container));
-        if (DhcpMgr_MaptParseOpt95Response(dest->sitePrefix, maptContainer, &dest->map) == ANSC_STATUS_SUCCESS)
+        if (DhcpMgr_MapParseOptResponse(dest->sitePrefix, maptContainer, &dest->map) == ANSC_STATUS_SUCCESS)
         {
             dest->maptAssigned = TRUE;
             dest->map.mapType = MAP_TYPE_MAPT;
@@ -279,7 +279,7 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
         unsigned char  mapeContainer[BUFLEN_256]; /* MAP-E option 94 in hex format*/
         memset(mapeContainer, 0, sizeof(mapeContainer));
         memcpy(mapeContainer, src->mape.Container, sizeof(src->mape.Container));
-        if (DhcpMgr_MapParseOptResponse(dest->sitePrefix, mapeContainer, &dest->map)== ANSC_STATUS_SUCCESS)
+        if (DhcpMgr_MapParseOptResponse(dest->sitePrefix, mapeContainer, &dest->map) == ANSC_STATUS_SUCCESS)
         {
             dest->mapeAssigned = TRUE;
             dest->map.mapType = MAP_TYPE_MAPE;

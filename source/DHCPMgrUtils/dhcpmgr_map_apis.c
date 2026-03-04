@@ -263,7 +263,7 @@ CosaDmlMapParseResponse
                memcpy(&br_ipv6Addr, pCurOption, 16);
 
                CosaDmlMapGetIPv6StringFromHex(br_ipv6Addr, g_stMapData.BrIPv6Prefix);
-               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.BrIPv6Address : %s", g_stMapData.BrIPv6Prefix);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.BrIPv6Prefix  : %s", g_stMapData.BrIPv6Prefix);
                MAP_LOG_INFO("Parsing MAP_OPTION_S46_BR Successful.");
                break;
             }
