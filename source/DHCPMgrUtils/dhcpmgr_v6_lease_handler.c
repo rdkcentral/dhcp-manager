@@ -26,7 +26,8 @@
 #include "dhcpmgr_custom_options.h"
 #include "ifl.h"
 #if defined(_ONESTACK_PRODUCT_REQ_)
-#define COSA_DML_WANIface_PREF_DELEGATION_SYSEVENT_NAME    "ipv6_prefix_delegation"
+#define COSA_DML_PREF_DELEGATION_SYSEVENT_NAME          "ipv6_prefix_delegation"
+#define COSA_DML_WANIface_PREF_DELEGATION_SYSEVENT_NAME "ipv6_%s_prefix_delegation"
 #endif
 #define COSA_DML_WANIface_PREF_SYSEVENT_NAME           "tr_%s_dhcpv6_client_v6pref"
 #define COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME      "tr_%s_dhcpv6_client_pref_iaid"
@@ -290,6 +291,7 @@ static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
         IPv6Events eventv6[] = {
         {ia_pd_prefix, COSA_DML_WANIface_PREF_SYSEVENT_NAME},
 #if defined(_ONESTACK_PRODUCT_REQ_)
+	{ia_pd_prefix, COSA_DML_PREF_DELEGATION_SYSEVENT_NAME},
 	{ia_pd_prefix, COSA_DML_WANIface_PREF_DELEGATION_SYSEVENT_NAME},
 #endif
         {iapd_iaid, COSA_DML_WANIface_PREF_IAID_SYSEVENT_NAME},
