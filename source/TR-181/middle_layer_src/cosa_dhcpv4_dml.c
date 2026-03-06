@@ -1183,6 +1183,20 @@ Client_SetParamBoolValue
         }
     }
 
+    if(strcmp(ParamName, "X_RDK_Release") == 0)
+    {
+        if (pDhcpc->Cfg.bEnabled)
+        {
+            DHCPMGR_LOG_INFO("%s %d Release triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            ret_mq_send=1;
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("%s %d Release triggered for DHCPv4 Client when DHCPv4 Client %s not enabled\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            return FALSE;
+        }
+    }
+
     /*Adding the dml set values to message queue so that controller thread will process the values*/
 
     if(ret_mq_send)

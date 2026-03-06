@@ -485,6 +485,7 @@ int send_dhcpv6_release(pid_t processID) {
     {
         close(fd);
     }
+    DHCPMGR_LOG_INFO("%s %d Calling stop after sending release. \n", __FUNCTION__, __LINE__);
     stop_dhcpv6_client(processID);
     return 0;
 }
@@ -507,7 +508,7 @@ int send_dhcpv6_release(pid_t processID) {
         return FAILURE;
     }
 
-    if (signal_process(processID, SIGTERM) != RETURN_OK)
+    if (signal_process(processID, SIGKILL) != RETURN_OK)
     {
         DHCPMGR_LOG_ERROR("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, processID);
          return FAILURE;

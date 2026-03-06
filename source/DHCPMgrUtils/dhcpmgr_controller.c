@@ -475,13 +475,19 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 pDhcpc->Cfg.Renew = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg.ParamName, "Restart") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "X_RDK_Restart") == 0 )
             {
                 pDhcpc->Cfg.Restart = dml_set_msg.value.bValue;
             }
             else if (strcmp(dml_set_msg.ParamName, "ProcessLease") == 0 )
             {
                 DhcpMgr_ProcessV4Lease(pDhcpc);
+            }
+            else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
+            {
+                DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client",__FUNCTION__,__LINE__);
+                send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
+                return; //
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
@@ -559,7 +565,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
                 //Always send release and stop the client
-                send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
+                //send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Renew = FALSE;
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
@@ -619,13 +625,19 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 pDhcp6c->Cfg.Renew = dml_set_msg.value.bValue;
             }
-            else if (strcmp(dml_set_msg.ParamName, "Restart") == 0 )
+            else if (strcmp(dml_set_msg.ParamName, "X_RDK_Restart") == 0 )
             {
                 pDhcp6c->Cfg.Restart = dml_set_msg.value.bValue;
             }
             else if (strcmp(dml_set_msg.ParamName, "ProcessLease") == 0 )
             {
                 DhcpMgr_ProcessV6Lease(pDhcp6c);
+            }
+            else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
+            {
+                DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client",__FUNCTION__,__LINE__);
+                send_dhcpv6_release(pDhcpc->Info.ClientProcessId);
+                return; //
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
