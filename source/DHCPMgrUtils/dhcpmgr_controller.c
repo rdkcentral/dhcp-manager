@@ -491,7 +491,6 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
                 DhcpMgr_clearDHCPv4Lease(pDhcpc);
                 remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
-                return;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
@@ -556,11 +555,8 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 //Only stoping the client here, restart will be done in the next iteration
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                //send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Restart = FALSE;
-                //Don't send or delete lease unless client is specifically asked to release.
-                //DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL);
             }
         }
         else
@@ -571,12 +567,6 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Renew = FALSE;
-                //Don't send or delete lease unless client is specifically asked to release.
-                //Always send release and stop the client
-                //send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
-                //DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
-                //DhcpMgr_clearDHCPv4Lease(pDhcpc);
-                //remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_STOPPED);
             }
         }
@@ -720,9 +710,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcp6c->Cfg.Restart = FALSE;
-                //Don't send or delete lease unless client is specifically asked to release.
-                //DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
-                //DhcpMgr_clearDHCPv6Lease(pDhcp6c);
             }
         }
         else
@@ -735,10 +722,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcp6c->Cfg.Renew = FALSE;
-                //Don't send or delete lease unless client is specifically asked to release.
-//                DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL); //Send lease expired event
-//                DhcpMgr_clearDHCPv6Lease(pDhcp6c);
-//                remove_dhcp_lease_file(pDhcp6c->Cfg.InstanceNumber,DHCP_v6);
                 DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_STOPPED);
             }
         }
