@@ -556,7 +556,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 //Only stoping the client here, restart will be done in the next iteration
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
+                //send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Restart = FALSE;
                 //Don't send or delete lease unless client is specifically asked to release.
