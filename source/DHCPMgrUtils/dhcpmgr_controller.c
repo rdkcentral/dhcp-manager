@@ -486,8 +486,12 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
             {
                 DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client",__FUNCTION__,__LINE__);
-                send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
-                return; //
+                //Always send release and stop the client
+                send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
+                DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
+                DhcpMgr_clearDHCPv4Lease(pDhcpc);
+                remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
+                return;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
@@ -565,11 +569,11 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
             {
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                //Always send release and stop the client
-                //send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Renew = FALSE;
                 //Don't send or delete lease unless client is specifically asked to release.
+                //Always send release and stop the client
+                //send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
                 //DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
                 //DhcpMgr_clearDHCPv4Lease(pDhcpc);
                 //remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
