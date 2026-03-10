@@ -751,6 +751,12 @@ Client_GetParamBoolValue
         *pBool   = pDhcpc->Cfg.Restart;
         return TRUE;
     }
+    if(strcmp(ParamName, "X_RDK_Release") == 0)
+    {
+        //X_RDK_Release will be false by default
+        *pBool   = FALSE;
+        return TRUE;
+    }
 
     /* DHCPMGR_LOG_WARNING("Unsupported parameter '%s'\n", ParamName); */
 
