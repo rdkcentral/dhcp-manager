@@ -1075,14 +1075,14 @@ Client3_SetParamBoolValue
 
     if(strcmp(ParamName, "X_RDK_Release") == 0)
     {
-        if(pDhcpc->Cfg.bEnabled)
+        if(pDhcpc->Cfg.bEnabled && bValue == TRUE)
         {
             DHCPMGR_LOG_INFO("%s %d Release triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             ret_mq_send=1;
         }
         else
         {
-            DHCPMGR_LOG_WARNING("%s %d Release triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            DHCPMGR_LOG_WARNING("%s %d Bydefault the bValue is false or Release triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             return FALSE;
         }
     }
