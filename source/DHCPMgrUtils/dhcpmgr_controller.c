@@ -29,7 +29,6 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <mqueue.h>
-#include <malloc.h> 
 #include "util.h"
 #include "ansc_platform.h"
 #include "cosa_apis.h"
@@ -515,7 +514,14 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                     dhcp_opt_list *req_opt_list = NULL;
                     dhcp_opt_list *send_opt_list = NULL;
                     DhcpMgr_build_dhcpv4_opt_list (pDhcpCxtLink, &req_opt_list, &send_opt_list);
-
+                    if (access("/tmp/dhcpv4_start", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        free_opt_list_data (req_opt_list);
+                        free_opt_list_data (send_opt_list);
+                        pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+                        return;
+                    }
                     pDhcpc->Info.ClientProcessId  = start_dhcpv4_client(pDhcpc->Cfg.Interface, req_opt_list, send_opt_list);
 
                     //Free options list
@@ -560,6 +566,12 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
                 //Always send release and stop the client
+                if (access("/tmp/dhcpv4_stop", F_OK) == 0)
+                {
+                    DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                    pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
+                    return;
+                }
                 send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Renew = FALSE;
@@ -572,9 +584,6 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
         pthread_mutex_unlock(&pDhcpc->mutex); //MUTEX unlock
         break;
     }
-
-    int trimmed = malloc_trim(0);
-    DHCPMGR_LOG_INFO("%s %d malloc_trim(0) returned: %d (1=released, 0=not released)\n",__FUNCTION__,__LINE__, trimmed);
 }
 
 
@@ -665,6 +674,14 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                     dhcp_opt_list *req_opt_list = NULL;
                     dhcp_opt_list *send_opt_list = NULL;
                     DhcpMgr_build_dhcpv6_opt_list (pDhcp6cxtLink, &req_opt_list, &send_opt_list);
+                    if (access("/tmp/dhcpv6_start", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv6 client start is stopped for memleak identification. Skipping start for %s \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                        free_opt_list_data (req_opt_list);
+                        free_opt_list_data (send_opt_list);
+                        pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
+                        return;
+                    }
 
                     pDhcp6c->Info.ClientProcessId  = start_dhcpv6_client(pDhcp6c->Cfg.Interface, req_opt_list, send_opt_list);
 
@@ -711,6 +728,12 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv6 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
                 //Always send release and stop the client. 
+                if (access("/tmp/dhcpv6_stop", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv6 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                        pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
+                        return;
+                    }
                 send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcp6c->Cfg.Renew = FALSE;
@@ -723,9 +746,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
         pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
         break;
     }
-
-    int trimmed = malloc_trim(0);
-    DHCPMGR_LOG_INFO("%s %d malloc_trim(0) returned: %d (1=released, 0=not released)\n",__FUNCTION__,__LINE__, trimmed);
 }
 
 void* DhcpMgr_MainController( void *args )
