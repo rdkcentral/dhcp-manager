@@ -448,7 +448,6 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
     clientCount = CosaDmlDhcpcGetNumberOfEntries(NULL);
     for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
     {
-        INT Release_IP = 0;
         pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL,ulIndex,&instanceNum);
         if ( pSListEntry )
         {
@@ -462,6 +461,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
         }
 
         pthread_mutex_lock(&pDhcpc->mutex); //MUTEX lock
+        INT release_ip = 0;
         if(strncmp(pDhcpc->Cfg.Interface, if_name, sizeof(pDhcpc->Cfg.Interface)) == 0)
         {
             if(dml_set_msg.ParamName == NULL)
@@ -486,9 +486,9 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
             {
-                DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client",__FUNCTION__,__LINE__);
+                DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client\n",__FUNCTION__,__LINE__);
                 pDhcpc->Cfg.Restart = dml_set_msg.value.bValue;
-                Release_IP = 1;
+                release_ip = 1;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
@@ -551,9 +551,9 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if (pDhcpc->Cfg.Restart == TRUE)
             {
-                //Only stoping the client here, restart will be done by WANMANAGER
+                //Only stopping the client here, restart will be done by WANMANAGER
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                if(Release_IP)
+                if(release_ip)
                 {
                     send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
                 }
@@ -606,7 +606,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
 
     for ( ulIndex = 0; ulIndex < clientCount; ulIndex++ )
     {
-        INT Release_IP = 0;
         pSListEntry = (PSINGLE_LINK_ENTRY)Client3_GetEntry(NULL,ulIndex,&instanceNum);
         if ( pSListEntry )
         {
@@ -620,6 +619,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
         }
         
         pthread_mutex_lock(&pDhcp6c->mutex); //MUTEX lock
+        INT release_ip = 0;
         if(strncmp(pDhcp6c->Cfg.Interface, if_name, sizeof(pDhcp6c->Cfg.Interface)) == 0)
         {
             if (dml_set_msg.ParamName == NULL)
@@ -644,9 +644,9 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
             {
-                DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client",__FUNCTION__,__LINE__);
+                DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client\n",__FUNCTION__,__LINE__);
                 pDhcp6c->Cfg.Restart = dml_set_msg.value.bValue;
-                Release_IP = 1;
+                release_ip = 1;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
@@ -712,9 +712,9 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if( pDhcp6c->Cfg.Restart == TRUE)
             {
-                //Only stoping the client here, start will be triggered by WANMANAGER
+                //Only stopping the client here, start will be triggered by WANMANAGER
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                if(Release_IP)
+                if(release_ip)
                 {
                     send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
                 }
