@@ -488,6 +488,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client",__FUNCTION__,__LINE__);
                 //Always send release and stop the client
                 send_dhcpv4_release(pDhcpc->Info.ClientProcessId); 
+                pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
                 DhcpMgr_clearDHCPv4Lease(pDhcpc);
                 remove_dhcp_lease_file(pDhcpc->Cfg.InstanceNumber,DHCP_v4);
