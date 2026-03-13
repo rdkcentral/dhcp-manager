@@ -432,8 +432,17 @@ pid_t start_dhcpv6_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
 
     char cmd_args[BUFLEN_256] = {0};
     snprintf(cmd_args, sizeof(cmd_args), "%s -w %s", DIBBLER_CLIENT_RUN_CMD, config_path);
-
+        if (access("/tmp/dhcpv6_start_cli", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv6 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        return FAILURE;
+                    }
     pid_t ret = start_exe2(DIBBLER_CLIENT_PATH, cmd_args);
+        if (access("/tmp/dhcpv6_start_cli1", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv6 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        return FAILURE;
+                    }
     if (ret <= 0)
     {
         DHCPMGR_LOG_ERROR("%s %d: unable to start dibbler-client %d.\n", __FUNCTION__, __LINE__, ret);

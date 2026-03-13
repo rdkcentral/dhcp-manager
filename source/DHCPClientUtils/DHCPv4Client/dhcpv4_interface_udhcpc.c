@@ -295,9 +295,18 @@ pid_t start_dhcpv4_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
         //TODO: Existing client will not be handled by the sigchild handler. Selfheal will not work for this PID, should we kill and restart?
         return udhcpc_pid;
     }
-
+                        if (access("/tmp/dhcpv4_start_cli", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        return -1;
+                    }
     udhcpc_pid = start_exe2(UDHCPC_CLIENT_PATH, buff);
-
+                    
+                         if (access("/tmp/dhcpv4_start_cli1", F_OK) == 0)
+                    {
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        return -1;
+                    }
 #ifdef UDHCPC_RUN_IN_BACKGROUND
     // udhcpc-client will demonize a child thread during start, so we need to collect the exited main thread
     if (collect_waiting_process(udhcpc_pid, UDHCPC_TERMINATE_TIMEOUT) != SUCCESS)
