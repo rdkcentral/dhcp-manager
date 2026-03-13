@@ -297,14 +297,14 @@ pid_t start_dhcpv4_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     }
                         if (access("/tmp/dhcpv4_start_cli", F_OK) == 0)
                     {
-                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop  \n", __FUNCTION__, __LINE__);
                         return -1;
                     }
     udhcpc_pid = start_exe2(UDHCPC_CLIENT_PATH, buff);
                     
                          if (access("/tmp/dhcpv4_start_cli1", F_OK) == 0)
                     {
-                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop for %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                        DHCPMGR_LOG_INFO("%s %d: dhcpv4 client stop is in progress for memleak identification. Skipping stop  \n", __FUNCTION__, __LINE__);
                         return -1;
                     }
 #ifdef UDHCPC_RUN_IN_BACKGROUND
