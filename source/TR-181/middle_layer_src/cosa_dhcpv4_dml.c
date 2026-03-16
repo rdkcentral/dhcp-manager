@@ -1177,7 +1177,8 @@ Client_SetParamBoolValue
 
     if(strcmp(ParamName, "X_RDK_Restart") == 0)
     {
-        if (pDhcpc->Cfg.bEnabled)
+        DHCPMGR_LOG_DEBUG("%s %d Restart parameter set to %s for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, bValue ? "true":"false", pDhcpc->Cfg.Interface );
+        if (pDhcpc->Cfg.bEnabled && bValue)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             ret_mq_send=1;
@@ -1191,7 +1192,8 @@ Client_SetParamBoolValue
 
     if(strcmp(ParamName, "X_RDK_Release") == 0)
     {
-        if (pDhcpc->Cfg.bEnabled && bValue == TRUE)
+        DHCPMGR_LOG_DEBUG("%s %d Release parameter set to %s for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, bValue ? "true":"false", pDhcpc->Cfg.Interface );
+        if (pDhcpc->Cfg.bEnabled && bValue)
         {
             DHCPMGR_LOG_INFO("%s %d Release triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             ret_mq_send=1;
