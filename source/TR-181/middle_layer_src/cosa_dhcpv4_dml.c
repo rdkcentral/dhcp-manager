@@ -1186,7 +1186,7 @@ Client_SetParamBoolValue
         else
         {
             DHCPMGR_LOG_WARNING("%s %d DHCPv4 Client %s not enabled\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            return FALSE;
+            return TRUE;
         }
     }
 
@@ -1201,7 +1201,7 @@ Client_SetParamBoolValue
         else
         {
             DHCPMGR_LOG_WARNING("%s %d Bydefault the bValue is false or Release triggered for DHCPv4 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            return FALSE;
+            return TRUE;
         }
     }
 

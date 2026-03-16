@@ -1077,7 +1077,7 @@ Client3_SetParamBoolValue
         else
         {
             DHCPMGR_LOG_WARNING("%s %d Restart triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            return FALSE;
+            return TRUE;
         }
     }
 
@@ -1092,7 +1092,7 @@ Client3_SetParamBoolValue
         else
         {
             DHCPMGR_LOG_WARNING("%s %d Bydefault the bValue is false or Release triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            return FALSE;
+            return TRUE;
         }
     }
 
