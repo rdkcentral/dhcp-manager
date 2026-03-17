@@ -461,6 +461,42 @@ SentOption1_Rollback
 
  APIs for Object:
 
+    DHCPv6.X_RDK_MAP.
+
+    *  dhcp6c_mapt_mape_generic_GetParamBoolValue
+    *  dhcp6c_mapt_mape_generic_GetParamUlongValue
+    *  dhcp6c_mapt_mape_generic_GetParamStringValue
+
+***********************************************************************/
+BOOL
+dhcp6c_mapt_mape_generic_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+
+BOOL
+dhcp6c_mapt_mape_generic_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      pUlong
+    );
+
+ULONG
+dhcp6c_mapt_mape_generic_GetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pValue,
+        ULONG*                      pUlSize
+    );
+
+/***********************************************************************
+
+ APIs for Object:
+
     DHCPv6.Client.{i}.X_RDKCENTRAL-COM_RcvOption.
 
     *  dhcp6c_mapt_mape_GetParamBoolValue
