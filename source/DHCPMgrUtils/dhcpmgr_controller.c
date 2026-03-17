@@ -487,7 +487,6 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
             {
                 DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client\n",__FUNCTION__,__LINE__);
-                pDhcpc->Cfg.Restart = dml_set_msg.value.bValue;
                 release_ip = 1;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
@@ -505,7 +504,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             continue;
         }
 
-        if(pDhcpc->Cfg.bEnabled == TRUE )
+        if(pDhcpc->Cfg.bEnabled == TRUE && release_ip != 0)
         {
             if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
             {
@@ -553,14 +552,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 //Only stopping the client here, restart will be done by WANMANAGER
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                if(release_ip)
-                {
-                    send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
-                }
-                else
-                {
-                    stop_dhcpv4_client(pDhcpc->Info.ClientProcessId);
-                }
+                stop_dhcpv4_client(pDhcpc->Info.ClientProcessId);
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Restart = FALSE;
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL);
@@ -572,8 +564,14 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             if(pDhcpc->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
             {
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv4 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                //start will be triggered by WANMANAGER
-                stop_dhcpv4_client(pDhcpc->Info.ClientProcessId);
+                if(release_ip)
+                {
+                    send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
+                }
+                else
+                {
+                    stop_dhcpv4_client(pDhcpc->Info.ClientProcessId);
+                }
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Renew = FALSE;
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL); //Send lease expired event
@@ -645,7 +643,6 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             else if (strcmp(dml_set_msg.ParamName, "X_RDK_Release") == 0 )
             {
                 DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client\n",__FUNCTION__,__LINE__);
-                pDhcp6c->Cfg.Restart = dml_set_msg.value.bValue;
                 release_ip = 1;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
@@ -662,7 +659,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             pthread_mutex_unlock(&pDhcp6c->mutex); //MUTEX unlock
             continue;
         }
-        if(pDhcp6c->Cfg.bEnabled == TRUE )
+        if(pDhcp6c->Cfg.bEnabled == TRUE && release_ip != 0)
         {
             if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Disabled)
             {
@@ -712,16 +709,9 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if( pDhcp6c->Cfg.Restart == TRUE)
             {
-                //Only stopping the client here, start will be triggered by WANMANAGER
+                //Only stopping the client here, start will be triggered by the Sender
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                if(release_ip)
-                {
-                    send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
-                }
-                else
-                {
-                    stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
-                }
+                stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcp6c->Cfg.Restart = FALSE;
                 DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
@@ -734,8 +724,15 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             if(pDhcp6c->Info.Status == COSA_DML_DHCP_STATUS_Enabled)
             {
                 DHCPMGR_LOG_INFO("%s %d: Stopping the dhcpv6 client : %s PID : %d \n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                //Don't release IP unless specifically mentioned and stop the client. 
-                stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
+                //Don't release IP unless specifically mentioned and stop the client.
+                if(release_ip)
+                {
+                    send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
+                }
+                else
+                {
+                    stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
+                }
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcp6c->Cfg.Renew = FALSE;
                 DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL); //Send lease expired event
