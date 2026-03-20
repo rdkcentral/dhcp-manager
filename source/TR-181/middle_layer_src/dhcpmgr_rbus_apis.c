@@ -25,6 +25,9 @@
 
 #include "util.h"
 #include "dhcpv4_interface.h"
+#include <telemetry_busmessage_sender.h>
+#include "cosa_dhcpv4_internal.h"
+#include "cosa_dhcpv4_dml.h"
 #include "dhcpv6_interface.h"
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 #include "dhcpmgr_map_apis.h"
@@ -254,12 +257,114 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
         if (DhcpMgr_MaptParseOpt95Response(dest->sitePrefix, maptContainer, &dest->mapt) == ANSC_STATUS_SUCCESS)
         {
             dest->maptAssigned = TRUE;
+            dest->map.mapType = MAP_TYPE_MAPT;
+            t2_event_d("DHCPMGR_INFO_MAPTConfigured", 1);
         } else {
             DHCPMGR_LOG_ERROR("%s: MAP-T option95 parsing failed. Set maptAssigned to FALSE.\n", __FUNCTION__);
             dest->maptAssigned = FALSE;
+            t2_event_d("DHCPMGR_ERROR_MAPTParseFail", 1);
         }
     }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
+    }
+    else if (src->mape.Assigned == TRUE)
+    {
+#ifdef FEATURE_MAPE
+        unsigned char  mapeContainer[BUFLEN_256]; /* MAP-E option 94 in hex format*/
+        memset(mapeContainer, 0, sizeof(mapeContainer));
+        memcpy(mapeContainer, src->mape.Container, sizeof(src->mape.Container));
+        if (DhcpMgr_MapParseOptResponse(dest->sitePrefix, mapeContainer, &dest->map) == ANSC_STATUS_SUCCESS)
+        {
+            dest->mapeAssigned = TRUE;
+            dest->map.mapType = MAP_TYPE_MAPE;
+            t2_event_d("DHCPMGR_INFO_MAPEConfigured", 1);
+        } else {
+            DHCPMGR_LOG_ERROR("%s: MAP-E option94 parsing failed. Set mapeAssigned to FALSE.\n", __FUNCTION__);
+            dest->mapeAssigned = FALSE;
+            t2_event_d("DHCPMGR_ERROR_MAPEParseFail", 1);
+        } 
+#endif
+    }
+}
+
+rbusError_t getDataHandler(rbusHandle_t rbusHandle,rbusProperty_t rbusProperty,rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
+{
+    (void)rbusHandle;
+    (void)pRbusGetHandlerOptions;
+
+    char const *pName = rbusProperty_GetName(rbusProperty);
+    int iDmIndex = -1;
+
+    if (0 != strncmp(pName, DHCP_MGR_DHCPv4_TABLE, strlen(DHCP_MGR_DHCPv4_TABLE)))
+    {
+        DHCPMGR_LOG_ERROR("%s %d - Unsupported property name %s\n", __FUNCTION__, __LINE__, pName);
+        return RBUS_ERROR_SUCCESS;
+    }
+
+    sscanf(pName, DHCPv4_EVENT_FORMAT, &iDmIndex);
+    DHCPMGR_LOG_INFO("%s %d - Getting data for property %s with index %d\n", __FUNCTION__, __LINE__, pName, iDmIndex);
+
+    if (-1 == iDmIndex)
+    {
+        DHCPMGR_LOG_ERROR("%s %d - Invalid index %d for property %s\n", __FUNCTION__, __LINE__, iDmIndex, pName);
+       return RBUS_ERROR_SUCCESS;
+    }
+
+    // Get DHCP client context
+    PCOSA_DML_DHCPC_FULL pDhcpc = NULL;
+    PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink = NULL;
+    PSINGLE_LINK_ENTRY pSListEntry = NULL;
+    unsigned long ulInstanceNum;
+
+    int iIndex = iDmIndex - 1;
+    pSListEntry = (PSINGLE_LINK_ENTRY)Client_GetEntry(NULL, iIndex, &ulInstanceNum);
+    if (pSListEntry)
+    {
+        pDhcpCxtLink = ACCESS_COSA_CONTEXT_DHCPC_LINK_OBJECT(pSListEntry);
+        pDhcpc = (PCOSA_DML_DHCPC_FULL)pDhcpCxtLink->hContext;
+    }
+
+    if (!pDhcpc || !pDhcpc->currentLease)
+    {
+        // Boot case: no lease yet, return invalid/empty
+        DHCPMGR_LOG_INFO("%s %d - No current lease for index %d\n", __FUNCTION__, __LINE__, iDmIndex);
+        return RBUS_ERROR_SUCCESS;
+    }
+
+    DHCPMGR_LOG_INFO("%s %d - Ifname: %s, index: %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, iDmIndex);
+
+    // Create the SAME structure as publish function
+    rbusObject_t rdata;
+    rbusValue_t ifNameVal, typeVal, leaseInfoVal;
+
+    rbusObject_Init(&rdata, NULL);
+
+    // Set Interface Name
+    rbusValue_Init(&ifNameVal);
+    rbusValue_SetString(ifNameVal, (char*)pDhcpc->Cfg.Interface);
+    rbusObject_SetValue(rdata, "IfName", ifNameVal);
+    rbusValue_Release(ifNameVal);
+
+    // Set Message Type
+    rbusValue_Init(&typeVal);
+    rbusValue_SetUInt32(typeVal, DHCP_LEASE_UPDATE);
+    rbusObject_SetValue(rdata, "MsgType", typeVal);
+    rbusValue_Release(typeVal);
+
+    // Set Lease Info - EXACTLY like publish function
+    DHCP_MGR_IPV4_MSG leaseInfo;
+    memset(&leaseInfo, 0, sizeof(leaseInfo));
+    DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
+    rbusValue_Init(&leaseInfoVal);
+    rbusValue_SetBytes(leaseInfoVal, (uint8_t*)&leaseInfo, sizeof(leaseInfo));
+    rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
+    rbusValue_Release(leaseInfoVal);
+
+    rbusProperty_SetObject(rbusProperty, rdata);
+    rbusObject_Release(rdata);
+
+    DHCPMGR_LOG_INFO("%s %d - Exiting, getDataHandler\n", __FUNCTION__, __LINE__);
+    return RBUS_ERROR_SUCCESS;
 }
 
 /**

@@ -20,6 +20,7 @@
 #include "dhcpv6_interface.h"
 #include <stdio.h>
 #include <time.h>
+#include <telemetry_busmessage_sender.h>
 
 #define DIBBLER_CLIENT                    "dibbler-client"
 #define DIBBLER_CLIENT_PATH               "/usr/sbin/"DIBBLER_CLIENT
@@ -432,6 +433,7 @@ pid_t start_dhcpv6_client(char *interfaceName, dhcp_opt_list *req_opt_list, dhcp
     if (ret <= 0)
     {
         DHCPMGR_LOG_ERROR("%s %d: unable to start dibbler-client %d.\n", __FUNCTION__, __LINE__, ret);
+        t2_event_d("DHCPMGR_ERROR_Dhcpv6ClientStartFail", 1);
         return FAILURE;
     }
 
