@@ -160,6 +160,7 @@ CosaDmlMapParseResponse
                g_stMapData.RuleIPv4PrefixLen =  *++pCurOption;
                pCurOption++;
 
+               commonSyseventGet(SYSEVENT_MAPT_IPADDRESS, g_stMapData.IPv4AddrString, sizeof(g_stMapData.IPv4AddrString));
                snprintf (g_stMapData.RuleIPv4Prefix, sizeof(g_stMapData.RuleIPv4Prefix),
                                "%d.%d.%d.%d",
                                pCurOption[0], pCurOption[1], pCurOption[2], pCurOption[3]);
@@ -183,6 +184,7 @@ CosaDmlMapParseResponse
                        g_stMapData.RuleIPv6Prefix);
                MAP_LOG_INFO("<<<TRACE>>> g_stMapData.bFMR              : %d", g_stMapData.bFMR);
                MAP_LOG_INFO("<<<TRACE>>> g_stMapData.EaLen             : %u", g_stMapData.EaLen);
+               MAP_LOG_INFO("<<<TRACE>>> g_stMapData.IPv4AddrString    : %s", g_stMapData.IPv4AddrString);
                MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv4PrefixLen : %u", g_stMapData.RuleIPv4PrefixLen);
                MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv4Prefix    : %s", g_stMapData.RuleIPv4Prefix);
                MAP_LOG_INFO("<<<TRACE>>> g_stMapData.RuleIPv6PrefixLen : %u", g_stMapData.RuleIPv6PrefixLen);
@@ -475,6 +477,7 @@ ANSC_STATUS DhcpMgr_MapParseOptResponse
      map->iapdPrefixLen = g_stMapData.PdIPv6PrefixLen;
      map->ratio = g_stMapData.Ratio;
 
+     snprintf (map->ruleIPv4Address, sizeof(map->ruleIPv4Address), "%s", g_stMapData.IPv4AddrString);
      snprintf (map->pdIPv6Prefix, BUFLEN_40, "%s", g_stMapData.PdIPv6Prefix);
      snprintf (map->ruleIPv4Prefix, BUFLEN_40, "%s/%u", g_stMapData.RuleIPv4Prefix
                                                                       , g_stMapData.RuleIPv4PrefixLen);
