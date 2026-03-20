@@ -70,7 +70,7 @@ int create_message_queue(const char *mq_name, mqd_t *mq_desc) {
     *mq_desc = mq_open(mq_name, O_RDWR | O_NONBLOCK);
     
     if (*mq_desc != (mqd_t)-1) {
-        DHCPMGR_LOG_INFO("%s %d Message queue %s already exists, opened successfully\n", __FUNCTION__, __LINE__, mq_name);
+        DHCPMGR_LOG_DEBUG("%s %d Message queue %s already exists, opened successfully\n", __FUNCTION__, __LINE__, mq_name);
         return 0;
     }
     
@@ -102,7 +102,7 @@ int delete_message_queue(mqd_t mq_desc) {
         return -1;
     }
     
-    DHCPMGR_LOG_INFO("%s %d Message queue closed successfully\n", __FUNCTION__, __LINE__  );
+    DHCPMGR_LOG_DEBUG("%s %d Message queue closed successfully\n", __FUNCTION__, __LINE__  );
     return 0;
 }
 
@@ -113,7 +113,7 @@ int unlink_message_queue(const char *mq_name) {
         return -1;
     }
     
-    DHCPMGR_LOG_INFO("%s %d Message queue %s unlinked successfully\n", __FUNCTION__, __LINE__, mq_name);
+    DHCPMGR_LOG_DEBUG("%s %d Message queue %s unlinked successfully\n", __FUNCTION__, __LINE__, mq_name);
     return 0;
 }
 
@@ -286,7 +286,7 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
     }
 
     snprintf(mq_name, sizeof(mq_name), "/mq_if_%s", info.if_name);
-    DHCPMGR_LOG_INFO("%s %d Attempting to open message queue %s\n", __FUNCTION__, __LINE__, mq_name);
+    DHCPMGR_LOG_DEBUG("%s %d Attempting to open message queue %s\n", __FUNCTION__, __LINE__, mq_name);
 
     mqd_t mq_desc = mq_open(mq_name, O_WRONLY | O_NONBLOCK);
     if (mq_desc == (mqd_t)-1)
@@ -297,7 +297,7 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         if (create_message_queue(mq_name, &created_desc) == 0)
         {
             mq_desc = created_desc;
-            DHCPMGR_LOG_INFO("%s %d Created message queue successfully\n", __FUNCTION__, __LINE__);
+            DHCPMGR_LOG_DEBUG("%s %d Created message queue successfully\n", __FUNCTION__, __LINE__);
         }
         else
         {
@@ -317,7 +317,7 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         {
             if (create_interface_thread(info.if_name) == 0)
             {
-                DHCPMGR_LOG_INFO("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, mq_name);
+                DHCPMGR_LOG_DEBUG("%s %d Controller thread started for %s\n", __FUNCTION__, __LINE__, mq_name);
                 tmp_info.thread_running = TRUE;
                 update_interface_info(info.if_name, &tmp_info);
                 pthread_mutex_unlock(&global_mutex);
@@ -332,7 +332,7 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         }
         else
         {
-            DHCPMGR_LOG_INFO("%s %d Thread already running for %s\n", __FUNCTION__, __LINE__, info.if_name);
+            DHCPMGR_LOG_DEBUG("%s %d Thread already running for %s\n", __FUNCTION__, __LINE__, info.if_name);
             pthread_mutex_unlock(&global_mutex);
         }
     }
@@ -366,7 +366,7 @@ int DhcpMgr_OpenQueueEnsureThread(dhcp_info_t info)
         mq_close(mq_desc);
         return -1;
     }
-    DHCPMGR_LOG_INFO("%s %d Successfully sent message to controller queue %s\n", __FUNCTION__, __LINE__, tmp_info.mq_name);
+    DHCPMGR_LOG_DEBUG("%s %d Successfully sent message to controller queue %s\n", __FUNCTION__, __LINE__, tmp_info.mq_name);
     mq_close(mq_desc);
     if(DhcpMgr_UnlockInterfaceQueueMutexByName(info.if_name) != 0) // Unlock the mutex after sending message
     {
