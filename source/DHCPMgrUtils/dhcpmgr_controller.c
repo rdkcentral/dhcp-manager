@@ -629,10 +629,12 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 if (dml_set_msg.value.bValue)
                 {
                     t2_event_d("DHCPMGR_INFO_Dhcpv6ClientEnabled", 1);
+                    DHCPMGR_LOG_INFO("%s %d: DHCPv6 client enabled on interface %s \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
                 }
                 else
                 {
                     t2_event_d("DHCPMGR_INFO_Dhcpv6ClientDisabled", 1);
+                    DHCPMGR_LOG_INFO("%s %d: DHCPv6 client disabled on interface %s \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
                 }
             }
             else if (strcmp(dml_set_msg.ParamName, "Renew") == 0 ) 
