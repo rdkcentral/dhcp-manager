@@ -3231,6 +3231,338 @@ ReceivedOption_GetParamStringValue
 }
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
 
+/***************************************************************************************************
+    Internal helpers
+***************************************************************************************************/
+
+static PCOSA_DML_DHCPCV6_FULL
+dhcp6c_get_enabled_client(void)
+{
+    PCOSA_DATAMODEL_DHCPV6            pDhcpv6     = (PCOSA_DATAMODEL_DHCPV6)g_Dhcpv6Object;
+    PSINGLE_LINK_ENTRY                pSListEntry = NULL;
+    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pCxtLink    = NULL;
+    PCOSA_DML_DHCPCV6_FULL            pDhcpc      = NULL;
+
+    pSListEntry = AnscSListGetFirstEntry(&pDhcpv6->ClientList);
+
+    while (pSListEntry != NULL)
+    {
+        pCxtLink = ACCESS_COSA_CONTEXT_DHCPCV6_LINK_OBJECT(pSListEntry);
+        pDhcpc   = (PCOSA_DML_DHCPCV6_FULL)pCxtLink->hContext;
+
+        if (pDhcpc && pDhcpc->Cfg.bEnabled)
+            return pDhcpc;
+
+        pSListEntry = AnscSListGetNextEntry(pSListEntry);
+    }
+
+    return NULL;
+}
+
+static PCOSA_DML_DHCPCV6_FULL
+dhcp6c_get_client_from_context(ANSC_HANDLE hInsContext)
+{
+    if (!hInsContext)
+        return NULL;
+
+    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pCxtLink =
+        (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT)hInsContext;
+
+    return (PCOSA_DML_DHCPCV6_FULL)pCxtLink->hContext;
+}
+
+static BOOL
+dhcp6c_mapt_mape_GetParamBoolValue_internal
+    (
+        const DML_DHCPCV6_MAP_INFO *MapInfo,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    if (strcmp(ParamName, "MapIsFMR") == 0)
+    {
+        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
+            *pBool = MapInfo->IsFMR;
+        else
+            *pBool = FALSE;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static BOOL
+dhcp6c_mapt_mape_GetParamUlongValue_internal
+    (
+        const DML_DHCPCV6_MAP_INFO *MapInfo,
+        char*                       ParamName,
+        ULONG*                      puLong
+    )
+{
+    *puLong = 0;
+
+    if (strcmp(ParamName, "MapEALen") == 0)
+    {
+        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
+            *puLong = MapInfo->MapEALen;
+        return TRUE;
+    }
+
+    if (strcmp(ParamName, "MapPSIDOffset") == 0)
+    {
+        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
+            *puLong = MapInfo->MapPSIDOffset;
+        return TRUE;
+    }
+
+    if (strcmp(ParamName, "MapPSIDLen") == 0)
+    {
+        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
+            *puLong = MapInfo->MapPSIDLen;
+        return TRUE;
+    }
+
+    if (strcmp(ParamName, "MapPSID") == 0)
+    {
+        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
+            *puLong = MapInfo->MapPSIDValue;
+        return TRUE;
+    }
+
+    if (strcmp(ParamName, "MapRatio") == 0)
+    {
+        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
+            *puLong = MapInfo->MapRatio;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static ULONG
+dhcp6c_mapt_mape_GetParamStringValue_internal
+    (
+        const DML_DHCPCV6_MAP_INFO *MapInfo,
+        char*                       ParamName,
+        char*                       pValue,
+        ULONG*                      pUlSize
+    )
+{
+    AnscCopyString(pValue, "");
+
+    if (strcmp(ParamName, "MapTransportMode") == 0)
+    {
+        const char *temp;
+
+        if (MapInfo->MaptAssigned)
+            temp = "MAPT";
+        else if (MapInfo->MapeAssigned)
+            temp = "MAPE";
+        else
+            temp = "NON-MAP";
+
+        if (AnscSizeOfString(temp) < *pUlSize)
+        {
+            AnscCopyString(pValue, temp);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = AnscSizeOfString(temp) + 1;
+            return 1;
+        }
+    }
+
+    if (strcmp(ParamName, "MapBRPrefix") == 0)
+    {
+        const char *src = (const char *)MapInfo->MapBRPrefix;
+
+        if (AnscSizeOfString(src) < *pUlSize)
+        {
+            AnscCopyString(pValue, src);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = AnscSizeOfString(src) + 1;
+            return 1;
+        }
+    }
+
+    if (strcmp(ParamName, "MapRuleIPv4Prefix") == 0)
+    {
+        const char *src = (const char *)MapInfo->MapRuleIPv4Prefix;
+
+        if (AnscSizeOfString(src) < *pUlSize)
+        {
+            AnscCopyString(pValue, src);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = AnscSizeOfString(src) + 1;
+            return 1;
+        }
+    }
+
+    if (strcmp(ParamName, "MapRuleIPv6Prefix") == 0)
+    {
+        const char *src = (const char *)MapInfo->MapRuleIPv6Prefix;
+
+        if (AnscSizeOfString(src) < *pUlSize)
+        {
+            AnscCopyString(pValue, src);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = AnscSizeOfString(src) + 1;
+            return 1;
+        }
+    }
+
+    if (strcmp(ParamName, "MapIpv4Address") == 0)
+    {
+        //TODO: This is a temporary solution, need to use the BBF MAP. DML from the WanManager
+        DHCPMGR_LOG_ERROR("%s %d MapIpv4Address not available in this context. returning from the device's sysvent db\n", __FUNCTION__, __LINE__);
+
+        char temp[256] = {0};
+        commonSyseventGet(SYSEVENT_MAPT_IPADDRESS, temp, sizeof(temp));
+
+        if (AnscSizeOfString(temp) < *pUlSize)
+        {
+            AnscCopyString(pValue, temp);
+            return 0;
+        }
+        else
+        {
+            *pUlSize = AnscSizeOfString(temp) + 1;
+            return 1;
+        }
+    }
+
+    return -1;
+}
+
+/***************************************************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        dhcp6c_mapt_mape_generic_GetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL*                       pBool
+            );
+
+    description:
+
+        This function is called to retrieve Boolean parameter value of enabled client instance;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+***************************************************************************************************/
+BOOL
+dhcp6c_mapt_mape_generic_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+
+    PCOSA_DML_DHCPCV6_FULL pDhcpc = dhcp6c_get_enabled_client();
+    if (!pDhcpc) return FALSE;
+
+    return dhcp6c_mapt_mape_GetParamBoolValue_internal(&pDhcpc->Info.MapInfo, ParamName, pBool);
+}
+
+/***************************************************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        dhcp6c_mapt_mape_generic_GetParamUlongValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                ULONG*                      puLong
+            );
+
+    description:
+
+        This function is called to retrieve ULONG parameter value of enabled client instance;
+
+***************************************************************************************************/
+BOOL
+dhcp6c_mapt_mape_generic_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      puLong
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+
+    PCOSA_DML_DHCPCV6_FULL pDhcpc = dhcp6c_get_enabled_client();
+    if (!pDhcpc) return FALSE;
+
+    return dhcp6c_mapt_mape_GetParamUlongValue_internal(&pDhcpc->Info.MapInfo, ParamName, puLong);
+}
+
+/***************************************************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        ULONG
+        dhcp6c_mapt_mape_generic_GetParamStringValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                char*                       pValue,
+                ULONG*                      pUlSize
+            );
+
+    description:
+
+        This function is called to retrieve string parameter value of enabled client instance;
+
+***************************************************************************************************/
+ULONG
+dhcp6c_mapt_mape_generic_GetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pValue,
+        ULONG*                      pUlSize
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+
+    PCOSA_DML_DHCPCV6_FULL pDhcpc = dhcp6c_get_enabled_client();
+    if (!pDhcpc) return -1;
+
+    return dhcp6c_mapt_mape_GetParamStringValue_internal(&pDhcpc->Info.MapInfo, ParamName, pValue, pUlSize);
+}
+
 /**********************************************************************
 
     caller:     owner of this object
@@ -3249,17 +3581,6 @@ ReceivedOption_GetParamStringValue
 
         This function is called to retrieve Boolean parameter value;
 
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                char*                       ParamName,
-                The parameter name;
-
-                BOOL*                       pBool
-                The buffer of returned boolean value;
-
-    return:     TRUE if succeeded.
-
 **********************************************************************/
 BOOL
 dhcp6c_mapt_mape_GetParamBoolValue
@@ -3269,25 +3590,10 @@ dhcp6c_mapt_mape_GetParamBoolValue
         BOOL*                       pBool
     )
 {
+    PCOSA_DML_DHCPCV6_FULL pDhcpc = dhcp6c_get_client_from_context(hInsContext);
+    if (!pDhcpc) return FALSE;
 
-    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pCxtLink        = (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT)hInsContext;
-    PCOSA_DML_DHCPCV6_FULL            pDhcpc          = (PCOSA_DML_DHCPCV6_FULL)pCxtLink->hContext;
-      
-    const DML_DHCPCV6_MAP_INFO    *MapInfo = &(pDhcpc->Info.MapInfo);
-    /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "MapIsFMR") == 0)
-    {
-        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
-        {
-                *pBool  = MapInfo->IsFMR;
-        }
-        else
-            *pBool  = FALSE;
-
-        return TRUE;
-    }
-
-    return FALSE;
+    return dhcp6c_mapt_mape_GetParamBoolValue_internal(&pDhcpc->Info.MapInfo, ParamName, pBool);
 }
 
 /**********************************************************************
@@ -3304,21 +3610,6 @@ dhcp6c_mapt_mape_GetParamBoolValue
                 ULONG*                      puLong
             );
 
-    description:
-
-        This function is called to retrieve ULONG parameter value;
-
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                char*                       ParamName,
-                The parameter name;
-
-                ULONG*                      puLong
-                The buffer of returned ULONG value;
-
-    return:     TRUE if succeeded.
-
 **********************************************************************/
 BOOL
 dhcp6c_mapt_mape_GetParamUlongValue
@@ -3328,58 +3619,10 @@ dhcp6c_mapt_mape_GetParamUlongValue
         ULONG*                      puLong
     )
 {
-    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pCxtLink        = (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT)hInsContext;
-    PCOSA_DML_DHCPCV6_FULL            pDhcpc          = (PCOSA_DML_DHCPCV6_FULL)pCxtLink->hContext;
-      
-    const DML_DHCPCV6_MAP_INFO    *MapInfo = &(pDhcpc->Info.MapInfo);
-    *puLong = 0; /* default value */
-    /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "MapEALen") == 0)
-    {
-        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
-        {
-           *puLong  = MapInfo->MapEALen;
-        }
-        return TRUE;
-    }
+    PCOSA_DML_DHCPCV6_FULL pDhcpc = dhcp6c_get_client_from_context(hInsContext);
+    if (!pDhcpc) return FALSE;
 
-    if (strcmp(ParamName, "MapPSIDOffset") == 0)
-    {
-        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
-        {
-           *puLong  = MapInfo->MapPSIDOffset;
-        }
-        return TRUE;
-    }
-
-    if (strcmp(ParamName, "MapPSIDLen") == 0)
-    {
-        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
-        {
-           *puLong  = MapInfo->MapPSIDLen;
-        }
-        return TRUE;
-    }
-
-    if (strcmp(ParamName, "MapPSID") == 0)
-    {
-        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
-        {
-           *puLong  = MapInfo->MapPSIDValue;
-        }
-        return TRUE;
-    }
-
-    if (strcmp(ParamName, "MapRatio") == 0)
-    {
-        if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
-        {
-           *puLong  = MapInfo->MapRatio;
-        }
-        return TRUE;
-    }
-
-    return FALSE;
+    return dhcp6c_mapt_mape_GetParamUlongValue_internal(&pDhcpc->Info.MapInfo, ParamName, puLong);
 }
 
 /**********************************************************************
@@ -3401,24 +3644,6 @@ dhcp6c_mapt_mape_GetParamUlongValue
 
         This function is called to retrieve string parameter value;
 
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                char*                       ParamName,
-                The parameter name;
-
-                char*                       pValue,
-                The string value buffer;
-
-                ULONG*                      pUlSize
-                The buffer of length of string value;
-                Usually size of 1023 will be used.
-                If it's not big enough, put required size here and return 1;
-
-    return:     0 if succeeded;
-                1 if short of buffer size; (*pUlSize = required size)
-                -1 if not supported.
-
 **********************************************************************/
 ULONG
 dhcp6c_mapt_mape_GetParamStringValue
@@ -3429,104 +3654,12 @@ dhcp6c_mapt_mape_GetParamStringValue
         ULONG*                      pUlSize
     )
 {
-    PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT pCxtLink        = (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT)hInsContext;
-    PCOSA_DML_DHCPCV6_FULL            pDhcpc          = (PCOSA_DML_DHCPCV6_FULL)pCxtLink->hContext;
-      
-    const DML_DHCPCV6_MAP_INFO    *MapInfo = &(pDhcpc->Info.MapInfo);
-    AnscCopyString(pValue, ""); // default value
+    PCOSA_DML_DHCPCV6_FULL pDhcpc = dhcp6c_get_client_from_context(hInsContext);
+    if (!pDhcpc) return -1;
 
-    /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "MapTransportMode") == 0)
-    {
-        char *temp;
-        if( MapInfo->MaptAssigned )
-        {
-            temp = "MAPT";
-        }
-        else if( MapInfo->MapeAssigned )
-        {
-            temp = "MAPE";
-        }
-        else
-        {
-            temp = "NON-MAP";
-        }
-        if ( AnscSizeOfString(temp) < *pUlSize)
-        {
-            AnscCopyString(pValue, temp);
-            return 0;
-        }
-        else
-        {
-            *pUlSize = AnscSizeOfString(temp)+1;
-            return 1;
-        }
-    }
-
-    if (strcmp(ParamName, "MapBRPrefix") == 0)
-    {
-
-        if ( AnscSizeOfString((const char *)MapInfo->MapBRPrefix) < *pUlSize)
-        {
-            AnscCopyString(pValue, (const char *)MapInfo->MapBRPrefix);
-            return 0;
-        }
-        else
-        {
-            *pUlSize = AnscSizeOfString((const char *)MapInfo->MapBRPrefix)+1;
-            return 1;
-        }
-    }
-
-    if (strcmp(ParamName, "MapRuleIPv4Prefix") == 0)
-    {
-        if ( AnscSizeOfString((const char *)MapInfo->MapRuleIPv4Prefix) < *pUlSize)
-        {
-            AnscCopyString(pValue,(const char *) MapInfo->MapRuleIPv4Prefix);
-            return 0;
-        }
-        else
-        {
-            *pUlSize = AnscSizeOfString((const char *)MapInfo->MapRuleIPv4Prefix)+1;
-            return 1;
-        }
-    }
-
-    if (strcmp(ParamName, "MapRuleIPv6Prefix") == 0)
-    {
-        if ( AnscSizeOfString((const char *)MapInfo->MapRuleIPv6Prefix) < *pUlSize)
-        {
-            AnscCopyString(pValue, (const char *)MapInfo->MapRuleIPv6Prefix);
-            return 0;
-        }
-        else
-        {
-            *pUlSize = AnscSizeOfString((const char *)MapInfo->MapRuleIPv6Prefix)+1;
-            return 1;
-        }
-    }
-
-    if (strcmp(ParamName, "MapIpv4Address") == 0)
-    {
-        //TODO: This is a temporary solution, need to use the BBF MAP. DML from the WanManager
-        DHCPMGR_LOG_ERROR("%s %d MapIpv4Address not available in this context. returning from the device's sysvent db\n", __FUNCTION__, __LINE__);
-        char temp[256] = {0};
-        commonSyseventGet(SYSEVENT_MAPT_IPADDRESS, temp, sizeof(temp));
-        if ( AnscSizeOfString(temp) < *pUlSize)
-        {
-            AnscCopyString(pValue, temp);
-            return 0;
-        }
-        else
-        {
-            *pUlSize = AnscSizeOfString(temp)+1;
-            return 1;
-        }
-        return 0;
-    }
-
-    return -1;
+    return dhcp6c_mapt_mape_GetParamStringValue_internal(&pDhcpc->Info.MapInfo, ParamName, pValue, pUlSize);
 }
+
 #endif /* defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46) */
 /***********************************************************************
 

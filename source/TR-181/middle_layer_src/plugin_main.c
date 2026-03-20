@@ -351,6 +351,9 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_GetParamBoolValue", dhcp6c_mapt_mape_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_GetParamUlongValue", dhcp6c_mapt_mape_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_GetParamStringValue", dhcp6c_mapt_mape_GetParamStringValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_generic_GetParamBoolValue", dhcp6c_mapt_mape_generic_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_generic_GetParamUlongValue", dhcp6c_mapt_mape_generic_GetParamUlongValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "dhcp6c_mapt_mape_generic_GetParamStringValue", dhcp6c_mapt_mape_generic_GetParamStringValue);
 #endif
 
 #ifdef DHCPV6_SERVER_SUPPORT

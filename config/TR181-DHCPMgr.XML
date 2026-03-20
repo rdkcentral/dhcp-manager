@@ -1498,6 +1498,84 @@
         </object>
 <?endif?>
       </objects>
+<?ifdef FEATURE_SUPPORT_MAPT_NAT46?>
+      <object>
+        <name>X_RDKCENTRAL-COM_MAP</name>
+        <objectType>object</objectType>
+        <functions>
+          <func_GetParamBoolValue>dhcp6c_mapt_mape_generic_GetParamBoolValue</func_GetParamBoolValue>
+          <func_GetParamUlongValue>dhcp6c_mapt_mape_generic_GetParamUlongValue</func_GetParamUlongValue>
+          <func_GetParamStringValue>dhcp6c_mapt_mape_generic_GetParamStringValue</func_GetParamStringValue>
+        </functions>
+        <parameters>
+        <parameter>
+          <name>MapTransportMode</name>
+          <type>string</type>
+          <syntax>string</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapBRPrefix</name>
+          <type>string</type>
+          <syntax>string</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapRuleIPv4Prefix</name>
+          <type>string</type>
+          <syntax>string</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapRuleIPv6Prefix</name>
+          <type>string</type>
+          <syntax>string</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapEALen</name>
+          <type>unsignedInt</type>
+          <syntax>uint32</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapPSIDOffset</name>
+          <type>unsignedInt</type>
+          <syntax>uint32</syntax>
+        </parameter>
+        <parameter>
+          <name>MapPSIDLen</name>
+          <type>unsignedInt</type>
+          <syntax>uint32</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapPSID</name>
+          <type>unsignedInt</type>
+          <syntax>uint32</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapIsFMR</name>
+          <type>boolean</type>
+          <syntax>bool</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapIpv4Address</name>
+          <type>string</type>
+          <syntax>string</syntax>
+          <writable>false</writable>
+        </parameter>
+        <parameter>
+          <name>MapRatio</name>
+          <type>unsignedInt</type>
+          <syntax>uint32</syntax>
+          <writable>false</writable>
+        </parameter>
+        </parameters>
+      </object>
+<?endif?>
     </object>
  </objects>
 

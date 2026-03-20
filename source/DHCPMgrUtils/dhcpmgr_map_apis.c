@@ -476,7 +476,8 @@ ANSC_STATUS DhcpMgr_MapParseOptResponse
      map->ratio = g_stMapData.Ratio;
 
      snprintf (map->pdIPv6Prefix, BUFLEN_40, "%s", g_stMapData.PdIPv6Prefix);
-     snprintf (map->ruleIPv4Prefix, BUFLEN_40, "%s", g_stMapData.RuleIPv4Prefix);
+     snprintf (map->ruleIPv4Prefix, BUFLEN_40, "%s/%u", g_stMapData.RuleIPv4Prefix
+                                                                      , g_stMapData.RuleIPv4PrefixLen);
      snprintf (map->ruleIPv6Prefix, BUFLEN_40, "%s/%u", g_stMapData.RuleIPv6Prefix
                                                                       , g_stMapData.RuleIPv6PrefixLen);
      snprintf (map->brIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMapData.BrIPv6Prefix
