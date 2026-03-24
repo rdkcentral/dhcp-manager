@@ -169,8 +169,9 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
              * the active interface unnecessarily.
              */
             if (current->ia_pd.assigned == TRUE && newLease->ia_pd.assigned == TRUE &&
-                strncmp(current->ia_pd.Prefix, newLease->ia_pd.Prefix,
-                        sizeof(current->ia_pd.Prefix)) != 0)
+                (strncmp(current->ia_pd.Prefix, newLease->ia_pd.Prefix,  
+                         sizeof(current->ia_pd.Prefix)) != 0 ||  
+                 current->ia_pd.PrefixLength != newLease->ia_pd.PrefixLength))
             {
                 DHCPMGR_LOG_WARNING("%s %d: Skipping stale DEL for prefix %s/%d on %s "
                                     "(current active prefix is %s)\n",

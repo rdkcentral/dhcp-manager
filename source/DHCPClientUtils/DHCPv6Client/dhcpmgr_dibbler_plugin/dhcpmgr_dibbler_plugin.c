@@ -357,9 +357,9 @@ static int handle_dibbler_event(char *input_option)
     if (data.isExpired == false && data.ia_pd.assigned == true &&
         data.ia_pd.PreferedLifeTime == 0 && data.ia_pd.ValidLifeTime == 0)
     {
-        DHCPMGR_LOG_WARNING("[%s][%d] Dropping ADD/UPDATE for prefix %s with zero lifetimes "
-                            "on %s (transient expired prefix from dibbler)\n",
-                            __FUNCTION__, __LINE__, data.ia_pd.Prefix, data.ifname);
+        DHCPMGR_LOG_WARNING("[%s][%d] Dropping ADD/UPDATE for prefix with zero lifetimes "  
+                            "(transient expired prefix from dibbler)\n",  
+                            __FUNCTION__, __LINE__);
         return 0;
     }
 
