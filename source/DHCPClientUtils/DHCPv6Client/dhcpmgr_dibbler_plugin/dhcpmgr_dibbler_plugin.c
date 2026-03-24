@@ -346,6 +346,23 @@ static int handle_dibbler_event(char *input_option)
         return -1;
     }
 
+    /*
+     * Filter out transient ADD/UPDATE events where the IA_PD prefix has zero lifetimes.
+     * When dibbler receives a REPLY that replaces a prefix (e.g., old prefix 300 with
+     * new prefix 400), the old prefix 300 is included with ValidLifeTime=0 and
+     * PreferedLifeTime=0. Dibbler fires a separate ADD for this expired prefix before
+     * firing the DEL. Forwarding this zero-lifetime ADD to DHCP Manager would overwrite
+     * the active prefix and cause a spurious LEASE_DEL when the subsequent DEL arrives.
+     */
+    if (data.isExpired == false && data.ia_pd.assigned == true &&
+        data.ia_pd.PreferedLifeTime == 0 && data.ia_pd.ValidLifeTime == 0)
+    {
+        DHCPMGR_LOG_WARNING("[%s][%d] Dropping ADD/UPDATE for prefix with zero lifetimes "  
+                            "(transient expired prefix from dibbler)\n",  
+                            __FUNCTION__, __LINE__);
+        return 0;
+    }
+
     // Send DHCPv6 data to lease monitor
     ret = send_dhcp6_data_to_leaseMonitor(&data);
     if (ret != 0)
