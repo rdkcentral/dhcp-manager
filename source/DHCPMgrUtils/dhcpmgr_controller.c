@@ -562,9 +562,9 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if (pDhcpc->Cfg.Restart == TRUE)
             {
-                //Only stopping the client here, restart will be done by WANMANAGER
+                //Restart the DHCP client will release the ip  and start the client again to get a new lease.
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv4 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, pDhcpc->Info.ClientProcessId);
-                stop_dhcpv4_client(pDhcpc->Info.ClientProcessId);
+                send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
                 pDhcpc->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcpc->Cfg.Restart = FALSE;
                 DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_LEASE_DEL);
@@ -731,9 +731,9 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             }
             else if( pDhcp6c->Cfg.Restart == TRUE)
             {
-                //Only stopping the client here, start will be triggered by the Sender
+                //Restart the DHCP client will release the ip  and start the client again to get a new lease.
                 DHCPMGR_LOG_INFO("%s %d: Restarting dhcpv6 client : %s PID : %d\n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface, pDhcp6c->Info.ClientProcessId);
-                stop_dhcpv6_client(pDhcp6c->Info.ClientProcessId);
+                send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
                 pDhcp6c->Info.Status = COSA_DML_DHCP_STATUS_Disabled;
                 pDhcp6c->Cfg.Restart = FALSE;
                 DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
