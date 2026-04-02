@@ -235,9 +235,13 @@ static int DhcpMgr_build_dhcpv6_opt_list (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT hIns
 
     if(pDhcp6c->Cfg.RequestPrefixes == TRUE)
     {
-        DHCPMGR_LOG_INFO("%s %d: Adding DHCPv6 option - Number: %d, Value: %s\n", __FUNCTION__, __LINE__, DHCPV6_OPT_25, t1T2Buffer);
         // Identity Association (IA) for Prefix Delegation option OPTION_IA_PD(25) 
-        add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, t1T2Buffer);
+        DHCPMGR_LOG_INFO("%s %d: Adding DHCPv6 option - Number: %d\n", __FUNCTION__, __LINE__, DHCPV6_OPT_25);
+        if (add_dhcpv6_option_25(send_opt_list) != RETURN_OK)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Failed to add DHCPv6 option %d.\n", __FUNCTION__, __LINE__, DHCPV6_OPT_25);
+            return RETURN_ERR;
+        }
     }
 
     if(pDhcp6c->Cfg.RapidCommit == TRUE)
