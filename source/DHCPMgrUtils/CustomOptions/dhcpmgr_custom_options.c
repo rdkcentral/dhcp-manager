@@ -90,7 +90,8 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption17(const char *ifName, char *Op
 
 __attribute__((weak)) int add_dhcpv6_option_25(dhcp_opt_list **send_opt_list)
 {
-    char optionValue[] = "\n{ prefix ::/64 }";
+    //TODO : Need to change back to { prefix ::/64 } once sky platform hal fixed
+    char optionValue[] = "\t 0";
 
     if (send_opt_list == NULL)
     {
