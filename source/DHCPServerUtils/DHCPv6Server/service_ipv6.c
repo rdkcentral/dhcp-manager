@@ -51,6 +51,22 @@
 #include "ifl.h"
 #include <libnet.h>
 
+#include <time.h>
+#define LOG_FILE_ROUTED "/tmp/dhcp_service_ipv6.txt"
+#define APPLY_PRINT(fmt ...) {\
+FILE *logfp = fopen(LOG_FILE_ROUTED , "a+");\
+if (logfp){\
+time_t s = time(NULL);\
+struct tm* current_time = localtime(&s);\
+fprintf(logfp, "[%02d:%02d:%02d] ",\
+current_time->tm_hour,\
+current_time->tm_min,\
+current_time->tm_sec);\
+fprintf(logfp, fmt);\
+fclose(logfp);\
+}\
+}\
+
 #if defined(MULTILAN_FEATURE) || defined(INTEL_PUMA7)
 #include "ccsp_psm_helper.h"
 #include <ccsp_base_api.h>
@@ -1372,6 +1388,7 @@ static int lan_addr6_set()
 
     //Intel Proposed RDKB Generic Bug Fix from XB6 SDK
     /*start zebra*/
+    APPLY_PRINT("%s : Starting zebra for IPv6 route management\n", __FUNCTION__);
     ifl_set_event( "zebra-restart", NULL);
 
     return 0;
@@ -1938,6 +1955,7 @@ int serv_ipv6_start(__attribute__((__unused__)) void *args)
 
     //Intel Proposed RDKB Generic Bug Fix from XB6 SDK
     /*start zebra*/
+    APPLY_PRINT("%s : Starting zebra for IPv6 route management\n", __FUNCTION__);
     ifl_set_event( "zebra-restart", NULL);
 
     if (dhcpv6s_start() != 0) {

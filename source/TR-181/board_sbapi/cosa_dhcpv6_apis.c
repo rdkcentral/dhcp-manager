@@ -83,6 +83,22 @@
 #include "ifl.h"
 //#include <libnet.h>
 
+#include <time.h>
+#define LOG_FILE_ROUTED "/tmp/dhcpv6_apis.txt"
+#define APPLY_PRINT(fmt ...) {\
+FILE *logfp = fopen(LOG_FILE_ROUTED , "a+");\
+if (logfp){\
+time_t s = time(NULL);\
+struct tm* current_time = localtime(&s);\
+fprintf(logfp, "[%02d:%02d:%02d] ",\
+current_time->tm_hour,\
+current_time->tm_min,\
+current_time->tm_sec);\
+fprintf(logfp, fmt);\
+fclose(logfp);\
+}\
+}\
+
 #define DHCPV6_BINARY   "dibbler-client"
 extern void* g_pDslhDmlAgent;
 extern ANSC_HANDLE bus_handle;
@@ -1653,6 +1669,7 @@ CosaDmlDhcpv6Init
         Utopia_RawSet(&utctx,NULL,"router_managed_flag","1");
         SETI_INTO_UTOPIA(DHCPV6S_NAME,  "", 0, "", 0, "servertype", g_dhcpv6_server_type)
 
+        APPLY_PRINT(" %s : Zebra restart because of dhcpv6 server type change \n", __FUNCTION__);
         commonSyseventSet("zebra-restart", "");
     }
 #endif
@@ -3154,6 +3171,7 @@ CosaDmlDhcpv6sEnable
     Utopia_Free(&utctx,1);
 
     #if defined(_BCI_FEATURE_REQ)
+    APPLY_PRINT("%s : Starting zebra when BCI is enabled\n", __FUNCTION__);
     commonSyseventSet("zebra-restart", "");
     #endif
 
@@ -3264,6 +3282,7 @@ CosaDmlDhcpv6sSetType
 #endif
 
 #ifdef _HUB4_PRODUCT_REQ_
+        APPLY_PRINT("%s : Zebra started in sky hub4 \n", __FUNCTION__);
         commonSyseventSet("zebra-restart", "");
 #endif
     }
@@ -3699,6 +3718,7 @@ CosaDmlDhcpv6sSetPoolCfg
                          )
                   )
                 {
+                    APPLY_PRINT("%s : Static DNS got enabled or DNS server list got changed, restarting Zebra Process\n", __FUNCTION__);
                     bNeedZebraRestart = TRUE;
                 }
 //#ifdef _HUB4_PRODUCT_REQ_
@@ -3724,6 +3744,7 @@ CosaDmlDhcpv6sSetPoolCfg
                   )
                   )
                 {
+                    APPLY_PRINT("%s : Static DNS got enabled or DNS server list got changed, restarting Zebra Process\n", __FUNCTION__);
                   bNeedZebraRestart = TRUE;
                 }
 //#ifdef _HUB4_PRODUCT_REQ_
@@ -3767,6 +3788,7 @@ CosaDmlDhcpv6sSetPoolCfg
         if( bNeedZebraRestart )
         {
         DHCPMGR_LOG_WARNING("%s Restarting Zebra Process\n", __FUNCTION__);
+        APPLY_PRINT("%s : Restarting Zebra Process as static DNS got enabled or DNS server list got changed\n", __FUNCTION__);
         v_secure_system("killall zebra && sysevent set zebra-restart");
         }
 
@@ -4710,6 +4732,7 @@ CosaDmlDhcpv6sSetOption
                         ( _ansc_strcmp((const char*)sDhcpv6ServerPoolOption[Index][Index2].Value, (const char*)pEntry->Value) &&
                                   !_ansc_strlen((const char*)pEntry->PassthroughClient) ) ) )
                     {
+                        APPLY_PRINT("%s -- Detected change in DNS Server option, setting sysevent to trigger DHCPv6 server restart.\n", __FUNCTION__);
                         commonSyseventSet("zebra-restart", "");
                     }
 

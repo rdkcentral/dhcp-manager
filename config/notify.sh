@@ -18,12 +18,26 @@
 # limitations under the License.
 ##########################################################################
 
+log() {
+    local level="$1"; shift
+    local message="$*"
+    local timestamp
+    local log_file
+    timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    log_file="/tmp/notify_dhcp.log"
+    echo "$timestamp [$level] $message" | tee -a "$log_file"
+}
+
+# Start logging
+log INFO "Script started."
+
 if [ "$v6Routes_Change" == "1" ]; then
     if [ "$DEFAULT_IPV6_ROUTES_COUNT" -gt 0 ]; then # Case when ipv6 default routes present in gateway
         sysevent set ipv6_wan_defrtr 1
     elif [ "$DEFAULT_IPV6_ROUTES_COUNT" -eq 0 ]; then # Case when no ipv6 default routes present in gateway
         sysevent set ipv6_wan_defrtr 0
     fi
+    log INFO "DHCP Manager notify script. Starting zebra"
     sysevent set zebra-restart
 fi
 
