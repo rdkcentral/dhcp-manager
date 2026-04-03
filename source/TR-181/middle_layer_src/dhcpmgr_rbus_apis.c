@@ -299,6 +299,34 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     }
 }
 
+static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const char *ifName,
+                                            DHCP_MESSAGE_TYPE msgType,
+                                            const void *leaseData, size_t leaseDataSize)
+{
+    rbusObject_t rdata;
+    rbusValue_t ifNameVal, typeVal, leaseInfoVal;
+
+    rbusObject_Init(&rdata, NULL);
+
+    rbusValue_Init(&ifNameVal);
+    rbusValue_SetString(ifNameVal, ifName);
+    rbusObject_SetValue(rdata, "IfName", ifNameVal);
+    rbusValue_Release(ifNameVal);
+
+    rbusValue_Init(&typeVal);
+    rbusValue_SetUInt32(typeVal, msgType);
+    rbusObject_SetValue(rdata, "MsgType", typeVal);
+    rbusValue_Release(typeVal);
+
+    rbusValue_Init(&leaseInfoVal);
+    rbusValue_SetBytes(leaseInfoVal, (uint8_t*)leaseData, leaseDataSize);
+    rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
+    rbusValue_Release(leaseInfoVal);
+
+    rbusProperty_SetObject(rbusProperty, rdata);
+    rbusObject_Release(rdata);
+}
+
 rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty, rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
 {
     (void)rbusHandle;
@@ -306,8 +334,6 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
 
     char const *pName = rbusProperty_GetName(rbusProperty);
     int iDmIndex = -1;
-    rbusObject_t rdata;
-    rbusValue_t ifNameVal, typeVal, leaseInfoVal;
     DHCP_MESSAGE_TYPE msgType;
 
     if (pName && 0 == strncmp(pName, DHCP_MGR_DHCPv4_TABLE, strlen(DHCP_MGR_DHCPv4_TABLE)))
@@ -339,28 +365,10 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         msgType = pDhcpc->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
         DHCPMGR_LOG_INFO("%s %d - Getting DHCPv4 data for %s, MsgType=%d\n", __FUNCTION__, __LINE__, pName, msgType);
 
-        rbusObject_Init(&rdata, NULL);
-
-        rbusValue_Init(&ifNameVal);
-        rbusValue_SetString(ifNameVal, (char*)pDhcpc->Cfg.Interface);
-        rbusObject_SetValue(rdata, "IfName", ifNameVal);
-        rbusValue_Release(ifNameVal);
-
-        rbusValue_Init(&typeVal);
-        rbusValue_SetUInt32(typeVal, msgType);
-        rbusObject_SetValue(rdata, "MsgType", typeVal);
-        rbusValue_Release(typeVal);
-
         DHCP_MGR_IPV4_MSG leaseInfo;
         memset(&leaseInfo, 0, sizeof(leaseInfo));
         DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
-        rbusValue_Init(&leaseInfoVal);
-        rbusValue_SetBytes(leaseInfoVal, (uint8_t*)&leaseInfo, sizeof(leaseInfo));
-        rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
-        rbusValue_Release(leaseInfoVal);
-
-        rbusProperty_SetObject(rbusProperty, rdata);
-        rbusObject_Release(rdata);
+        DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
     }
     else if (pName && 0 == strncmp(pName, DHCP_MGR_DHCPv6_TABLE, strlen(DHCP_MGR_DHCPv6_TABLE)))
     {
@@ -391,28 +399,10 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         msgType = pDhcpv6c->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
         DHCPMGR_LOG_INFO("%s %d - Getting DHCPv6 data for %s, MsgType=%d\n", __FUNCTION__, __LINE__, pName, msgType);
 
-        rbusObject_Init(&rdata, NULL);
-
-        rbusValue_Init(&ifNameVal);
-        rbusValue_SetString(ifNameVal, (char*)pDhcpv6c->Cfg.Interface);
-        rbusObject_SetValue(rdata, "IfName", ifNameVal);
-        rbusValue_Release(ifNameVal);
-
-        rbusValue_Init(&typeVal);
-        rbusValue_SetUInt32(typeVal, msgType);
-        rbusObject_SetValue(rdata, "MsgType", typeVal);
-        rbusValue_Release(typeVal);
-
         DHCP_MGR_IPV6_MSG leaseInfo;
         memset(&leaseInfo, 0, sizeof(leaseInfo));
         DhcpMgr_createDhcpv6LeaseInfoMsg(pDhcpv6c->currentLease, &leaseInfo);
-        rbusValue_Init(&leaseInfoVal);
-        rbusValue_SetBytes(leaseInfoVal, (uint8_t*)&leaseInfo, sizeof(leaseInfo));
-        rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
-        rbusValue_Release(leaseInfoVal);
-
-        rbusProperty_SetObject(rbusProperty, rdata);
-        rbusObject_Release(rdata);
+        DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
     }
     else
     {
@@ -481,6 +471,7 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
         rbusValue_Init(&leaseInfoVal);
         rbusValue_SetBytes(leaseInfoVal, &leaseInfo, sizeof(leaseInfo));
         rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
+        rbusValue_Release(leaseInfoVal);
     }
 
     
@@ -569,6 +560,7 @@ int DhcpMgr_PublishDhcpV6Event(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MESSAGE_TYP
         rbusValue_Init(&leaseInfoVal);
         rbusValue_SetBytes(leaseInfoVal, &leaseInfo, sizeof(leaseInfo));
         rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
+        rbusValue_Release(leaseInfoVal);
 #if defined(FEATURE_MAPT) || defined(FEATURE_SUPPORT_MAPT_NAT46)
         //Update MAPT dml values 
         if(leaseInfo.maptAssigned)
