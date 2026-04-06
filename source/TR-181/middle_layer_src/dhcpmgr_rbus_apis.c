@@ -25,6 +25,7 @@
 
 #include "util.h"
 #include "dhcpv4_interface.h"
+#include <telemetry_busmessage_sender.h>
 #include "cosa_dhcpv4_internal.h"
 #include "cosa_dhcpv4_dml.h"
 #include "dhcpv6_interface.h"
@@ -213,7 +214,8 @@ static void DhcpMgr_UpdateDhcpv6MapInfo(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MG
     mapInfo->MapRatio = mapt->ratio;
 
     snprintf((char*)mapInfo->MapBRPrefix, sizeof(mapInfo->MapBRPrefix), "%s", mapt->brIPv6Prefix);
-    snprintf((char*)mapInfo->MapRuleIPv4Prefix, sizeof(mapInfo->MapRuleIPv4Prefix), "%s", mapt->ruleIPv4Prefix);
+    snprintf((char*)mapInfo->MapRuleIPv4Prefix, sizeof(mapInfo->MapRuleIPv4Prefix), "%s/%u",
+                mapt->ruleIPv4Prefix, mapt->v4Len);
     snprintf((char*)mapInfo->MapRuleIPv6Prefix, sizeof(mapInfo->MapRuleIPv6Prefix), "%s", mapt->ruleIPv6Prefix);
     
 }
@@ -267,9 +269,11 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
         {
             dest->maptAssigned = TRUE;
             dest->map.mapType = MAP_TYPE_MAPT;
+            t2_event_d("DHCPMGR_INFO_MAPTConfigured", 1);
         } else {
             DHCPMGR_LOG_ERROR("%s: MAP-T option95 parsing failed. Set maptAssigned to FALSE.\n", __FUNCTION__);
             dest->maptAssigned = FALSE;
+            t2_event_d("DHCPMGR_ERROR_MAPTParseFail", 1);
         }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
     }
@@ -283,9 +287,11 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
         {
             dest->mapeAssigned = TRUE;
             dest->map.mapType = MAP_TYPE_MAPE;
+            t2_event_d("DHCPMGR_INFO_MAPEConfigured", 1);
         } else {
             DHCPMGR_LOG_ERROR("%s: MAP-E option94 parsing failed. Set mapeAssigned to FALSE.\n", __FUNCTION__);
             dest->mapeAssigned = FALSE;
+            t2_event_d("DHCPMGR_ERROR_MAPEParseFail", 1);
         } 
 #endif
     }

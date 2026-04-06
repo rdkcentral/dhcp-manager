@@ -148,9 +148,9 @@ static bool compare_dhcpv6_plugin_msg(const DHCPv6_PLUGIN_MSG *currentLease, con
  */
 void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c) 
 {
-    BOOL leaseChanged = false;
     while (pDhcp6c->NewLeases != NULL) 
     {
+        BOOL leaseChanged = false;
         // Compare  parameters of currentLease and NewLeases
         DHCPv6_PLUGIN_MSG *current = pDhcp6c->currentLease;
         DHCPv6_PLUGIN_MSG *newLease = pDhcp6c->NewLeases;
@@ -162,6 +162,28 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
         }
         else if(current->isExpired == FALSE && newLease->isExpired == TRUE)
         {
+            /*
+             * Stale DEL guard: If the DEL is for a different prefix than the current
+             * active one (e.g., DEL for old prefix 300 but current is new prefix 400),
+             * skip it. Publishing this stale DEL would cause WanManager to tear down
+             * the active interface unnecessarily.
+             */
+            if (current->ia_pd.assigned == TRUE && newLease->ia_pd.assigned == TRUE &&
+                (strncmp(current->ia_pd.Prefix, newLease->ia_pd.Prefix,  
+                         sizeof(current->ia_pd.Prefix)) != 0 ||  
+                 current->ia_pd.PrefixLength != newLease->ia_pd.PrefixLength))
+            {
+                DHCPMGR_LOG_WARNING("%s %d: Skipping stale DEL for prefix %s/%d on %s "
+                                    "(current active prefix is %s)\n",
+                                    __FUNCTION__, __LINE__,
+                                    newLease->ia_pd.Prefix,
+                                    newLease->ia_pd.PrefixLength,
+                                    pDhcp6c->Cfg.Interface,
+                                    current->ia_pd.Prefix);
+                pDhcp6c->NewLeases = newLease->next;
+                free(newLease);
+                continue;
+            }
             DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_LEASE_DEL);
             DHCPMGR_LOG_INFO("%s %d: lease expired  for %s \n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
         }
@@ -198,7 +220,6 @@ void DhcpMgr_ProcessV6Lease(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
                 DHCPMGR_LOG_INFO("%s %d: lease renewed for %s \n",__FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
             }
         }
-
 
         DHCPMGR_LOG_INFO("%s %d: New lease  : %s \n",__FUNCTION__, __LINE__, newLease->isExpired?"Expired" : "Valid");
 

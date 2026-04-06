@@ -49,6 +49,7 @@
 #include "dhcpmgr_recovery_handler.h"
 #include "dhcpmgr_custom_options.h"
 #include "cosa_apis_util.h"
+#include <telemetry_busmessage_sender.h>
 
 
 /* ---- Global Constants -------------------------- */
@@ -90,6 +91,7 @@ int DhcpMgr_StartMainController()
     if(retStatus < 0)
     {
         DHCPMGR_LOG_ERROR("%s %d - Lease Monitor Thread failed to start!\n", __FUNCTION__, __LINE__ );
+        t2_event_d("DHCPMGR_ERROR_LeaseMonitorStartFail", 1);
     }
 
 
@@ -253,7 +255,17 @@ static int DhcpMgr_build_dhcpv6_opt_list (PCOSA_CONTEXT_DHCPCV6_LINK_OBJECT hIns
             pSentOption         = (PCOSA_DML_DHCPCV6_SENT)pCxtLink->hContext;
             if (pSentOption->bEnabled)
             {
-                if(pSentOption->Tag == DHCPV6_OPT_15 && strlen((char *)pSentOption->Value) <= 0)
+                if(pSentOption->Tag == DHCPV6_OPT_25)
+                {
+                    // Identity Association (IA) for Prefix Delegation option OPTION_IA_PD(25)
+                    DHCPMGR_LOG_INFO("%s %d: Adding DHCPv6 option - Number: %d\n", __FUNCTION__, __LINE__, DHCPV6_OPT_25);
+                    if (add_dhcpv6_option_25(send_opt_list) != RETURN_OK)
+                    {
+                        DHCPMGR_LOG_ERROR("%s %d: Failed to add DHCPv6 option %d.\n", __FUNCTION__, __LINE__, DHCPV6_OPT_25);
+                        return RETURN_ERR;
+                    }
+                }
+                else if(pSentOption->Tag == DHCPV6_OPT_15 && strlen((char *)pSentOption->Value) <= 0)
                 {
                     DHCPMGR_LOG_INFO("%s %d: DHCPv6 option 15 (User Class Option) entry found without value. \n", __FUNCTION__, __LINE__);
                     char optionValue[BUFLEN_256] = {0};
@@ -470,6 +482,16 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             else if (strcmp(dml_set_msg.ParamName, "Enable") == 0 )
             {
                 pDhcpc->Cfg.bEnabled = dml_set_msg.value.bValue;
+                if (dml_set_msg.value.bValue)
+                {
+                    t2_event_d("DHCPMGR_INFO_Dhcpv4ClientEnabled", 1);
+                    DHCPMGR_LOG_INFO("%s %d: DHCPv4 client enabled on interface %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                }
+                else
+                {
+                    t2_event_d("DHCPMGR_INFO_Dhcpv4ClientDisabled", 1);
+                    DHCPMGR_LOG_INFO("%s %d: DHCPv4 client disabled on interface %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
+                }
             }
             else if (strcmp(dml_set_msg.ParamName, "Renew") == 0 ) 
             {
@@ -614,6 +636,16 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             else if (strcmp(dml_set_msg.ParamName, "Enable") == 0 )
             {
                 pDhcp6c->Cfg.bEnabled = dml_set_msg.value.bValue;
+                if (dml_set_msg.value.bValue)
+                {
+                    t2_event_d("DHCPMGR_INFO_Dhcpv6ClientEnabled", 1);
+                    DHCPMGR_LOG_INFO("%s %d: DHCPv6 client enabled on interface %s \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                }
+                else
+                {
+                    t2_event_d("DHCPMGR_INFO_Dhcpv6ClientDisabled", 1);
+                    DHCPMGR_LOG_INFO("%s %d: DHCPv6 client disabled on interface %s \n", __FUNCTION__, __LINE__, pDhcp6c->Cfg.Interface);
+                }
             }
             else if (strcmp(dml_set_msg.ParamName, "Renew") == 0 ) 
             {
