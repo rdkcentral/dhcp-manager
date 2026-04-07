@@ -189,7 +189,7 @@ int pid_of(const char *name, const char *keyword)
     int pid;
     FILE *fp;
     char path[275];
-    char line[1024];
+    char line[257];
     char *cp;
     int n, i;
 
