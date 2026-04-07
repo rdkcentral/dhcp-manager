@@ -214,8 +214,7 @@ static void DhcpMgr_UpdateDhcpv6MapInfo(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MG
     mapInfo->MapRatio = mapt->ratio;
 
     snprintf((char*)mapInfo->MapBRPrefix, sizeof(mapInfo->MapBRPrefix), "%s", mapt->brIPv6Prefix);
-    snprintf((char*)mapInfo->MapRuleIPv4Prefix, sizeof(mapInfo->MapRuleIPv4Prefix), "%s/%u",
-                mapt->ruleIPv4Prefix, mapt->v4Len);
+    snprintf((char*)mapInfo->MapRuleIPv4Prefix, sizeof(mapInfo->MapRuleIPv4Prefix), "%s", mapt->ruleIPv4Prefix);
     snprintf((char*)mapInfo->MapRuleIPv6Prefix, sizeof(mapInfo->MapRuleIPv6Prefix), "%s", mapt->ruleIPv6Prefix);
     
 }

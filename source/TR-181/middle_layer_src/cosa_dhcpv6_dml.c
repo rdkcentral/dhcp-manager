@@ -3449,7 +3449,7 @@ dhcp6c_mapt_mape_GetParamStringValue
         }
         else
         {
-            temp = "NONE";
+            temp = "NON-MAP";
         }
         if ( AnscSizeOfString(temp) < *pUlSize)
         {
