@@ -318,10 +318,13 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
     rbusObject_SetValue(rdata, "MsgType", typeVal);
     rbusValue_Release(typeVal);
 
-    rbusValue_Init(&leaseInfoVal);
-    rbusValue_SetBytes(leaseInfoVal, (uint8_t*)leaseData, leaseDataSize);
-    rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
-    rbusValue_Release(leaseInfoVal);
+    if (leaseData != NULL)
+    {
+        rbusValue_Init(&leaseInfoVal);
+        rbusValue_SetBytes(leaseInfoVal, (const uint8_t*)leaseData, leaseDataSize);
+        rbusObject_SetValue(rdata, "LeaseInfo", leaseInfoVal);
+        rbusValue_Release(leaseInfoVal);
+    }
 
     rbusProperty_SetObject(rbusProperty, rdata);
     rbusObject_Release(rdata);
@@ -365,10 +368,17 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         msgType = pDhcpc->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
         DHCPMGR_LOG_INFO("%s %d - Getting DHCPv4 data for %s, MsgType=%d\n", __FUNCTION__, __LINE__, pName, msgType);
 
-        DHCP_MGR_IPV4_MSG leaseInfo;
-        memset(&leaseInfo, 0, sizeof(leaseInfo));
-        DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
-        DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
+        if (msgType == DHCP_LEASE_UPDATE)
+        {
+            DHCP_MGR_IPV4_MSG leaseInfo;
+            memset(&leaseInfo, 0, sizeof(leaseInfo));
+            DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
+            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
+        }
+        else
+        {
+            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, NULL, 0);
+        }
     }
     else if (pName && 0 == strncmp(pName, DHCP_MGR_DHCPv6_TABLE, strlen(DHCP_MGR_DHCPv6_TABLE)))
     {
@@ -399,10 +409,17 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         msgType = pDhcpv6c->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
         DHCPMGR_LOG_INFO("%s %d - Getting DHCPv6 data for %s, MsgType=%d\n", __FUNCTION__, __LINE__, pName, msgType);
 
-        DHCP_MGR_IPV6_MSG leaseInfo;
-        memset(&leaseInfo, 0, sizeof(leaseInfo));
-        DhcpMgr_createDhcpv6LeaseInfoMsg(pDhcpv6c->currentLease, &leaseInfo);
-        DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
+        if (msgType == DHCP_LEASE_UPDATE)
+        {
+            DHCP_MGR_IPV6_MSG leaseInfo;
+            memset(&leaseInfo, 0, sizeof(leaseInfo));
+            DhcpMgr_createDhcpv6LeaseInfoMsg(pDhcpv6c->currentLease, &leaseInfo);
+            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
+        }
+        else
+        {
+            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c->Cfg.Interface, msgType, NULL, 0);
+        }
     }
     else
     {
