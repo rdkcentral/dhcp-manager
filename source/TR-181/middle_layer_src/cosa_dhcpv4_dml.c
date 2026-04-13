@@ -751,6 +751,12 @@ Client_GetParamBoolValue
         *pBool   = pDhcpc->Cfg.Restart;
         return TRUE;
     }
+    if(strcmp(ParamName, "X_RDK_Release") == 0)
+    {
+        //X_RDK_Release will be false by default
+        *pBool   = FALSE;
+        return TRUE;
+    }
 
     /* DHCPMGR_LOG_WARNING("Unsupported parameter '%s'\n", ParamName); */
 
@@ -1171,7 +1177,8 @@ Client_SetParamBoolValue
 
     if(strcmp(ParamName, "X_RDK_Restart") == 0)
     {
-        if (pDhcpc->Cfg.bEnabled)
+        DHCPMGR_LOG_DEBUG("%s %d Restart parameter set to %s for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, bValue ? "true":"false", pDhcpc->Cfg.Interface );
+        if (pDhcpc->Cfg.bEnabled && bValue)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             ret_mq_send=1;
@@ -1179,7 +1186,22 @@ Client_SetParamBoolValue
         else
         {
             DHCPMGR_LOG_WARNING("%s %d DHCPv4 Client %s not enabled\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            return FALSE;
+            return TRUE;
+        }
+    }
+
+    if(strcmp(ParamName, "X_RDK_Release") == 0)
+    {
+        DHCPMGR_LOG_DEBUG("%s %d Release parameter set to %s for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, bValue ? "true":"false", pDhcpc->Cfg.Interface );
+        if (pDhcpc->Cfg.bEnabled && bValue)
+        {
+            DHCPMGR_LOG_INFO("%s %d Release triggered for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            ret_mq_send=1;
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("%s %d Bydefault the bValue is false or Release triggered for DHCPv4 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            return TRUE;
         }
     }
 
