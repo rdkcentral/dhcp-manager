@@ -362,6 +362,9 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         if (!pDhcpc || !pDhcpc->currentLease)
         {
             DHCPMGR_LOG_INFO("%s %d - No current DHCPv4 lease for %s\n", __FUNCTION__, __LINE__, pName);
+            //assuming no lease means DHCP client is stopped
+            msgType = DHCP_CLIENT_STOPPED;
+            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc ? pDhcpc->Cfg.Interface : "Unknown", msgType, NULL, 0);
             return RBUS_ERROR_SUCCESS;
         }
 
@@ -403,6 +406,9 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         if (!pDhcpv6c || !pDhcpv6c->currentLease)
         {
             DHCPMGR_LOG_INFO("%s %d - No current DHCPv6 lease for %s\n", __FUNCTION__, __LINE__, pName);
+            //assuming no lease means DHCP client is stopped
+            msgType = DHCP_CLIENT_STOPPED;
+            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c ? pDhcpv6c->Cfg.Interface : "Unknown", msgType, NULL, 0);
             return RBUS_ERROR_SUCCESS;
         }
 
@@ -513,7 +519,6 @@ int DhcpMgr_PublishDhcpV4Event(PCOSA_DML_DHCPC_FULL pDhcpc, DHCP_MESSAGE_TYPE ms
         DHCPMGR_LOG_INFO("%s %d - Event %s Published \n", __FUNCTION__, __LINE__,eventStr );
         rc = 0;
     }
-
 
     rbusValue_Release(ifNameVal);
     rbusValue_Release(typeVal);
