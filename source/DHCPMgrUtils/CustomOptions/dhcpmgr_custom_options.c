@@ -95,7 +95,7 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_l
         return RETURN_ERR;
     }
 
-    DHCPMGR_LOG_INFO("%s %d Weak implementation of add_dhcpv6_option_25 \n", __FUNCTION__, __LINE__);
+    DHCPMGR_LOG_INFO("%s %d Weak implementation of Get_DhcpV6_CustomOption_25 \n", __FUNCTION__, __LINE__);
 
     //Assigning NULL, so that the DHCP server can assign a prefix based on the availability
     return add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, NULL);
