@@ -90,9 +90,6 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption17(const char *ifName, char *Op
 
 __attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_list)
 {
-    //Assigning empty, so that the DHCP server can assign prefix based on the availablity
-    char optionValue[] = "";
-
     if (send_opt_list == NULL)
     {
         return RETURN_ERR;
@@ -100,7 +97,8 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_l
 
     DHCPMGR_LOG_INFO("%s %d Weak implementation of add_dhcpv6_option_25 \n", __FUNCTION__, __LINE__);
 
-    return add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, optionValue);
+    //Assigning NULL, so that the DHCP server can assign a prefix based on the availability
+    return add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, NULL);
 }
 
 __attribute__((weak)) int Set_DhcpV6_CustomOption17(const char *ifName, const char *OptionValue, uint32_t *ipv6_TimeOffset) 
