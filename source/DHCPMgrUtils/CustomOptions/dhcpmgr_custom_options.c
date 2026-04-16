@@ -88,10 +88,10 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption17(const char *ifName, char *Op
     return -1;
 }
 
-__attribute__((weak)) int add_dhcpv6_option_25(dhcp_opt_list **send_opt_list)
+__attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_list)
 {
-    //TODO : Need to change back to { prefix ::/64 } once sky platform hal fixed
-    char optionValue[] = "\t 0";
+    //Default value for IA_PD option is set to have a prefix length of 64 with no specific prefix
+    char optionValue[] = "\t { prefix ::/64 }";
 
     if (send_opt_list == NULL)
     {
