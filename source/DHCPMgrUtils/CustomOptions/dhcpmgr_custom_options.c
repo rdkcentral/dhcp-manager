@@ -90,8 +90,8 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption17(const char *ifName, char *Op
 
 __attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_list)
 {
-    //Default value for IA_PD option is set to have a prefix length of 64 with no specific prefix
-    char optionValue[] = "\t { prefix ::/64 }";
+    //Assigning empty, so that the DHCP server can assign prefix based on the availablity
+    char optionValue[] = "";
 
     if (send_opt_list == NULL)
     {
