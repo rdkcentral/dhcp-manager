@@ -100,7 +100,7 @@ int Get_DhcpV6_CustomOption17(const char *ifName, char *OptionValue, size_t Opti
  * @param[in,out] send_opt_list Pointer to the DHCPv6 send option list.
  * @return int 0 on success, non-zero on failure.
  */
-int add_dhcpv6_option_25(dhcp_opt_list **send_opt_list);
+int Get_DhcpV6_CustomOption_25(dhcp_opt_list **send_opt_list);
 
 /**
  * @brief Sets the custom DHCPv6 Option 17 (Vendor Specific Information Option) value.
