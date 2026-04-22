@@ -480,13 +480,6 @@ int send_dhcpv6_renew(pid_t processID) {
 int send_dhcpv6_release(pid_t processID) {
     DHCPMGR_LOG_INFO("%s %d  send_dhcpv6_release\n", __FUNCTION__, __LINE__);
     // send unicast DHCPv6 RELEASE
-    int fd = 0;
-    //TODO : copiedfrom legacy implementation, change it to user def signal
-    fd = creat("/tmp/dhcpv6_release",S_IRUSR | S_IWUSR | S_IRGRP);
-    if(fd != -1)
-    {
-        close(fd);
-    }
     DHCPMGR_LOG_INFO("%s %d Calling stop after sending release. \n", __FUNCTION__, __LINE__);
     stop_dhcpv6_client(processID);
     return 0;
@@ -510,7 +503,7 @@ int send_dhcpv6_release(pid_t processID) {
         return FAILURE;
     }
 
-    if (signal_process(processID, SIGTERM) != RETURN_OK)
+    if (signal_process(processID, SIGRTMIN) != RETURN_OK)
     {
         DHCPMGR_LOG_ERROR("%s %d: unable to send signal to pid %d\n", __FUNCTION__, __LINE__, processID);
          return FAILURE;
