@@ -487,6 +487,7 @@ int send_dhcpv6_release(pid_t processID) {
     {
         close(fd);
     }
+    DHCPMGR_LOG_INFO("%s %d Calling stop after sending release. \n", __FUNCTION__, __LINE__);
     stop_dhcpv6_client(processID);
     return 0;
 }

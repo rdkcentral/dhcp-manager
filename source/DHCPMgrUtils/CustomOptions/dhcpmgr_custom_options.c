@@ -88,6 +88,19 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption17(const char *ifName, char *Op
     return -1;
 }
 
+__attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_list)
+{
+    if (send_opt_list == NULL)
+    {
+        return RETURN_ERR;
+    }
+
+    DHCPMGR_LOG_INFO("%s %d Weak implementation of Get_DhcpV6_CustomOption_25 \n", __FUNCTION__, __LINE__);
+
+    //Assigning NULL, so that the DHCP server can assign a prefix based on the availability
+    return add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, NULL);
+}
+
 __attribute__((weak)) int Set_DhcpV6_CustomOption17(const char *ifName, const char *OptionValue, uint32_t *ipv6_TimeOffset) 
 {
     DHCPMGR_LOG_INFO("%s %d Weak implementation of Set_DhcpV6_CustomOption17 \n", __FUNCTION__, __LINE__);
