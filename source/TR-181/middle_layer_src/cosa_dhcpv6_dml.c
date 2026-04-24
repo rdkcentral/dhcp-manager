@@ -3380,18 +3380,20 @@ dhcp6c_mapt_mape_GetParamUlongValue
     {
         if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
         {
-            if (MapInfo->MapPSIDLen > 0 && MapInfo->MapEALen == 0)
+            if (MapInfo->MapEALen == 0)
             {
                 *puLong  = MapInfo->MapPSIDLen;
             }
             else
             {
-                /* PSIDLen is calculated from the the Prefix and EALen at WanManager 
+                /* PSIDLen is calculated from the Prefix and EALen at WanManager 
                  * and stored in the device's sysevent db, so we need to get it from there.
                 */
                 char temp[32] = {0};
-                ifl_get_event(SYSEVENT_MAPT_PSID_LENGTH, temp, sizeof(temp));
-                *puLong  = strtoul(temp, NULL, 10);
+                if (ifl_get_event(SYSEVENT_MAPT_PSID_LENGTH, temp, sizeof(temp)) == IFL_SUCCESS)
+                {
+                    *puLong  = strtoul(temp, NULL, 10);
+                }
             }
         }
         return TRUE;
@@ -3401,18 +3403,20 @@ dhcp6c_mapt_mape_GetParamUlongValue
     {
         if(MapInfo->MaptAssigned || MapInfo->MapeAssigned)
         {
-            if (MapInfo->MapPSIDLen > 0 && MapInfo->MapEALen == 0)
+            if (MapInfo->MapEALen == 0)
             {
                 *puLong  = MapInfo->MapPSIDValue;
             }
             else
             {
-                /* PSIDValue value is calculated from the V6 Prefix at WanManager 
+                /* PSIDValue is calculated from the V6 Prefix at WanManager 
                  * and stored in the device's sysevent db, so we need to get it from there.
                 */
                 char temp[32] = {0};
-                ifl_get_event(SYSEVENT_MAPT_PSID_VALUE, temp, sizeof(temp));
-                *puLong  = strtoul(temp, NULL, 10);
+                if (ifl_get_event(SYSEVENT_MAPT_PSID_VALUE, temp, sizeof(temp)) == IFL_SUCCESS)
+                {
+                    *puLong  = strtoul(temp, NULL, 10);
+                }
             }
  
         }
