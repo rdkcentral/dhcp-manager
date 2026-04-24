@@ -1390,6 +1390,7 @@ Client_SetParamStringValue
 
     if (strcmp(ParamName, "Interface") == 0)
     {
+        DHCPMGR_LOG_INFO("%s:%d <<DEBUG>> Setting Interface to %s for DHCPv4 Client %s \n", __FUNCTION__, __LINE__, pString, pDhcpc->Cfg.Alias);
         /* save update to backup */
         rc = STRCPY_S_NOCLOBBER(pDhcpc->Cfg.Interface, sizeof(pDhcpc->Cfg.Interface), pString);
         if(rc != EOK)
