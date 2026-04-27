@@ -303,6 +303,7 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
                                             DHCP_MESSAGE_TYPE msgType,
                                             const void *leaseData, size_t leaseDataSize)
 {
+    DHCPMGR_LOG_INFO("%s %d - Setting lease data on property for interface %s with MsgType %d\n", __FUNCTION__, __LINE__, ifName, msgType);
     rbusObject_t rdata;
     rbusValue_t ifNameVal, typeVal, leaseInfoVal;
 
@@ -310,6 +311,7 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
 
     rbusValue_Init(&ifNameVal);
     rbusValue_SetString(ifNameVal, ifName);
+    DHCPMGR_LOG_INFO("%s %d - Setting IfName value: %s\n", __FUNCTION__, __LINE__, ifNameVal.value.string);
     rbusObject_SetValue(rdata, "IfName", ifNameVal);
 
     rbusValue_Init(&typeVal);
