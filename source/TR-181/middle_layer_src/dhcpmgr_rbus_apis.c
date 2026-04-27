@@ -152,10 +152,15 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
     (void)handle;
     (void)filter;
     (void)(interval);
-     *autoPublish = false;
+    if (autoPublish != NULL)
+    {
+        /* Publish current property value on subscribe so consumers receive MsgType/IfName immediately. */
+        *autoPublish = (action == RBUS_EVENT_ACTION_SUBSCRIBE);
+    }
 
     char *subscribe_action = action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribed" : "unsubscribed";
-    DHCPMGR_LOG_INFO("%s %d - Event %s has been  %s \n", __FUNCTION__, __LINE__,eventName, subscribe_action );
+    DHCPMGR_LOG_INFO("%s %d - Event %s has been %s (autoPublish=%s)\n", __FUNCTION__, __LINE__, eventName, subscribe_action,
+                     (autoPublish && *autoPublish) ? "true" : "false");
 
     return RBUS_ERROR_SUCCESS;
 }
