@@ -311,11 +311,13 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
 
     rbusValue_Init(&ifNameVal);
     rbusValue_SetString(ifNameVal, ifName);
-    DHCPMGR_LOG_INFO("%s %d - Setting IfName value: %s\n", __FUNCTION__, __LINE__, ifNameVal.value.string);
+    DHCPMGR_LOG_INFO("%s %d - Setting IfName value: %s\n", __FUNCTION__, __LINE__, ifName);
+    DHCPMGR_LOG_INFO("%s %d - getting ifNameVal value: %s\n", __FUNCTION__, __LINE__, rbusValue_GetString(ifNameVal));
     rbusObject_SetValue(rdata, "IfName", ifNameVal);
 
     rbusValue_Init(&typeVal);
     rbusValue_SetUInt32(typeVal, msgType);
+    DHCPMGR_LOG_INFO("%s %d - Setting MsgType value: %d\n", __FUNCTION__, __LINE__, msgType);
     rbusObject_SetValue(rdata, "MsgType", typeVal);
 
     if (leaseData != NULL)
