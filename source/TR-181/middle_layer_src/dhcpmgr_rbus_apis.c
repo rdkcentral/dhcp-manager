@@ -152,15 +152,15 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
     (void)handle;
     (void)filter;
     (void)(interval);
+    /* Keep autoPublish false: RBUS auto-publish wraps the property data differently
+     * from rbusEvent_Publish, so event->data keys (IfName/MsgType) would not be
+     * accessible at the top level on the subscriber side. The subscriber will
+     * receive the real event once the DHCP client is started via Enable. */
     if (autoPublish != NULL)
-    {
-        /* Publish current property value on subscribe so consumers receive MsgType/IfName immediately. */
-        *autoPublish = (action == RBUS_EVENT_ACTION_SUBSCRIBE);
-    }
+        *autoPublish = false;
 
     char *subscribe_action = action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribed" : "unsubscribed";
-    DHCPMGR_LOG_INFO("%s %d - Event %s has been %s (autoPublish=%s)\n", __FUNCTION__, __LINE__, eventName, subscribe_action,
-                     (autoPublish && *autoPublish) ? "true" : "false");
+    DHCPMGR_LOG_INFO("%s %d - Event %s has been %s\n", __FUNCTION__, __LINE__, eventName, subscribe_action);
 
     return RBUS_ERROR_SUCCESS;
 }
