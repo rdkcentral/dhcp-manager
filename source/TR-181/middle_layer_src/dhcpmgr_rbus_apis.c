@@ -311,12 +311,10 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
     rbusValue_Init(&ifNameVal);
     rbusValue_SetString(ifNameVal, ifName);
     rbusObject_SetValue(rdata, "IfName", ifNameVal);
-    rbusValue_Release(ifNameVal);
 
     rbusValue_Init(&typeVal);
     rbusValue_SetUInt32(typeVal, msgType);
     rbusObject_SetValue(rdata, "MsgType", typeVal);
-    rbusValue_Release(typeVal);
 
     if (leaseData != NULL)
     {
@@ -327,6 +325,8 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
     }
 
     rbusProperty_SetObject(rbusProperty, rdata);
+    rbusValue_Release(ifNameVal);
+    rbusValue_Release(typeVal);
     rbusObject_Release(rdata);
 }
 
@@ -346,6 +346,7 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
             DHCPMGR_LOG_ERROR("%s %d - Invalid DHCPv4 property name %s\n", __FUNCTION__, __LINE__, pName);
             return RBUS_ERROR_SUCCESS;
         }
+        DHCPMGR_LOG_INFO("%s %d - Received get request for %s\n", __FUNCTION__, __LINE__, pName);
 
         PCOSA_DML_DHCPC_FULL pDhcpc = NULL;
         PCOSA_CONTEXT_DHCPC_LINK_OBJECT pDhcpCxtLink = NULL;
@@ -369,17 +370,29 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         }
 
         msgType = pDhcpc->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
-        DHCPMGR_LOG_INFO("%s %d - Getting DHCPv4 data for %s, MsgType=%d\n", __FUNCTION__, __LINE__, pName, msgType);
+        DHCPMGR_LOG_INFO("%s %d - Getting DHCPv4 data for %s, MsgType=%d interface=%s\n", __FUNCTION__, __LINE__, pName, msgType, pDhcpc->Cfg.Interface);
 
         if (msgType == DHCP_LEASE_UPDATE)
         {
             DHCP_MGR_IPV4_MSG leaseInfo;
             memset(&leaseInfo, 0, sizeof(leaseInfo));
             DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
+            DHCPMGR_LOG_INFO("%s %d <<DEBUG>>- DHCPv4 Event for Interface %s with MsgType %s MsgType %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, msgType == DHCP_CLIENT_STARTED ? "DHCP_CLIENT_STARTED" :
+                                                msgType == DHCP_CLIENT_STOPPED ? "DHCP_CLIENT_STOPPED" :
+                                                msgType == DHCP_CLIENT_FAILED ? "DHCP_CLIENT_FAILED" :
+                                                msgType == DHCP_LEASE_UPDATE ? "DHCP_LEASE_UPDATE" :
+                                                msgType == DHCP_LEASE_DEL ? "DHCP_LEASE_DEL" :
+                                                msgType == DHCP_LEASE_RENEW ? "DHCP_LEASE_RENEW" : "UNKNOWN", msgType);
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
         }
         else
         {
+            DHCPMGR_LOG_INFO("%s %d <<DEBUG>> DHCPv4 Event for Interface %s with MsgType %s MsgType %d\n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface, msgType == DHCP_CLIENT_STARTED ? "DHCP_CLIENT_STARTED" :
+                                                msgType == DHCP_CLIENT_STOPPED ? "DHCP_CLIENT_STOPPED" :
+                                                msgType == DHCP_CLIENT_FAILED ? "DHCP_CLIENT_FAILED" :
+                                                msgType == DHCP_LEASE_UPDATE ? "DHCP_LEASE_UPDATE" :
+                                                msgType == DHCP_LEASE_DEL ? "DHCP_LEASE_DEL" :
+                                                msgType == DHCP_LEASE_RENEW ? "DHCP_LEASE_RENEW" : "UNKNOWN", msgType);
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, NULL, 0);
         }
     }
