@@ -428,8 +428,8 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         {
             DHCPMGR_LOG_INFO("%s %d - No current DHCPv6 lease for %s\n", __FUNCTION__, __LINE__, pName);
             //assuming no lease means DHCP client is stopped
-            msgType = DHCP_CLIENT_STOPPED;
-            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c ? pDhcpv6c->Cfg.Interface : "Unknown", msgType, NULL, 0);
+            //msgType = DHCP_CLIENT_STOPPED;
+            //DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c ? pDhcpv6c->Cfg.Interface : "Unknown", msgType, NULL, 0);
             return RBUS_ERROR_SUCCESS;
         }
 
