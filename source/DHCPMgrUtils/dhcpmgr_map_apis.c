@@ -347,54 +347,146 @@ CosaDmlMapConvertStringToHexStream
   return STATUS_SUCCESS;
 }
 
+static inline uint64_t bitmask(unsigned n)
+{
+    if (n == 0)  return 0;
+    if (n >= 64) return UINT64_MAX;
+    return (UINT64_C(1) << n) - 1;
+}
+
+/*
+                :           :           ___/       :
+                |  p bits   |          /  q bits   :
+                +-----------+         +------------+
+                |IPv4 suffix|         |Port Set ID |
+                +-----------+         +------------+
+                 \          /    ____/    ________/
+                   \       :  __/   _____/
+                     \     : /     /
+ |     n bits         |  o bits   | s bits  |   128-n-o-s bits      |
+ +--------------------+-----------+---------+------------+----------+
+ |  Rule IPv6 prefix  |  EA bits  |subnet ID|     interface ID      |
+ +--------------------+-----------+---------+-----------------------+
+ |<---  End-user IPv6 prefix  --->|
+
+EA-bits:
++-------------------+---------+
+|IPV4 Address Suffix|   PSID  |
++-------------------+---------+
+|--------p----------|----q----+
+|--------------o--------------|
+*/
+
 static RETURN_STATUS
-CosaDmlMapValidate
+CosaDmlMapComputePsidAndIPv4Suffix
 (
     PCHAR          pPdIPv6Prefix,
-    UINT16         ui16PdPrefixLen,
-    UINT16         ui16v6PrefixLen,
-    UINT16         ui16v4PrefixLen
+    UINT16         pdPrefixLen,
+    UINT16         v6PrefixLen,
+    UINT16         v4PrefixLen,
+    PUINT16        pPsid,
+    PUINT16        pPsidLen,
+    PUINT32        pIPv4Suffix
 )
 {
-  UINT8 ui8v4BitIdxLen = 0, ui8PsidBitIdxLen = 0;
-  UINT8 ui8EaLen       = 0 ;
   struct in6_addr ipv6Addr;
 
   MAP_LOG_INFO("Entry");
 
-  // V4 suffix bits length
-  ui8v4BitIdxLen = BUFLEN_32 - ui16v4PrefixLen;
-
-  // EA bits length
-  ui8EaLen = ui16PdPrefixLen - ui16v6PrefixLen;
-
-  // PSID length
-  ui8PsidBitIdxLen = ui8EaLen - ui8v4BitIdxLen;
-
-  MAP_LOG_INFO("<<<Trace>>> ui8v4BitIdxLen(IPV4 Suffix Bits): %u", ui8v4BitIdxLen);
-  MAP_LOG_INFO("<<<Trace>>> ui8EaLen (EA bits)                    : %u", ui8EaLen);
-  MAP_LOG_INFO("<<<Trace>>> ui8PsidBitIdxLen(PSID length)         : %u", ui8PsidBitIdxLen);
-
-  if (ui8EaLen != g_stMapData.EaLen)
+  if (!pPdIPv6Prefix || !pPsid || !pPsidLen || !pIPv4Suffix)
   {
-       MAP_LOG_INFO("Calculated EA-bits and received MAP EA-bits does not match!");
-       return STATUS_FAILURE;
+      MAPT_LOG_ERROR("NULL parameter passed to MAP EA computation");
+      return STATUS_FAILURE;
   }
 
-  if ( ui16PdPrefixLen < ui16v6PrefixLen )
+  if ( pdPrefixLen < v6PrefixLen )
   {
-       MAP_LOG_ERROR("Invalid MAP option, ui16PdPrefixLen(%d) < ui16v6PrefixLen(%d)",
-               ui16PdPrefixLen, ui16v6PrefixLen);
-       return STATUS_FAILURE;
+      MAP_LOG_ERROR("Invalid MAP option, PD Prefix(%d) < IPv6 Prefix(%d)",
+               pdPrefixLen, v6PrefixLen);
+      return STATUS_FAILURE;
   }
 
   if ( inet_pton(AF_INET6, pPdIPv6Prefix, &ipv6Addr) <= 0 )
   {
-       MAP_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
-       return STATUS_FAILURE;
+      MAP_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
+      return STATUS_FAILURE;
   }
 
-   MAP_LOG_INFO("MAP validation successful.");
+ if (g_stMapData.EaLen > 0)
+  {
+      UINT8 v4SuffixBitsLen = 0;
+      UINT8 psidBitsLen = 0;
+      UINT8 eaBitsLen = 0 ;
+
+      // V4 suffix bits length
+      v4SuffixBitsLen = BUFLEN_32 - v4PrefixLen;
+
+      // EA bits length
+      eaBitsLen = pdPrefixLen - v6PrefixLen;
+
+      // PSID length
+      psidBitsLen = (eaBitsLen >= v4SuffixBitsLen) ? (eaBitsLen - v4SuffixBitsLen) : 0;
+
+      MAP_LOG_INFO("Calculated EA bits length   : %u", eaBitsLen);
+      MAP_LOG_INFO("IPv4 suffix bits length (p) : %u", v4SuffixBitsLen);
+      MAP_LOG_INFO("PSID bits length (q)        : %u", psidBitsLen);
+
+      if (eaBitsLen != g_stMapData.EaLen)
+      {
+          MAP_LOG_ERROR("Calculated EA-bits and received MAP EA-bits does not match!");
+          return STATUS_FAILURE;
+      }
+
+      if (eaBitsLen > 64)
+      {
+          MAP_LOG_ERROR("EA bits length %u exceeds supported limit (64 bits)", eaBitsLen);
+          return STATUS_FAILURE;
+      }
+
+      /*
+       * Extract EA bits MSB-first from IPv6 delegated prefix
+       */
+      uint64_t eaBits = 0;
+      UINT8 bitPos = v6PrefixLen;
+      for (unsigned i = 0; i < eaBitsLen; i++)
+      {
+          UINT8 byteIndex = bitPos / 8;
+          UINT8 bitIndex = 7 - (bitPos % 8);
+          eaBits = (eaBits << 1) | ((ipv6Addr.s6_addr[byteIndex] >> bitIndex) & 0x01);
+          bitPos++;
+      }
+
+      MAPT_LOG_INFO("Extracted EA bits : 0x%llX", (unsigned long long)eaBits);
+
+      /*
+       * Split EA bits into IPv4 suffix and PSID
+       */
+      if (v4SuffixBitsLen > 0)
+      {
+          *pIPv4Suffix = (eaBits >> psidBitsLen) & bitmask(v4SuffixBitsLen);
+      } 
+      else 
+      {
+          *pIPv4Suffix = 0;
+          MAP_LOG_INFO("No IPv4 suffix bits, set to 0");
+      }
+
+      if (psidBitsLen > 0)
+      {
+          *pPsid = eaBits & bitmask(psidBitsLen);
+      }
+      else
+      {
+          *pPsid = 0;
+          MAP_LOG_INFO("No PSID bits, set to 0");
+      }
+
+      *pPsidLen = psidBitsLen;
+
+      MAPT_LOG_INFO("Computed IPv4 Suffix : %u", *pIPv4Suffix);
+      MAPT_LOG_INFO("Computed PSID        : %u", *pPsid);
+      MAPT_LOG_INFO("Computed PSID Length : %u", *pPsidLen);
+  }
   return STATUS_SUCCESS;
 }
 
@@ -451,13 +543,16 @@ ANSC_STATUS DhcpMgr_MapParseOptResponse
   }
 
     /* validate MAPT/MAPE response */
-  if ( !ret && CosaDmlMapValidate ( g_stMapData.PdIPv6Prefix
+  if ( !ret && CosaDmlMapComputePsidAndIPv4Suffix ( g_stMapData.PdIPv6Prefix
                                                    , g_stMapData.PdIPv6PrefixLen
                                                    , g_stMapData.RuleIPv6PrefixLen
                                                    , g_stMapData.RuleIPv4PrefixLen
+                                                   , &g_stMapData.Psid
+                                                   , &g_stMapData.PsidLen
+                                                   , &g_stMapData.IPv4Suffix
                                                   ) != STATUS_SUCCESS )
   {
-       MAP_LOG_ERROR("MAP Psid and IPv4 Suffix Validation Failed !!");
+       MAP_LOG_ERROR("MAP Psid and IPv4 Suffix Computation Failed !!");
        memset (&g_stMapData, 0, sizeof(g_stMapData));
        ret = STATUS_FAILURE;
   }
