@@ -456,7 +456,7 @@ CosaDmlMapComputePsidAndIPv4Suffix
           bitPos++;
       }
 
-      MAPT_LOG_INFO("Extracted EA bits : 0x%llX", (unsigned long long)eaBits);
+      MAP_LOG_INFO("Extracted EA bits : 0x%llX", (unsigned long long)eaBits);
 
       /*
        * Split EA bits into IPv4 suffix and PSID
@@ -483,9 +483,9 @@ CosaDmlMapComputePsidAndIPv4Suffix
 
       *pPsidLen = psidBitsLen;
 
-      MAPT_LOG_INFO("Computed IPv4 Suffix : %u", *pIPv4Suffix);
-      MAPT_LOG_INFO("Computed PSID        : %u", *pPsid);
-      MAPT_LOG_INFO("Computed PSID Length : %u", *pPsidLen);
+      MAP_LOG_INFO("Computed IPv4 Suffix : %u", *pIPv4Suffix);
+      MAP_LOG_INFO("Computed PSID        : %u", *pPsid);
+      MAP_LOG_INFO("Computed PSID Length : %u", *pPsidLen);
   }
   return STATUS_SUCCESS;
 }
