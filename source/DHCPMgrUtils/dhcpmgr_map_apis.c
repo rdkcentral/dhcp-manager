@@ -395,7 +395,7 @@ CosaDmlMapComputePsidAndIPv4Suffix
 
   if (!pPdIPv6Prefix || !pPsid || !pPsidLen || !pIPv4Suffix)
   {
-      MAPT_LOG_ERROR("NULL parameter passed to MAP EA computation");
+      MAP_LOG_ERROR("NULL parameter passed to MAP EA computation");
       return STATUS_FAILURE;
   }
 
