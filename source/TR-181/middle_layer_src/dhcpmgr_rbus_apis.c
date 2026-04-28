@@ -152,10 +152,11 @@ rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubActio
     (void)handle;
     (void)filter;
     (void)(interval);
-    /* Enable auto publish so RBUS invokes getDataHandler on subscribe and pushes
-     * the current property value immediately to subscribers. */
+    /* Keep autoPublish false: RBUS auto-publish wraps the property data.
+     * Unwrapping logic will be implemented on WAN Manager subscriber side.
+     * Events are delivered via rbusEvent_Publish path in flat format. */
     if (autoPublish != NULL)
-        *autoPublish = (action == RBUS_EVENT_ACTION_SUBSCRIBE);
+        *autoPublish = false;
 
     char *subscribe_action = action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribed" : "unsubscribed";
     DHCPMGR_LOG_INFO("%s %d - Event %s has been %s (autoPublish=%s)\n", __FUNCTION__, __LINE__, eventName,
