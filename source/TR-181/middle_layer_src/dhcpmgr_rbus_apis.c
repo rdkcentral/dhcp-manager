@@ -334,6 +334,13 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
     }
 
     rbusProperty_SetObject(rbusProperty, rdata);
+    DHCPMGR_LOG_INFO("%s %d - Property name: %s\n", __FUNCTION__, __LINE__,
+                     rbusProperty_GetName(rbusProperty));
+    DHCPMGR_LOG_INFO("%s %d - IfName value: %s\n", __FUNCTION__, __LINE__,
+                     rbusValue_GetString(ifNameVal, NULL));
+    DHCPMGR_LOG_INFO("%s %d - MsgType value: %u\n", __FUNCTION__, __LINE__,
+                     rbusValue_GetUInt32(typeVal));
+
     rbusValue_Release(ifNameVal);
     rbusValue_Release(typeVal);
     rbusObject_Release(rdata);
@@ -373,8 +380,8 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         {
             DHCPMGR_LOG_INFO("%s %d - No current DHCPv4 lease for %s\n", __FUNCTION__, __LINE__, pName);
             //assuming no lease means DHCP client is stopped
-            msgType = DHCP_CLIENT_STOPPED;
-            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc ? pDhcpc->Cfg.Interface : "Unknown", msgType, NULL, 0);
+            //msgType = DHCP_CLIENT_STOPPED;
+            //DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc ? pDhcpc->Cfg.Interface : "Unknown", msgType, NULL, 0);
             return RBUS_ERROR_SUCCESS;
         }
 
