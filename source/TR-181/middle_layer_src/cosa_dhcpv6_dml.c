@@ -1295,7 +1295,7 @@ Client3_SetParamStringValue
     ERR_CHK(rc);
     if((ind == 0) && (rc == EOK))
     {
-        DHCPMGR_LOG_INFO("%s %d: <<DEBUG>> Setting Interface to %s for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pString, pDhcpc->Cfg.Alias);
+
         /* save update to backup */
         rc = STRCPY_S_NOCLOBBER((char *)pDhcpc->Cfg.Interface, sizeof(pDhcpc->Cfg.Interface), pString);
         if(rc != EOK)
