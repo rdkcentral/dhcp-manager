@@ -412,7 +412,7 @@ CosaDmlMapComputePsidAndIPv4Suffix
       return STATUS_FAILURE;
   }
 
- if (g_stMapData.EaLen > 0)
+  if (g_stMapData.EaLen > 0)
   {
       UINT8 v4SuffixBitsLen = 0;
       UINT8 psidBitsLen = 0;
@@ -486,6 +486,10 @@ CosaDmlMapComputePsidAndIPv4Suffix
       MAP_LOG_INFO("Computed IPv4 Suffix : %u", *pIPv4Suffix);
       MAP_LOG_INFO("Computed PSID        : %u", *pPsid);
       MAP_LOG_INFO("Computed PSID Length : %u", *pPsidLen);
+  }
+  else
+  {
+      MAP_LOG_INFO("EA bits not set, using PSID/PSIDLen from received OPTION_S46_PORT_PARAM");
   }
   return STATUS_SUCCESS;
 }
@@ -577,7 +581,7 @@ ANSC_STATUS DhcpMgr_MapParseOptResponse
      snprintf (map->brIPv6Prefix,   BUFLEN_40, "%s/%u", g_stMapData.BrIPv6Prefix
                                                                       , g_stMapData.BrIPv6PrefixLen);
      
-     MAP_LOG_INFO("MAP configuration complete.\n");
+     MAP_LOG_INFO("MAP Options parsing complete!\n");
   }
 
   return ((ret) ? ANSC_STATUS_FAILURE : ANSC_STATUS_SUCCESS);
