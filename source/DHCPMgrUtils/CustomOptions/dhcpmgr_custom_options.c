@@ -88,19 +88,17 @@ __attribute__((weak)) int Get_DhcpV6_CustomOption17(const char *ifName, char *Op
     return -1;
 }
 
-__attribute__((weak)) int add_dhcpv6_option_25(dhcp_opt_list **send_opt_list)
+__attribute__((weak)) int Get_DhcpV6_CustomOption_25(dhcp_opt_list ** send_opt_list)
 {
-    //TODO : Need to change back to { prefix ::/64 } once sky platform hal fixed
-    char optionValue[] = "\t 0";
-
     if (send_opt_list == NULL)
     {
         return RETURN_ERR;
     }
 
-    DHCPMGR_LOG_INFO("%s %d Weak implementation of add_dhcpv6_option_25 \n", __FUNCTION__, __LINE__);
+    DHCPMGR_LOG_INFO("%s %d Weak implementation of Get_DhcpV6_CustomOption_25 \n", __FUNCTION__, __LINE__);
 
-    return add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, optionValue);
+    //Assigning NULL, so that the DHCP server can assign a prefix based on the availability
+    return add_dhcp_opt_to_list(send_opt_list, DHCPV6_OPT_25, NULL);
 }
 
 __attribute__((weak)) int Set_DhcpV6_CustomOption17(const char *ifName, const char *OptionValue, uint32_t *ipv6_TimeOffset) 

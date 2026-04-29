@@ -589,6 +589,12 @@ int DhcpMgr_PublishDhcpV6Event(PCOSA_DML_DHCPCV6_FULL pDhcpv6c, DHCP_MESSAGE_TYP
         {
             DhcpMgr_UpdateDhcpv6MapInfo(pDhcpv6c, &leaseInfo);
         }
+        else if(pDhcpv6c->Info.MapInfo.MaptAssigned) // previously assigned MAPT in DML but not in the new lease, clear the MAPT info in DML
+        {
+            //Clear MAPT related info in DML if MAPT is not assigned in the lease
+            DHCPMGR_LOG_INFO("%s: Clearing MAPT info in DML as MAPT is not assigned in the lease\n", __FUNCTION__);
+            memset(&pDhcpv6c->Info.MapInfo, 0, sizeof(DML_DHCPCV6_MAP_INFO));
+        }
 #endif // FEATURE_MAPT || FEATURE_SUPPORT_MAPT_NAT46
     }
 
