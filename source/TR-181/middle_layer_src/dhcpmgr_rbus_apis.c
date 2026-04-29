@@ -301,7 +301,7 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
 }
 
 
-static void DhcpMgr_SetLeaseDataOnProperty_Object(rbusProperty_t rbusProperty, const char *ifName,
+static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const char *ifName,
                                             DHCP_MESSAGE_TYPE msgType,
                                             const void *leaseData, size_t leaseDataSize)
 {
@@ -331,25 +331,6 @@ static void DhcpMgr_SetLeaseDataOnProperty_Object(rbusProperty_t rbusProperty, c
     rbusProperty_SetObject(rbusProperty, rdata);
     rbusObject_Release(rdata);
 }
-
-
-/*static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const char *ifName,
-                                            DHCP_MESSAGE_TYPE msgType,
-                                            const void *leaseData, size_t leaseDataSize)
-{
-    DHCPMGR_LOG_INFO("%s: Setting lease data on property for interface %s, MsgType=%d\n", __FUNCTION__, ifName, msgType);   
-    (void)msgType;
-    (void)leaseData;
-    (void)leaseDataSize;
-
-    rbusValue_t ifNameVal;
-    rbusValue_Init(&ifNameVal);
-    rbusValue_SetString(ifNameVal, ifName ? ifName : "Unknown");
-    rbusProperty_SetValue(rbusProperty, ifNameVal);
-    rbusValue_Release(ifNameVal);
-    DHCPMGR_LOG_INFO("%s: Lease data set on property for interface %s\n", __FUNCTION__, ifName);
-}
-*/
 
 
 rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty, rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
