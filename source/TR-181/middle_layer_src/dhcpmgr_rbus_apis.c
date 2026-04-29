@@ -41,7 +41,6 @@ static rbusHandle_t rbusHandle;
 char *componentName = "DHCPMANAGER";
 
 rbusError_t DhcpMgr_Rbus_SubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char *eventName, rbusFilter_t filter, int32_t interval, bool *autoPublish);
-rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty, rbusGetHandlerOptions_t *pRbusGetHandlerOptions);
 
 
 /***********************************************************************
@@ -300,7 +299,6 @@ static void DhcpMgr_createDhcpv6LeaseInfoMsg(DHCPv6_PLUGIN_MSG *src, DHCP_MGR_IP
     }
 }
 
-
 static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const char *ifName,
                                             DHCP_MESSAGE_TYPE msgType,
                                             const void *leaseData, size_t leaseDataSize)
@@ -331,7 +329,6 @@ static void DhcpMgr_SetLeaseDataOnProperty(rbusProperty_t rbusProperty, const ch
     rbusProperty_SetObject(rbusProperty, rdata);
     rbusObject_Release(rdata);
 }
-
 
 rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty, rbusGetHandlerOptions_t *pRbusGetHandlerOptions)
 {
@@ -364,9 +361,10 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
 
         if (!pDhcpc || !pDhcpc->currentLease)
         {
+            DHCPMGR_LOG_INFO("%s %d - No current DHCPv4 lease for %s\n", __FUNCTION__, __LINE__, pName);
+            //assuming no lease means DHCP client is stopped
             msgType = DHCP_CLIENT_STOPPED;
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc ? pDhcpc->Cfg.Interface : "Unknown", msgType, NULL, 0);
-            DHCPMGR_LOG_INFO("%s %d - No current DHCPv4 lease for %s\n", __FUNCTION__, __LINE__, pName);
             return RBUS_ERROR_SUCCESS;
         }
 
@@ -379,12 +377,10 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
             memset(&leaseInfo, 0, sizeof(leaseInfo));
             DhcpMgr_createLeaseInfoMsg(pDhcpc->currentLease, &leaseInfo);
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
-            DHCPMGR_LOG_INFO("%s %d - DHCPv4 lease data set on property for %s\n", __FUNCTION__, __LINE__, pName);
         }
         else
         {
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc->Cfg.Interface, msgType, NULL, 0);
-            DHCPMGR_LOG_INFO("%s %d - DHCPv4 lease expired or released for %s\n", __FUNCTION__, __LINE__, pName);
         }
     }
     else if (pName && 0 == strncmp(pName, DHCP_MGR_DHCPv6_TABLE, strlen(DHCP_MGR_DHCPv6_TABLE)))
@@ -409,9 +405,10 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
 
         if (!pDhcpv6c || !pDhcpv6c->currentLease)
         {
+            DHCPMGR_LOG_INFO("%s %d - No current DHCPv6 lease for %s\n", __FUNCTION__, __LINE__, pName);
+            //assuming no lease means DHCP client is stopped
             msgType = DHCP_CLIENT_STOPPED;
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c ? pDhcpv6c->Cfg.Interface : "Unknown", msgType, NULL, 0);
-            DHCPMGR_LOG_INFO("%s %d - No current DHCPv6 lease for %s\n", __FUNCTION__, __LINE__, pName);            
             return RBUS_ERROR_SUCCESS;
         }
 
@@ -424,12 +421,10 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
             memset(&leaseInfo, 0, sizeof(leaseInfo));
             DhcpMgr_createDhcpv6LeaseInfoMsg(pDhcpv6c->currentLease, &leaseInfo);
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c->Cfg.Interface, msgType, &leaseInfo, sizeof(leaseInfo));
-            DHCPMGR_LOG_INFO("%s %d - DHCPv6 lease data set on property for %s\n", __FUNCTION__, __LINE__, pName);
         }
         else
         {
             DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c->Cfg.Interface, msgType, NULL, 0);
-            DHCPMGR_LOG_INFO("%s %d - DHCPv6 lease expired or released for %s\n", __FUNCTION__, __LINE__, pName);
         }
     }
     else
