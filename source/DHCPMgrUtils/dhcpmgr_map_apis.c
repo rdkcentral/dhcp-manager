@@ -38,6 +38,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
@@ -406,6 +407,13 @@ CosaDmlMapComputePsidAndIPv4Suffix
       return STATUS_FAILURE;
   }
 
+  if (pdPrefixLen > 128 || v6PrefixLen > 128)
+  {
+      MAP_LOG_ERROR("Invalid IPv6 prefix length: pdPrefixLen=%u v6PrefixLen=%u",
+              pdPrefixLen, v6PrefixLen);
+      return STATUS_FAILURE;
+  }
+
   if ( inet_pton(AF_INET6, pPdIPv6Prefix, &ipv6Addr) <= 0 )
   {
       MAP_LOG_ERROR("Invalid IPv6 address = %s", pPdIPv6Prefix);
@@ -440,6 +448,12 @@ CosaDmlMapComputePsidAndIPv4Suffix
       if (eaBitsLen > 64)
       {
           MAP_LOG_ERROR("EA bits length %u exceeds supported limit (64 bits)", eaBitsLen);
+          return STATUS_FAILURE;
+      }
+
+      if (psidBitsLen > 16)
+      {
+          MAP_LOG_ERROR("Invalid PSID length %u (must be <= 16)", psidBitsLen);
           return STATUS_FAILURE;
       }
 
