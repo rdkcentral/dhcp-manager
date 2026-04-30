@@ -361,11 +361,8 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
 
         if (!pDhcpc || !pDhcpc->currentLease)
         {
-            DHCPMGR_LOG_INFO("%s %d - No current DHCPv4 lease for %s\n", __FUNCTION__, __LINE__, pName);
-            //assuming no lease means DHCP client is stopped
-            msgType = DHCP_CLIENT_STOPPED;
-            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpc ? pDhcpc->Cfg.Interface : "Unknown", msgType, NULL, 0);
-            return RBUS_ERROR_SUCCESS;
+            DHCPMGR_LOG_INFO("%s %d - DHCPv4 client context or lease not available for %s\n", __FUNCTION__, __LINE__, pName);
+            return RBUS_ERROR_FAILURE;
         }
 
         msgType = pDhcpc->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
@@ -405,11 +402,8 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
 
         if (!pDhcpv6c || !pDhcpv6c->currentLease)
         {
-            DHCPMGR_LOG_INFO("%s %d - No current DHCPv6 lease for %s\n", __FUNCTION__, __LINE__, pName);
-            //assuming no lease means DHCP client is stopped
-            msgType = DHCP_CLIENT_STOPPED;
-            DhcpMgr_SetLeaseDataOnProperty(rbusProperty, pDhcpv6c ? pDhcpv6c->Cfg.Interface : "Unknown", msgType, NULL, 0);
-            return RBUS_ERROR_SUCCESS;
+            DHCPMGR_LOG_INFO("%s %d - DHCPv6 client context or lease not available for %s\n", __FUNCTION__, __LINE__, pName);
+            return RBUS_ERROR_FAILURE;
         }
 
         msgType = pDhcpv6c->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
