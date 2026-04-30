@@ -362,7 +362,7 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         if (!pDhcpc || !pDhcpc->currentLease)
         {
             DHCPMGR_LOG_INFO("%s %d - DHCPv4 client context or lease not available for %s\n", __FUNCTION__, __LINE__, pName);
-            return RBUS_ERROR_FAILURE;
+            return RBUS_ERROR_SUCCESS;
         }
 
         msgType = pDhcpc->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
@@ -403,7 +403,7 @@ rbusError_t getDataHandler(rbusHandle_t rbusHandle, rbusProperty_t rbusProperty,
         if (!pDhcpv6c || !pDhcpv6c->currentLease)
         {
             DHCPMGR_LOG_INFO("%s %d - DHCPv6 client context or lease not available for %s\n", __FUNCTION__, __LINE__, pName);
-            return RBUS_ERROR_FAILURE;
+            return RBUS_ERROR_SUCCESS;
         }
 
         msgType = pDhcpv6c->currentLease->isExpired ? DHCP_LEASE_DEL : DHCP_LEASE_UPDATE;
