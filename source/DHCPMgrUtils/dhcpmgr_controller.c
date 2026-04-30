@@ -510,6 +510,9 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client\n",__FUNCTION__,__LINE__);
                 release_ip = 1;
+
+		//Reset this flag to avoid unwanted client recovery
+                pDhcpc->Cfg.bEnabled = FALSE;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
@@ -676,6 +679,9 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
             {
                 DHCPMGR_LOG_INFO("%s %d: Releasing the IP address and stopping the client\n",__FUNCTION__,__LINE__);
                 release_ip = 1;
+
+		//Reset this flag to avoid unwanted client recovery
+                pDhcp6c->Cfg.bEnabled = FALSE;
             }
             else if (strcmp(dml_set_msg.ParamName, "Selfheal_ClientRestart") == 0 )
             {
