@@ -51,6 +51,41 @@
 #include "cosa_apis_util.h"
 #include <telemetry_busmessage_sender.h>
 
+#define DHCPCV4_ENABLE_PREFIX "DHCPCV4_ENABLE_"
+#define DHCPCV6_ENABLE_PREFIX "DHCPCV6_ENABLE_"
+
+static void DhcpMgr_UpdateEnableSysevent(ULONG instance, const char *if_name, BOOL enabled, BOOL isV6)
+{
+    char sysevent_key[64] = {0};
+
+    snprintf(sysevent_key,
+             sizeof(sysevent_key),
+             isV6 ? "DHCPCV6_ENABLE_%lu" : "DHCPCV4_ENABLE_%lu",
+             instance);
+
+    if (enabled)
+    {
+        if (if_name != NULL && if_name[0] != '\0')
+        {
+            if (commonSyseventSet(sysevent_key, if_name) != 0)
+            {
+                DHCPMGR_LOG_ERROR("%s %d: Failed to set sysevent %s=%s\n", __FUNCTION__, __LINE__, sysevent_key, if_name);
+            }
+        }
+        else
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Cannot set sysevent %s with empty interface name\n", __FUNCTION__, __LINE__, sysevent_key);
+        }
+    }
+    else
+    {
+        if (commonSyseventSet(sysevent_key, "") != 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Failed to clear sysevent %s\n", __FUNCTION__, __LINE__, sysevent_key);
+        }
+    }
+}
+
 
 /* ---- Global Constants -------------------------- */
 
@@ -535,6 +570,7 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 if(DhcpMgr_checkInterfaceStatus(pDhcpc->Cfg.Interface)== FALSE)
                 {
                     pDhcpc->Cfg.bEnabled = FALSE;
+                    DhcpMgr_UpdateEnableSysevent(pDhcpc->Cfg.InstanceNumber, pDhcpc->Cfg.Interface, FALSE, FALSE);
                     DhcpMgr_PublishDhcpV4Event(pDhcpc, DHCP_CLIENT_FAILED);
                 }
                 else
@@ -591,6 +627,8 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                     send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
                     /* X_RDK_Release: disable the client */
                     pDhcpc->Cfg.bEnabled = FALSE;
+                    DhcpMgr_UpdateEnableSysevent(pDhcpc->Cfg.InstanceNumber, pDhcpc->Cfg.Interface, FALSE, FALSE);
+                    
                 }
                 else
                 {
@@ -702,6 +740,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 if(DhcpMgr_checkInterfaceStatus(pDhcp6c->Cfg.Interface)== FALSE)
                 {
                     pDhcp6c->Cfg.bEnabled = FALSE;
+                    DhcpMgr_UpdateEnableSysevent(pDhcp6c->Cfg.InstanceNumber, pDhcp6c->Cfg.Interface, FALSE, TRUE);
                     DhcpMgr_PublishDhcpV6Event(pDhcp6c, DHCP_CLIENT_FAILED);
                 }
                 else if(DhcpMgr_checkLinkLocalAddress(pDhcp6c->Cfg.Interface)== FALSE)
@@ -764,6 +803,7 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                     send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
                     /* X_RDK_Release: disable the client */
                     pDhcp6c->Cfg.bEnabled = FALSE;
+                    DhcpMgr_UpdateEnableSysevent(pDhcp6c->Cfg.InstanceNumber, pDhcp6c->Cfg.Interface, FALSE, TRUE);
                 }
                 else
                 {
