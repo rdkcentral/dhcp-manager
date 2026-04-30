@@ -589,6 +589,8 @@ static void Process_DHCPv4_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 if(release_ip)
                 {
                     send_dhcpv4_release(pDhcpc->Info.ClientProcessId);
+                    /* X_RDK_Release: disable the client */
+                    pDhcpc->Cfg.bEnabled = FALSE;
                 }
                 else
                 {
@@ -760,6 +762,8 @@ static void Process_DHCPv6_Handler(char* if_name, dhcp_info_t dml_set_msg)
                 if(release_ip)
                 {
                     send_dhcpv6_release(pDhcp6c->Info.ClientProcessId);
+                    /* X_RDK_Release: disable the client */
+                    pDhcp6c->Cfg.bEnabled = FALSE;
                 }
                 else
                 {
