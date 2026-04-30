@@ -717,6 +717,13 @@ Client3_GetParamBoolValue
         return TRUE;
     }
 
+    if(strcmp(ParamName, "X_RDK_Release") == 0)
+    {
+        //X_RDK_Release will be false by default
+        *pBool   = FALSE;
+        return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -1061,7 +1068,8 @@ Client3_SetParamBoolValue
 
     if(strcmp(ParamName, "X_RDK_Restart") == 0)
     {
-        if(pDhcpc->Cfg.bEnabled)
+        DHCPMGR_LOG_DEBUG("%s %d Restart parameter value is %d when DHCPv6 is %d\n", __FUNCTION__, __LINE__, bValue, pDhcpc->Cfg.bEnabled);
+        if(pDhcpc->Cfg.bEnabled && bValue)
         {
             DHCPMGR_LOG_INFO("%s %d Restart triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
             ret_mq_send=1;
@@ -1069,7 +1077,22 @@ Client3_SetParamBoolValue
         else
         {
             DHCPMGR_LOG_WARNING("%s %d Restart triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
-            return FALSE;
+            return TRUE;
+        }
+    }
+
+    if(strcmp(ParamName, "X_RDK_Release") == 0)
+    {
+        DHCPMGR_LOG_DEBUG("%s %d Release parameter value is %d when DHCPv6 is %d\n", __FUNCTION__, __LINE__, bValue, pDhcpc->Cfg.bEnabled);
+        if(pDhcpc->Cfg.bEnabled && bValue)
+        {
+            DHCPMGR_LOG_INFO("%s %d Release triggered for DHCPv6 Client %s \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            ret_mq_send=1;
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("%s %d Bydefault the bValue is false or Release triggered for DHCPv6 Client %s when it is disabled \n", __FUNCTION__, __LINE__, pDhcpc->Cfg.Interface );
+            return TRUE;
         }
     }
 
