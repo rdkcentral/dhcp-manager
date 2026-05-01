@@ -432,8 +432,14 @@ CosaDmlMapComputePsidAndIPv4Suffix
       // EA bits length
       eaBitsLen = pdPrefixLen - v6PrefixLen;
 
+      if (eaBitsLen < v4SuffixBitsLen)
+      {
+          MAP_LOG_ERROR("Invalid MAP rule: EA bits length %u is smaller than IPv4 suffix bits length %u", eaBitsLen, v4SuffixBitsLen);
+          return STATUS_FAILURE;
+      }
+
       // PSID length
-      psidBitsLen = (eaBitsLen >= v4SuffixBitsLen) ? (eaBitsLen - v4SuffixBitsLen) : 0;
+      psidBitsLen = eaBitsLen - v4SuffixBitsLen;
 
       MAP_LOG_INFO("Calculated EA bits length   : %u", eaBitsLen);
       MAP_LOG_INFO("IPv4 suffix bits length (p) : %u", v4SuffixBitsLen);
