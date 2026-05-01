@@ -426,6 +426,11 @@ CosaDmlMapComputePsidAndIPv4Suffix
       UINT8 psidBitsLen = 0;
       UINT8 eaBitsLen = 0 ;
 
+      if (v4PrefixLen > BUFLEN_32)
+      {
+          MAP_LOG_ERROR("Invalid IPv4 prefix length %u (must be <= 32)", v4PrefixLen);
+          return STATUS_FAILURE;
+      }
       // V4 suffix bits length
       v4SuffixBitsLen = BUFLEN_32 - v4PrefixLen;
 
