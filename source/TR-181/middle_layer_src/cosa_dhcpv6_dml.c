@@ -1001,20 +1001,6 @@ Client3_SetParamBoolValue
     /* check the parameter name and set the corresponding value */
     if (strcmp(ParamName, "Enable") == 0)
     {
-        if (access(DHCP_CRASH_MARKER_FILE, F_OK) == 0)
-        {
-            DHCPMGR_LOG_ERROR("%s %d: Crash marker file %s found. Crashing dhcpmanager intentionally\n",
-                              __FUNCTION__, __LINE__, DHCP_CRASH_MARKER_FILE);
-
-            if (remove(DHCP_CRASH_MARKER_FILE) != 0)
-            {
-                DHCPMGR_LOG_WARNING("%s %d: Failed to remove crash marker file %s (errno=%d)\n",
-                                    __FUNCTION__, __LINE__, DHCP_CRASH_MARKER_FILE, errno);
-            }
-
-            abort();
-        }
-
         if (pDhcpc->Cfg.Interface == NULL || pDhcpc->Cfg.Interface[0] == '\0')
         {
             DHCPMGR_LOG_ERROR("%s %d: Interface name is empty\n", __FUNCTION__, __LINE__);
@@ -1040,6 +1026,19 @@ Client3_SetParamBoolValue
                 DHCPMGR_LOG_ERROR("%s %d: Failed to set sysevent %s\n", __FUNCTION__, __LINE__, DhcpSysEveSet);
                 //don't return FALSE here as we still want to update the event and act accordingly
             }
+        }
+        if (access(DHCP_CRASH_MARKER_FILE, F_OK) == 0)
+        {
+            DHCPMGR_LOG_ERROR("%s %d: Crash marker file %s found. Crashing dhcpmanager intentionally\n",
+                              __FUNCTION__, __LINE__, DHCP_CRASH_MARKER_FILE);
+
+            if (remove(DHCP_CRASH_MARKER_FILE) != 0)
+            {
+                DHCPMGR_LOG_WARNING("%s %d: Failed to remove crash marker file %s (errno=%d)\n",
+                                    __FUNCTION__, __LINE__, DHCP_CRASH_MARKER_FILE, errno);
+            }
+
+            abort();
         }
         ret_mq_send = 1;
     }
