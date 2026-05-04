@@ -57,6 +57,7 @@
 static void DhcpMgr_UpdateEnableSysevent(ULONG instance, const char *if_name, BOOL enabled, BOOL isV6)
 {
     char sysevent_key[64] = {0};
+    char sysevent_value[MAX_STR_LEN] = {0};
 
     snprintf(sysevent_key,
              sizeof(sysevent_key),
@@ -67,7 +68,9 @@ static void DhcpMgr_UpdateEnableSysevent(ULONG instance, const char *if_name, BO
     {
         if (if_name != NULL && if_name[0] != '\0')
         {
-            if (commonSyseventSet(sysevent_key, if_name) != 0)
+            strncpy(sysevent_value, if_name, sizeof(sysevent_value) - 1);
+            sysevent_value[sizeof(sysevent_value) - 1] = '\0';
+            if (commonSyseventSet(sysevent_key, sysevent_value) != 0)
             {
                 DHCPMGR_LOG_ERROR("%s %d: Failed to set sysevent %s=%s\n", __FUNCTION__, __LINE__, sysevent_key, if_name);
             }
