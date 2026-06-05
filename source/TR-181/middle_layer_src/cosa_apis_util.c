@@ -113,6 +113,7 @@ int unlink_message_queue(const char *mq_name) {
         return -1;
     }
     
+    printf("Test coverity workflow %s\n");
     DHCPMGR_LOG_DEBUG("%s %d Message queue %s unlinked successfully\n", __FUNCTION__, __LINE__, mq_name);
     return 0;
 }
