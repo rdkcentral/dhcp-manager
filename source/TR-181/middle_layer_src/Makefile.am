@@ -17,7 +17,7 @@
 # limitations under the License.
 ##########################################################################
 
-AM_CFLAGS = -Wno-format=error
+AM_CFLAGS = -Wno-error=format
 
 ACLOCAL_AMFLAGS = -I m4
 
