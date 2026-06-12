@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 #include "util.h"
 #include "dhcp_lease_monitor_thrd.h"
 
@@ -48,27 +50,29 @@
 #define DHCPv6_OPTION_MAPT                   "SRV_OPTION95"
 #define DHCPv6_OPTION_MAPE                   "SRV_OPTION94"
 
-#if 0  // Uncomment the following code to enable plugin logs
-
-#define PLUGIN_DBG_PRINT(fmt ...)     {\
-    FILE     *fp        = NULL;\
-    fp = fopen ( "/rdklogs/logs/DHCPMGRLog.txt.0", "a+");\
+/* Plugin is a standalone binary without rdklogger init, use direct file logging */
+#define PLUGIN_DBG_PRINT(level, fmt, ...)     do {\
+    FILE *fp = fopen("/rdklogs/logs/DHCPMGRLog.txt.0", "a+");\
     if (fp)\
     {\
-        fprintf(fp,fmt);\
+        struct timeval tv;\
+        struct tm tm_info;\
+        gettimeofday(&tv, NULL);\
+        localtime_r(&tv.tv_sec, &tm_info);\
+        fprintf(fp, "%02d%02d%02d-%02d:%02d:%02d.%06ld [mod=DHCPMGR, lvl=%s] " fmt,\
+                tm_info.tm_year % 100, tm_info.tm_mon + 1, tm_info.tm_mday,\
+                tm_info.tm_hour, tm_info.tm_min, tm_info.tm_sec, (long)tv.tv_usec,\
+                level, ##__VA_ARGS__);\
         fclose(fp);\
     }\
-}\
+} while(0)
 
 #undef DHCPMGR_LOG_INFO
 #undef DHCPMGR_LOG_ERROR
-#undef DHCPMGR_LOG_DEBUG
 #undef DHCPMGR_LOG_WARNING
-#define DHCPMGR_LOG_INFO(fmt, ...)     PLUGIN_DBG_PRINT(fmt, ##__VA_ARGS__)
-#define DHCPMGR_LOG_ERROR(fmt, ...)    PLUGIN_DBG_PRINT(fmt, ##__VA_ARGS__)
-#define DHCPMGR_LOG_DEBUG(fmt, ...)    PLUGIN_DBG_PRINT(fmt, ##__VA_ARGS__)
-#define DHCPMGR_LOG_WARNING(fmt, ...)  PLUGIN_DBG_PRINT(fmt, ##__VA_ARGS__)
-#endif
+#define DHCPMGR_LOG_INFO(fmt, ...)     PLUGIN_DBG_PRINT("INFO", fmt, ##__VA_ARGS__)
+#define DHCPMGR_LOG_ERROR(fmt, ...)    PLUGIN_DBG_PRINT("ERROR", fmt, ##__VA_ARGS__)
+#define DHCPMGR_LOG_WARNING(fmt, ...)  PLUGIN_DBG_PRINT("WARN", fmt, ##__VA_ARGS__)
 
 static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *input_option)
 {
@@ -193,19 +197,11 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
         }
         dhcpv6_data->dns.assigned = true;
     }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] DNS servers are missing\n", __FUNCTION__, __LINE__);
-    }
 
     /** Domain Name */
     if ((env = getenv(DHCPv6_OPTION_DOMAIN)) != NULL)
     {
         strncpy(dhcpv6_data->domainName, env, sizeof(dhcpv6_data->domainName));
-    }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] Domain name is missing\n", __FUNCTION__, __LINE__);
     }
 
     /** NTP Server */
@@ -213,19 +209,11 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
     {
         strncpy(dhcpv6_data->ntpserver, env, sizeof(dhcpv6_data->ntpserver));
     }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] NTP server is missing\n", __FUNCTION__, __LINE__);
-    }
 
     /** AFTR (Access Gateway for DS-Lite) */
     if ((env = getenv(DHCPv6_OPTION_DSLITE)) != NULL)
     {
         strncpy(dhcpv6_data->aftr, env, sizeof(dhcpv6_data->aftr));
-    }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] AFTR name is missing\n", __FUNCTION__, __LINE__);
     }
 
     /** MAP-T Configuration */
@@ -233,10 +221,6 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
     {
         strncpy((char *) dhcpv6_data->mapt.Container, env, sizeof(dhcpv6_data->mapt.Container));
         dhcpv6_data->mapt.Assigned = true;
-    }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] MAP-T configuration is missing\n", __FUNCTION__, __LINE__);
     }
 
     /** MAP-E Configuration */
@@ -246,10 +230,6 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
         DHCPMGR_LOG_INFO("[%s-%d] MAP-E configuration is updated\n", __FUNCTION__, __LINE__);
         dhcpv6_data->mape.Assigned = true;
     }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] MAP-E configuration is missing\n", __FUNCTION__, __LINE__);
-    }
 
     /** Vendor Specific Information */
     if ((env = getenv(DHCPv6_VENDOR_SPEC)) != NULL)
@@ -257,10 +237,6 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
         dhcpv6_data->vendor.Assigned = true;
         dhcpv6_data->vendor.Length = strlen(env);
         strncpy(dhcpv6_data->vendor.Data, env, sizeof(dhcpv6_data->vendor.Data)-1);
-    }
-    else
-    {
-        DHCPMGR_LOG_INFO("[%s-%d] Vendor specific information is missing\n", __FUNCTION__, __LINE__);
     }
 
     return 0;
@@ -314,15 +290,18 @@ static  int send_dhcp6_data_to_leaseMonitor (DHCPv6_PLUGIN_MSG *dhcpv6_data)
         if (bytes < 0)
         {
             sleep(1);
-            DHCPMGR_LOG_ERROR("[%s-%d] Failed to send data to the dhcpmanager error=[%d][%s] \n", __FUNCTION__, __LINE__,errno, strerror(errno));
+            DHCPMGR_LOG_WARNING("[%s-%d] Sending to dhcpmanager (attempt %d/%d) error=[%d][%s], retrying...\n", __FUNCTION__, __LINE__, i+1, MAX_SEND_THRESHOLD, errno, strerror(errno));
         }
         else
             break;
     }
 
-    DHCPMGR_LOG_INFO("Successfully send %d bytes to dhcpmanager \n", bytes);
+    if (bytes > 0)
+        DHCPMGR_LOG_INFO("[%s-%d] Successfully sent %d bytes to dhcpmanager \n", __FUNCTION__, __LINE__, bytes);
+    else
+        DHCPMGR_LOG_ERROR("[%s-%d] Failed to send data after %d attempts \n", __FUNCTION__, __LINE__, MAX_SEND_THRESHOLD);
     nn_close(sock);
-    return 0;
+    return (bytes > 0) ? 0 : -1;
 }
 
 static int handle_dibbler_event(char *input_option)
@@ -345,6 +324,37 @@ static int handle_dibbler_event(char *input_option)
         DHCPMGR_LOG_ERROR("[%s][%d] Failed to get DHCPv6 data from environment \n", __FUNCTION__, __LINE__);
         return -1;
     }
+
+    /* Print received DHCPv6 data */
+    DHCPMGR_LOG_INFO("[%s][%d] ===============DHCPv6 Configuration Received==============================\n", __FUNCTION__, __LINE__);
+    DHCPMGR_LOG_INFO("[%s][%d] Interface       = %s \n", __FUNCTION__, __LINE__, data.ifname);
+    DHCPMGR_LOG_INFO("[%s][%d] Event           = %s \n", __FUNCTION__, __LINE__, input_option);
+    DHCPMGR_LOG_INFO("[%s][%d] isExpired       = %d \n", __FUNCTION__, __LINE__, data.isExpired);
+    if (data.ia_na.assigned)
+    {
+        DHCPMGR_LOG_INFO("[%s][%d] IA_NA Address   = %s \n", __FUNCTION__, __LINE__, data.ia_na.address);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_NA IAID      = %u \n", __FUNCTION__, __LINE__, data.ia_na.IA_ID);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_NA PrefLife  = %u \n", __FUNCTION__, __LINE__, data.ia_na.PreferedLifeTime);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_NA ValidLife = %u \n", __FUNCTION__, __LINE__, data.ia_na.ValidLifeTime);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_NA T1        = %u \n", __FUNCTION__, __LINE__, data.ia_na.T1);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_NA T2        = %u \n", __FUNCTION__, __LINE__, data.ia_na.T2);
+    }
+    if (data.ia_pd.assigned)
+    {
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD Prefix    = %s \n", __FUNCTION__, __LINE__, data.ia_pd.Prefix);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD PrefixLen = %u \n", __FUNCTION__, __LINE__, data.ia_pd.PrefixLength);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD IAID      = %u \n", __FUNCTION__, __LINE__, data.ia_pd.IA_ID);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD PrefLife  = %u \n", __FUNCTION__, __LINE__, data.ia_pd.PreferedLifeTime);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD ValidLife = %u \n", __FUNCTION__, __LINE__, data.ia_pd.ValidLifeTime);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD T1        = %u \n", __FUNCTION__, __LINE__, data.ia_pd.T1);
+        DHCPMGR_LOG_INFO("[%s][%d] IA_PD T2        = %u \n", __FUNCTION__, __LINE__, data.ia_pd.T2);
+    }
+    if (data.dns.assigned)
+    {
+        DHCPMGR_LOG_INFO("[%s][%d] DNS Server1     = %s \n", __FUNCTION__, __LINE__, data.dns.nameserver);
+        DHCPMGR_LOG_INFO("[%s][%d] DNS Server2     = %s \n", __FUNCTION__, __LINE__, data.dns.nameserver1);
+    }
+    DHCPMGR_LOG_INFO("[%s][%d] ==========================================================================\n", __FUNCTION__, __LINE__);
 
     /*
      * Filter out transient ADD/UPDATE events where the IA_PD prefix has zero lifetimes.
