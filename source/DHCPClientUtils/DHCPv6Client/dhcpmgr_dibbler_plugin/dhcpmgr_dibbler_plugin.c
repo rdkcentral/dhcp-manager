@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "util.h"
 #include "dhcp_lease_monitor_thrd.h"
 
@@ -69,6 +70,40 @@
 #define DHCPMGR_LOG_DEBUG(fmt, ...)    PLUGIN_DBG_PRINT(fmt, ##__VA_ARGS__)
 #define DHCPMGR_LOG_WARNING(fmt, ...)  PLUGIN_DBG_PRINT(fmt, ##__VA_ARGS__)
 #endif
+
+static void trim(char *in)
+{
+    if (NULL == in)
+    {
+        return;
+    }
+
+    char *start = in;
+    while (isspace((unsigned char)*start))
+    {
+        start++;
+    }
+
+    if (*start == '\0')
+    {
+        *in = '\0';
+        return;
+    }
+
+    char *end = start + strlen(start) - 1;
+
+    while (end >= start && isspace((unsigned char)*end))
+    {
+        *end = '\0';
+        end--;
+    }
+
+    if (start != in)
+    {
+        size_t len = strlen(start) + 1;
+        memmove(in, start, len);
+    }
+}
 
 static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *input_option)
 {
@@ -221,11 +256,14 @@ static int get_and_fill_env_data_dhcp6(DHCPv6_PLUGIN_MSG *dhcpv6_data, char *inp
     /** AFTR (Access Gateway for DS-Lite) */
     if ((env = getenv(DHCPv6_OPTION_DSLITE)) != NULL)
     {
-        strncpy(dhcpv6_data->aftr, env, sizeof(dhcpv6_data->aftr));
+        strncpy(dhcpv6_data->aftr, env, sizeof(dhcpv6_data->aftr) - 1);
+        dhcpv6_data->aftr[sizeof(dhcpv6_data->aftr) - 1] = '\0';
+        trim(dhcpv6_data->aftr);
+        DHCPMGR_LOG_INFO("[%s-%d] AFTR FQDN is %s\n", __FUNCTION__, __LINE__, dhcpv6_data->aftr);
     }
     else
     {
-        DHCPMGR_LOG_INFO("[%s-%d] AFTR name is missing\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_INFO("[%s-%d] AFTR FQDN is missing\n", __FUNCTION__, __LINE__);
     }
 
     /** MAP-T Configuration */
