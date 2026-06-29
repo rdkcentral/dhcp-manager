@@ -483,9 +483,13 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
                                 __FUNCTION__, __LINE__, interfaceName);
         }
         else if (!tentative)
+        {
             break;  /* interface found and no tentative address — DAD complete */
-
-        DHCPMGR_LOG_WARNING("%s %d: interface still tentative: %s\n", __FUNCTION__, __LINE__, interfaceName);
+        }
+        else
+        {
+            DHCPMGR_LOG_WARNING("%s %d: interface still tentative: %s\n", __FUNCTION__, __LINE__, interfaceName);
+        }
         usleep(INTF_V6LL_INTERVAL_IN_MSEC * USECS_IN_MSEC);
         waitTime -= INTF_V6LL_INTERVAL_IN_MSEC;
     }
