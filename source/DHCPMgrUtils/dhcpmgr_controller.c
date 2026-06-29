@@ -448,6 +448,7 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
          * /proc/net/if_inet6 format: addr32hex if_idx prefix_len scope flags ifname
          * IFA_F_TENTATIVE (0x40) set while the address is undergoing DAD. */
         bool tentative = false;
+        bool iface_found = false;
         FILE *fp_inet6 = fopen("/proc/net/if_inet6", "r");
         if (fp_inet6 != NULL)
         {
@@ -456,7 +457,11 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
             char ifname[IF_NAMESIZE + 1];
             while (fscanf(fp_inet6, "%32s %x %x %x %x %16s", addr, &if_idx, &pfx_len, &scope, &flags, ifname) == 6)
             {
-                if ((strcmp(ifname, interfaceName) == 0) && (flags & IFA_F_TENTATIVE))
+                if (strcmp(ifname, interfaceName) != 0)
+                    continue;   /* skip entries for other interfaces */
+
+                iface_found = true;
+                if (flags & IFA_F_TENTATIVE)
                 {
                     tentative = true;
                     break;
@@ -471,8 +476,14 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
                                 __FUNCTION__, __LINE__, strerror(errno));
         }
 
-        if (!tentative)
-            break;
+        /* If interface has no IPv6 address yet, keep waiting */
+        if (!iface_found)
+        {
+            DHCPMGR_LOG_WARNING("%s %d: interface %s not found in /proc/net/if_inet6, waiting...\n",
+                                __FUNCTION__, __LINE__, interfaceName);
+        }
+        else if (!tentative)
+            break;  /* interface found and no tentative address — DAD complete */
 
         DHCPMGR_LOG_WARNING("%s %d: interface still tentative: %s\n", __FUNCTION__, __LINE__, interfaceName);
         usleep(INTF_V6LL_INTERVAL_IN_MSEC * USECS_IN_MSEC);
