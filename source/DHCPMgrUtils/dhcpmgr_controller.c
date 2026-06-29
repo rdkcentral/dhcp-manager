@@ -427,13 +427,14 @@ static bool DhcpMgr_checkInterfaceStatus(const char * ifName)
 /**
  * @brief Checks for the presence of a link-local address and its DAD status on a network interface.
  *
- * This function checks if the specified network interface has a link-local address (LLA) by
- * executing the command `ip address show dev %s tentative`. It also verifies the link-local
- * Duplicate Address Detection (DAD) status. If no LLA is found, it restarts the IPv6 stack
- * on the interface.
+ * This function reads /proc/net/if_inet6 to check whether the specified interface
+ * has a link-local address (scope 0x20) that has completed Duplicate Address
+ * Detection (DAD). It waits up to INTF_V6LL_TIMEOUT_IN_MSEC for DAD to finish.
+ * If no link-local address is found within the timeout, it restarts the IPv6
+ * stack on the interface.
  *
  * @param interfaceName The name of the network interface to check.
- * @return true if the link-local address is found and DAD status is verified, false otherwise.
+ * @return true if the link-local address is found and DAD is complete, false otherwise.
  */
 static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
 { 
@@ -460,6 +461,12 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
                 if (strcmp(ifname, interfaceName) != 0)
                     continue;   /* skip entries for other interfaces */
 
+                /* Only consider link-local addresses (scope 0x20 = IPV6_ADDR_LINKLOCAL).
+                 * Global/site-local addresses present without a link-local do not
+                 * satisfy the readiness check this function is designed to verify. */
+                if (scope != 0x20U)
+                    continue;
+
                 iface_found = true;
                 if (flags & IFA_F_TENTATIVE)
                 {
@@ -471,9 +478,12 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
         }
         else
         {
-            /* Cannot determine DAD state; log and assume ready to avoid stalling */
-            DHCPMGR_LOG_WARNING("%s %d: failed to open /proc/net/if_inet6 (%s), skipping tentative check\n",
+            /* Cannot open /proc/net/if_inet6 — kernel file unavailable.
+             * DAD state is indeterminate; break out and let DHCPv6 proceed
+             * rather than stalling until timeout. */
+            DHCPMGR_LOG_ERROR("%s %d: failed to open /proc/net/if_inet6 (%s), skipping DAD check\n",
                                 __FUNCTION__, __LINE__, strerror(errno));
+            break;
         }
 
         /* If interface has no IPv6 address yet, keep waiting */
