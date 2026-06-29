@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -451,7 +452,7 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
         if (fp_inet6 != NULL)
         {
             char addr[33];
-            int if_idx, pfx_len, scope, flags;
+            unsigned int if_idx, pfx_len, scope, flags;
             char ifname[IF_NAMESIZE + 1];
             while (fscanf(fp_inet6, "%32s %x %x %x %x %16s", addr, &if_idx, &pfx_len, &scope, &flags, ifname) == 6)
             {
@@ -462,6 +463,12 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
                 }
             }
             fclose(fp_inet6);
+        }
+        else
+        {
+            /* Cannot determine DAD state; log and assume ready to avoid stalling */
+            DHCPMGR_LOG_WARNING("%s %d: failed to open /proc/net/if_inet6 (%s), skipping tentative check\n",
+                                __FUNCTION__, __LINE__, strerror(errno));
         }
 
         if (!tentative)
