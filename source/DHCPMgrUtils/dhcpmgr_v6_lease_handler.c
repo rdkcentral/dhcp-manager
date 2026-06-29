@@ -391,7 +391,7 @@ static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c)
 
     // Use system calls or platform-specific APIs to configure the network interface
     char command[256];
-    snprintf(command, sizeof(command), "ip -6 addr add %s dev %s preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
+    snprintf(command, sizeof(command), "ip -6 addr replace '%s' dev '%s' preferred_lft %s valid_lft %s", ipv6Address, interface, preferredLftStr, validLftStr);
     if(exec_shell_cmd(command) != 0)
     {
         DHCPMGR_LOG_ERROR("%s %d: Failed to configure IPv6 address on interface %s. Command: %s\n", __FUNCTION__, __LINE__, interface, command);
