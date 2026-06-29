@@ -50,6 +50,7 @@
 #include "dhcpmgr_custom_options.h"
 #include "cosa_apis_util.h"
 #include <telemetry_busmessage_sender.h>
+#include <linux/if_addr.h>     /* IFA_F_TENTATIVE */
 
 
 /* ---- Global Constants -------------------------- */
@@ -437,24 +438,36 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
 { 
     // check if interface is ipv6 ready with a link-local address
     unsigned int waitTime = INTF_V6LL_TIMEOUT_IN_MSEC;
-    char cmd[BUFLEN_128] = {0};
-    snprintf(cmd, sizeof(cmd), "ip address show dev %s tentative", interfaceName);
+
     while (waitTime > 0)
     {
-        FILE *fp_dad   = NULL;
-        char buffer[BUFLEN_256] = {0};
-
-        fp_dad = popen(cmd, "r");
-        if(fp_dad != NULL)
+        /* Read /proc/net/if_inet6 directly instead of popen("ip address show tentative").
+         * popen() spawns a child process which races with the global SIGCHLD handler
+         * (waitpid(-1,...)) causing pclose() to hang when the handler reaps the child first.
+         * /proc/net/if_inet6 format: addr32hex if_idx prefix_len scope flags ifname
+         * IFA_F_TENTATIVE (0x40) set while the address is undergoing DAD. */
+        bool tentative = false;
+        FILE *fp_inet6 = fopen("/proc/net/if_inet6", "r");
+        if (fp_inet6 != NULL)
         {
-            if ((fgets(buffer, BUFLEN_256, fp_dad) == NULL) || (strlen(buffer) == 0))
+            char addr[33];
+            int if_idx, pfx_len, scope, flags;
+            char ifname[IF_NAMESIZE + 1];
+            while (fscanf(fp_inet6, "%32s %x %x %x %x %16s", addr, &if_idx, &pfx_len, &scope, &flags, ifname) == 6)
             {
-                pclose(fp_dad);
-                break;
+                if ((strcmp(ifname, interfaceName) == 0) && (flags & IFA_F_TENTATIVE))
+                {
+                    tentative = true;
+                    break;
+                }
             }
-            DHCPMGR_LOG_WARNING("%s %d: interface still tentative: %s\n", __FUNCTION__, __LINE__, buffer);
-            pclose(fp_dad);
+            fclose(fp_inet6);
         }
+
+        if (!tentative)
+            break;
+
+        DHCPMGR_LOG_WARNING("%s %d: interface still tentative: %s\n", __FUNCTION__, __LINE__, interfaceName);
         usleep(INTF_V6LL_INTERVAL_IN_MSEC * USECS_IN_MSEC);
         waitTime -= INTF_V6LL_INTERVAL_IN_MSEC;
     }
