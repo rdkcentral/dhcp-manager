@@ -434,9 +434,10 @@ static bool DhcpMgr_checkInterfaceStatus(const char * ifName)
  * stack on the interface.
  *
  * @param interfaceName The name of the network interface to check.
- * @return true if at least one link-local address exists and none are tentative
- *         (DAD complete), or if /proc/net/if_inet6 cannot be opened (DAD check
- *         skipped — callers should not assume DAD was verified in that case).
+ * @return true if at least one link-local address is found and ready (DAD
+ *         complete for that address — scan stops at the first non-tentative LLA),
+ *         or if /proc/net/if_inet6 cannot be opened (DAD check skipped —
+ *         callers should not assume DAD was verified in that case).
  *         Returns false if no link-local address appears within the timeout.
  */
 static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
@@ -505,7 +506,7 @@ static bool DhcpMgr_checkLinkLocalAddress(const char * interfaceName)
         }
         else if (!tentative)
         {
-            break;  /* interface found and no tentative address — DAD complete */
+            break;  /* at least one link-local address is ready (DAD complete) */
         }
         else
         {
