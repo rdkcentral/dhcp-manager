@@ -942,21 +942,19 @@ void* DhcpMgr_MainController( void *args )
         {
             if (errno == EAGAIN)
             {
-                /* No message yet, wait 250ms */
-                usleep(sleep_us);
-                DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout, no message received yet on %s with retry count %d\n",__FUNCTION__, __LINE__, mq_name, retry_count);
-                retry_count++;
-
-                if (retry_count >= max_retries)
+                if (retry_count > max_retries)
                 {
                     DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout after 5s on %s\n",__FUNCTION__, __LINE__, mq_name);
                     if(DhcpMgr_LockInterfaceQueueMutexByName(inf_name) != 0) // lock the mutex
                     {
                         DHCPMGR_LOG_ERROR("%s %d Failed to lock interface queue mutex for %s\n", __FUNCTION__, __LINE__, inf_name);
                     }
-                    break; // exit thread after timeout
+                    break; // queue truly empty under lock, safe to exit thread
                 }
-
+                 /* No message yet, wait 250ms */
+                usleep(sleep_us);
+                DHCPMGR_LOG_DEBUG("%s %d: mq_receive timeout, no message received yet on %s with retry count %d\n",__FUNCTION__, __LINE__, mq_name, retry_count);
+                retry_count++;
                 continue; // retry loop
             }
             else
