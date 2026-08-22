@@ -231,6 +231,7 @@ AM_CONDITIONAL(BCI_SUPPORT, test x"$bci_support" = x"true")
 # Check ra_monitor_support
 AM_CONDITIONAL([RA_MONITOR_SUPPORT], [test "$RA_MONITOR_SUPPORT" = "yes"])
 
+AM_CONDITIONAL([ONESTACK_PRODUCT_REQ], [test "x$ONESTACK_PRODUCT_REQ" = "xtrue"])
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h])
 
