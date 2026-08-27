@@ -19,6 +19,8 @@
 
 #include "cosa_dhcpv6_apis.h"
 #include "dhcpv6_interface.h"
+#include <errno.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include "dhcpmgr_rbus_apis.h"
@@ -49,7 +51,7 @@ typedef struct
 
 static void configureNetworkInterface(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
 static void ConfigureIpv6Sysevents(PCOSA_DML_DHCPCV6_FULL pDhcp6c);
-static int exec_shell_cmd(char * command);
+static int exec_shell_cmd(const char * command);
 /**
  * @brief processv6LesSysevents This function will set the sysevent values for IA_PD and IA_NA
  *
@@ -58,24 +60,51 @@ static int exec_shell_cmd(char * command);
  * @return void
  */
 
-static int exec_shell_cmd(char * command)
+static int exec_shell_cmd(const char * command)
 {
     int status = system(command);
-    if (status == -1) {
-        DHCPMGR_LOG_ERROR("%s: %d system() failed to run shell\n",__FUNCTION__,__LINE__);
+    if (status == -1)
+    {
+        /* Capture errno immediately before any other call can modify it */
+        int saved_errno = errno;
+        if (saved_errno == ECHILD)
+        {
+            /* sigchld_handler uses waitpid(-1, WNOHANG) which can reap the
+             * /bin/sh child spawned by system() before system()'s own
+             * waitpid() collects it, causing system() to return -1/ECHILD.
+             * The exit status is unknown in this case, but since the shell
+             * child is never registered as a DHCP client pid, processKilled()
+             * is a no-op for it. Treat as success (with a warning) to suppress
+             * the false error log — this is the core fix for RDKB-65467. */
+            DHCPMGR_LOG_WARNING("%s %d: system() got ECHILD for cmd [%s] - "
+                                "child reaped by sigchld_handler, exit status unavailable, treating as success\n",
+                                __FUNCTION__, __LINE__, command);
+            return 0;
+        }
+        DHCPMGR_LOG_ERROR("%s %d: system() fork/wait failed for cmd [%s], "
+                          "errno=%d (%s)\n",
+                          __FUNCTION__, __LINE__, command, saved_errno, strerror(saved_errno));
         return -1;
     }
 
-    if (WIFEXITED(status)) {
+    if (WIFEXITED(status))
+    {
         int exit_code = WEXITSTATUS(status);
-
-        if (exit_code != 0) 
+        if (exit_code != 0)
         {
+            DHCPMGR_LOG_ERROR("%s %d: cmd [%s] exited with code %d\n",
+                              __FUNCTION__, __LINE__, command, exit_code);
             return -1;
         }
-    } else if (WIFSIGNALED(status)) {
-        DHCPMGR_LOG_ERROR("%s %d :Command was terminated by signal %d\n",__FUNCTION__,__LINE__,WTERMSIG(status));
+        return 0;
     }
+    else if (WIFSIGNALED(status))
+    {
+        DHCPMGR_LOG_ERROR("%s %d: cmd [%s] terminated by signal %d\n",
+                          __FUNCTION__, __LINE__, command, WTERMSIG(status));
+        return -1;
+    }
+
     return 0;
 }
 
