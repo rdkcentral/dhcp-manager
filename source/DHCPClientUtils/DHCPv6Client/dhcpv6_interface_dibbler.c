@@ -557,7 +557,7 @@ int send_dhcpv6_release(pid_t processID) {
     }
     if (!wait_for_process_exit(processID, DIBBLER_CLIENT, 1000))
     {
-        DHCPMGR_LOG_ERROR("%s %d: dibbler-client pid %d still running after SIGKILL\n", __FUNCTION__, __LINE__, processID);
+        DHCPMGR_LOG_ERROR("%s %d: unable to kill dibbler-client pid %d\n", __FUNCTION__, __LINE__, processID);
         return FAILURE;
     }
     return SUCCESS;
