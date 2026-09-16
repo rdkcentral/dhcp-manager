@@ -30,6 +30,8 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
 #include "secure_wrapper.h"
 #include "ansc_platform.h"
 #include "util.h"
@@ -49,17 +51,39 @@ static ANSC_STATUS DhcpMgr_LeaseMonitor_Init()
 {
     if ((ipcListenFd = nn_socket(AF_SP, NN_PULL)) < 0)
     {
-        DHCPMGR_LOG_ERROR("[%s-%d] Failed to create IPC socket\n", __FUNCTION__, __LINE__);
+        DHCPMGR_LOG_ERROR("[%s-%d] Failed to create IPC socket, error=[%d][%s]\n",
+                          __FUNCTION__, __LINE__, errno, strerror(errno));
         return ANSC_STATUS_FAILURE;
     }
-    if ((nn_bind(ipcListenFd, DHCP_MANAGER_ADDR)) < 0)
+
+    unsigned int delay_ms = LEASE_MONITOR_BIND_INITIAL_DELAY_MS;
+    int attempt;
+
+    for (attempt = 1; attempt <= LEASE_MONITOR_BIND_MAX_RETRIES; attempt++)
     {
-        DHCPMGR_LOG_ERROR("[%s-%d] Failed to bind IPC socket\n", __FUNCTION__, __LINE__);
-        nn_close(ipcListenFd);
-        return ANSC_STATUS_FAILURE;
+        if (nn_bind(ipcListenFd, DHCP_MANAGER_ADDR) >= 0)
+        {
+            DHCPMGR_LOG_INFO("[%s-%d] IPC Socket bound successfully on attempt %d\n",
+                             __FUNCTION__, __LINE__, attempt);
+            return ANSC_STATUS_SUCCESS;
+        }
+
+        DHCPMGR_LOG_ERROR("[%s-%d] Failed to bind IPC socket [%s] (attempt %d/%d), error=[%d][%s]\n",
+                          __FUNCTION__, __LINE__, DHCP_MANAGER_ADDR, attempt,
+                          LEASE_MONITOR_BIND_MAX_RETRIES, errno, strerror(errno));
+
+        if (attempt < LEASE_MONITOR_BIND_MAX_RETRIES)
+        {
+            usleep(delay_ms * 1000);
+            delay_ms = (delay_ms * 2 > LEASE_MONITOR_BIND_MAX_DELAY_MS)
+                       ? LEASE_MONITOR_BIND_MAX_DELAY_MS : delay_ms * 2;
+        }
     }
-    DHCPMGR_LOG_INFO("[%s-%d] IPC Socket initialized and bound successfully\n", __FUNCTION__, __LINE__);
-    return ANSC_STATUS_SUCCESS;
+
+    DHCPMGR_LOG_ERROR("[%s-%d] Failed to bind IPC socket after %d attempts, giving up\n",
+                      __FUNCTION__, __LINE__, LEASE_MONITOR_BIND_MAX_RETRIES);
+    nn_close(ipcListenFd);
+    return ANSC_STATUS_FAILURE;
 }
 
 int DhcpMgr_LeaseMonitor_Start()
