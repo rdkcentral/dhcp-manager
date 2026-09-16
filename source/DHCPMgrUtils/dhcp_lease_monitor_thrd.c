@@ -56,7 +56,6 @@ static ANSC_STATUS DhcpMgr_LeaseMonitor_Init()
         return ANSC_STATUS_FAILURE;
     }
 
-    unsigned int delay_ms = LEASE_MONITOR_BIND_INITIAL_DELAY_MS;
     int attempt;
 
     for (attempt = 1; attempt <= LEASE_MONITOR_BIND_MAX_RETRIES; attempt++)
@@ -74,9 +73,7 @@ static ANSC_STATUS DhcpMgr_LeaseMonitor_Init()
 
         if (attempt < LEASE_MONITOR_BIND_MAX_RETRIES)
         {
-            usleep(delay_ms * 1000);
-            delay_ms = (delay_ms * 2 > LEASE_MONITOR_BIND_MAX_DELAY_MS)
-                       ? LEASE_MONITOR_BIND_MAX_DELAY_MS : delay_ms * 2;
+            sleep(LEASE_MONITOR_BIND_RETRY_DELAY_SEC);
         }
     }
 
