@@ -71,10 +71,7 @@ static ANSC_STATUS DhcpMgr_LeaseMonitor_Init()
                           __FUNCTION__, __LINE__, DHCP_MANAGER_ADDR, attempt,
                           LEASE_MONITOR_BIND_MAX_RETRIES, errno, strerror(errno));
 
-        if (attempt < LEASE_MONITOR_BIND_MAX_RETRIES)
-        {
-            sleep(LEASE_MONITOR_BIND_RETRY_DELAY_SEC);
-        }
+        sleep(LEASE_MONITOR_BIND_RETRY_DELAY_SEC);
     }
 
     DHCPMGR_LOG_ERROR("[%s-%d] Failed to bind IPC socket after %d attempts, giving up\n",
