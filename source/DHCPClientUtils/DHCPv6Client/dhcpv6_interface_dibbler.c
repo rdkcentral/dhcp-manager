@@ -561,7 +561,7 @@ int send_dhcpv6_release(pid_t processID) {
         DHCPMGR_LOG_ERROR("%s %d: unable to send SIGKILL to pid %d\n", __FUNCTION__, __LINE__, processID);
         return FAILURE;
     }
-    if (!wait_for_dibbler_exit(processID, 1000))
+    if (!wait_for_dibbler_exit(processID, MSECS_IN_SEC))
     {
         DHCPMGR_LOG_ERROR("%s %d: unable to kill dibbler-client pid %d\n", __FUNCTION__, __LINE__, processID);
         return FAILURE;
