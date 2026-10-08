@@ -165,6 +165,17 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
             DHCPMGR_LOG_ERROR("[%s-%d] Subnet is not available \n", __FUNCTION__,__LINE__);
         }
 
+        /** Domain name */
+        if ((env = getenv(DHCP_DOMAIN_NAME)) != NULL)
+        {
+            safec_rc = strcpy_s(dhcpv4_data->domain, sizeof(dhcpv4_data->domain), env); // CID 187457: Buffer not null terminated (BUFFER_SIZE)
+            ERR_CHK(safec_rc);
+        }
+        else
+        {
+            OnboardLog("[%s-%d] Domain name is not available \n", __FUNCTION__,__LINE__);
+        }
+
         /** Gateway. */
         if (pinfo->router != NULL)
         {
@@ -174,7 +185,6 @@ static int get_and_fill_env_data (DHCPv4_PLUGIN_MSG *dhcpv4_data, udhcpc_env_t* 
         {
             DHCPMGR_LOG_ERROR("[%s-%d] GW address is not available in dhcp ack \n", __FUNCTION__,__LINE__);
         }
-
 
         /** DNS server. */
         if (pinfo->dns != NULL)
@@ -462,6 +472,7 @@ static int handle_events (udhcpc_env_t *pinfo)
         DHCPMGR_LOG_INFO("[%s][%d] is expired      = %d \n", __FUNCTION__, __LINE__, data.isExpired);
         DHCPMGR_LOG_INFO("[%s][%d] ip              = %s\n",__FUNCTION__, __LINE__, data.address);
         DHCPMGR_LOG_INFO("[%s][%d] mask            = %s \n", __FUNCTION__, __LINE__,data.netmask);
+        DHCPMGR_LOG_INFO("[%s][%d] domain          = %s \n", __FUNCTION__, __LINE__,data.domain);
         DHCPMGR_LOG_INFO("[%s][%d] gateway         = %s \n",__FUNCTION__, __LINE__,data.gateway);
         DHCPMGR_LOG_INFO("[%s][%d] dnsserver1      = %s \n",__FUNCTION__, __LINE__, data.dnsServer);
         DHCPMGR_LOG_INFO("[%s][%d] dnsserver2      = %s \n", __FUNCTION__, __LINE__,data.dnsServer1);
