@@ -20,6 +20,18 @@
 #include "dhcp_client_common_utils.h"
 #include <sys/prctl.h>
 
+void coverity_resource_leak() {
+    // Coverity CID: RESOURCE_LEAK - file handle never closed
+    FILE *fp = fopen("/tmp/test.txt", "r");
+    if (fp == NULL) {
+        return;
+    }
+    char buf[100];
+    fgets(buf, sizeof(buf), fp);
+    // missing fclose(fp) — this triggers a Coverity RESOURCE_LEAK defect
+    return;
+}
+
 /*
  * signal_process ()
  * @description: some process like dibbler spawns a new thread and the main thread exits. 
