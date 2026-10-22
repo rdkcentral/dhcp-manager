@@ -1830,12 +1830,33 @@ CosaDmlDhcpv6cGetEntry
     //char DhcpStateSys[64] = {0};
     /* Cfg Memebers */
     pEntry->Cfg.InstanceNumber = ulIndex;
+    STRCPY_S_NOCLOBBER((CHAR *)pEntry->Cfg.Interface, sizeof(pEntry->Cfg.Interface), COSA_DML_DHCPV6_CLIENT_IFNAME);
 
     _ansc_sprintf(param_name, PSM_DHCPMANAGER_DHCPV6C_CLIENTALIAS, (INT)ulIndex);
     retPsmGet = PsmReadParameter(param_name, param_value, sizeof(param_value));
     if (retPsmGet == CCSP_SUCCESS)
     {
          STRCPY_S_NOCLOBBER((CHAR *)pEntry->Cfg.Alias, sizeof(pEntry->Cfg.Alias), param_value);
+    }
+
+    _ansc_memset(param_name, 0, sizeof(param_name));
+    _ansc_memset(param_value, 0, sizeof(param_value));
+    _ansc_sprintf(param_name, PSM_DHCPMANAGER_DHCPV6C_INTERFACE, (INT)ulIndex);
+    retPsmGet = PsmReadParameter(param_name, param_value, sizeof(param_value));
+    if (retPsmGet == CCSP_SUCCESS && param_value[0] != '\0')
+    {
+        errno_t rc = STRCPY_S_NOCLOBBER((CHAR *)pEntry->Cfg.Interface, sizeof(pEntry->Cfg.Interface), param_value);
+        if (rc != EOK)
+        {
+            ERR_CHK(rc);
+            DHCPMGR_LOG_ERROR("%s: Invalid interface configured for DHCPv6 client %lu\n", __FUNCTION__, ulIndex);
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+    else
+    {
+        DHCPMGR_LOG_DEBUG("%s: no interface configured for DHCPv6 client %lu; using default %s\n",
+                          __FUNCTION__, ulIndex, pEntry->Cfg.Interface);
     }
 
     _ansc_memset(param_name, 0, sizeof(param_name));

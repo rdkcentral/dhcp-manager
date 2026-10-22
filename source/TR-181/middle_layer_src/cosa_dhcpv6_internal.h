@@ -71,6 +71,7 @@
 #ifdef DHCPV6C_PSM_ENABLE
 #define PSM_DHCPMANAGER_DHCPV6C_CLIENTCOUNT                 "dmsb.dhcpmanager.dhcpv6.ClientNoOfEntries"
 #define PSM_DHCPMANAGER_DHCPV6C_CLIENTALIAS                 "dmsb.dhcpmanager.dhcpv6.Client.%d.Alias"
+#define PSM_DHCPMANAGER_DHCPV6C_INTERFACE                   "dmsb.dhcpmanager.dhcpv6.Client.%d.Interface"
 #define PSM_DHCPMANAGER_DHCPV6C_REQADDR                     "dmsb.dhcpmanager.dhcpv6.Client.%d.ReqAddr"
 #define PSM_DHCPMANAGER_DHCPV6C_REQPREFIX                   "dmsb.dhcpmanager.dhcpv6.Client.%d.ReqPrefix"
 #define PSM_DHCPMANAGER_DHCPV6C_RAPIDCOMMIT                 "dmsb.dhcpmanager.dhcpv6.Client.%d.RapidCommit"
