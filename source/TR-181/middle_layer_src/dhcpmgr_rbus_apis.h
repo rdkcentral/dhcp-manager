@@ -25,18 +25,20 @@
 #include "cosa_dhcpv6_apis.h"
 #include "ipc_msg.h"
 
-/* DHCPv4 rbus entries */
-#define DHCP_MGR_DHCPv4_IFACE "Device.DHCPv4.Client.{i}."
-#define DHCP_MGR_DHCPv4_TABLE "Device.DHCPv4.Client"
-#define DHCP_MGR_DHCPv4_STATUS "Device.DHCPv4.Client.{i}.Events"
-#define DHCPv4_EVENT_FORMAT "Device.DHCPv4.Client.%d.Events"
+/* DHCPv4 rbus entries.
+ * These live outside Device.DHCPv4.Client. so that the CCSP DHCP manager component
+ * (eRT.com.cisco.spvtg.ccsp.dhcpmgr) remains the only owner of the TR-181 Client table. */
+#define DHCP_MGR_DHCPv4_IFACE "Device.X_RDK_DHCPMgr.DHCPv4.Client.{i}."
+#define DHCP_MGR_DHCPv4_TABLE "Device.X_RDK_DHCPMgr.DHCPv4.Client"
+#define DHCP_MGR_DHCPv4_STATUS "Device.X_RDK_DHCPMgr.DHCPv4.Client.{i}.Events"
+#define DHCPv4_EVENT_FORMAT "Device.X_RDK_DHCPMgr.DHCPv4.Client.%d.Events"
 
 
 /*DHCPv6 rbus entries */
-#define DHCP_MGR_DHCPv6_IFACE "Device.DHCPv6.Client.{i}."
-#define DHCP_MGR_DHCPv6_TABLE "Device.DHCPv6.Client"
-#define DHCP_MGR_DHCPv6_STATUS "Device.DHCPv6.Client.{i}.Events"
-#define DHCPv6_EVENT_FORMAT "Device.DHCPv6.Client.%d.Events"
+#define DHCP_MGR_DHCPv6_IFACE "Device.X_RDK_DHCPMgr.DHCPv6.Client.{i}."
+#define DHCP_MGR_DHCPv6_TABLE "Device.X_RDK_DHCPMgr.DHCPv6.Client"
+#define DHCP_MGR_DHCPv6_STATUS "Device.X_RDK_DHCPMgr.DHCPv6.Client.{i}.Events"
+#define DHCPv6_EVENT_FORMAT "Device.X_RDK_DHCPMgr.DHCPv6.Client.%d.Events"
 
 /**
  * @brief Initializes the DHCP Manager by opening an rbus handle and registering rbus DML, DML tables, and rbus events.
