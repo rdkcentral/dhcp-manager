@@ -311,10 +311,16 @@ void DhcpMgr_ProcessV4Lease(PCOSA_DML_DHCPC_FULL pDhcpc)
             (strcmp(current->address, newLease->address) != 0) ||
             (strcmp(current->netmask, newLease->netmask) != 0) ||
             (strcmp(current->gateway, newLease->gateway) != 0) ||
+            (strcmp(current->cDomainName, newLease->cDomainName) != 0) ||
             (strcmp(current->dnsServer, newLease->dnsServer) != 0) ||
             (strcmp(current->dnsServer1, newLease->dnsServer1) != 0) 
         ))
         {
+            if (strcmp(current->cDomainName, newLease->cDomainName) != 0)
+            {
+                DHCPMGR_LOG_INFO("%s: WAN DHCP domain changed from '%s' to '%s'\n",
+                                 __FUNCTION__, current->cDomainName, newLease->cDomainName);
+            }
             DHCPMGR_LOG_INFO("%s %d: lease updated for %s \n",__FUNCTION__, __LINE__, pDhcpc->Cfg.Interface);
             leaseChanged = TRUE;
         }
