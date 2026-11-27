@@ -676,6 +676,8 @@ void __cosa_dhcpsv6_refresh_config()
     int Index4 = 0;
     struct stat check_ConfigFile;
     errno_t rc = -1;
+    
+    DHCPMGR_LOG_WARNING("%s: entered inside function\r\n", __FUNCTION__);
     if (!fp)
         goto EXIT;
 
@@ -1101,8 +1103,8 @@ OPTIONS:
                     if (domain_str[0] != '\0') {
                         /* H005 H021 H023*/
                          DHCPMGR_LOG_WARNING("Agrata 5:\n");
-                        if (format_dibbler_option(domain_str) == 0 &&
-                            is_safe_dnssl_chars(domain_str)) {
+                         format_dibbler_option(domain_str);
+                         if (is_safe_dnssl_chars(domain_str)) {
                                 DHCPMGR_LOG_WARNING("Agrata 6:\n");
                             if( isInCaptivePortal == TRUE )
                             {
@@ -1114,9 +1116,10 @@ OPTIONS:
                             }
                         } else {
                             DHCPMGR_LOG_WARNING("Ignoring invalid DHCPv6 domain search list\n");
-                            DHCPMGR_LOG_WARNING("Agrata 7:\n");
+                            
                         }
                     }
+                    DHCPMGR_LOG_WARNING("Agrata 7:\n");
                 }
 #elif defined _HUB4_PRODUCT_REQ_
                  /* Static DNS Servers */
@@ -1485,6 +1488,7 @@ else {
         ifl_set_event("dibbler_server_conf-status","ready");
 }
 EXIT:
+    DHCPMGR_LOG_WARNING("%s: END\r\n", __FUNCTION__);
     return;
 }
 #endif
