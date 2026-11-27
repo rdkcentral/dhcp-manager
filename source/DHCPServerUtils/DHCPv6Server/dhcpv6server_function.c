@@ -624,9 +624,9 @@ int is_safe_dnssl_chars(const char *value)
 {
     const unsigned char *p = (const unsigned char *)value;
 
-    DHCPMGR_LOG_WARNING("Agrata 1: entered inside function \n");
+    DHCPMGR_LOG_WARNING("\r\nAgrata 1: entered inside function \r\n");
     if (p == NULL || *p == '\0')
-        DHCPMGR_LOG_WARNING("Agrata 2: rejected NULL or empty input\n");
+        DHCPMGR_LOG_WARNING("\r\nAgrata 2: rejected NULL or empty input\n");
     if (p == NULL || *p == '\0')
         return 0;
 
@@ -637,12 +637,12 @@ int is_safe_dnssl_chars(const char *value)
             *p == '.' || *p == ',' || *p == '-')
             continue;
 
-        DHCPMGR_LOG_WARNING("Agrata 3: is_safe_dnssl_chars rejected byte 0x%02x at offset %zu\n",
+        DHCPMGR_LOG_WARNING("\r\nAgrata 3: is_safe_dnssl_chars rejected byte 0x%02x at offset %zu\r\n",
                          (unsigned int)*p, (size_t)(p - (const unsigned char *)value));
         return 0;
     }
 
-    DHCPMGR_LOG_WARNING("Agrata: is_safe_dnssl_chars accepted input\n");
+    DHCPMGR_LOG_WARNING("\r\nAgrata: is_safe_dnssl_chars accepted input\r\n");
     return 1;
 }
 
@@ -1102,10 +1102,10 @@ OPTIONS:
                     domain_str[sizeof(domain_str) - 1] = '\0'; //H005 
                     if (domain_str[0] != '\0') {
                         /* H005 H021 H023*/
-                         DHCPMGR_LOG_WARNING("Agrata 5:\n");
+                         DHCPMGR_LOG_WARNING("\r\nAgrata 5:\r\n");
                          format_dibbler_option(domain_str);
                          if (is_safe_dnssl_chars(domain_str)) {
-                                DHCPMGR_LOG_WARNING("Agrata 6:\n");
+                                DHCPMGR_LOG_WARNING("\r\nAgrata 6:\r\n");
                             if( isInCaptivePortal == TRUE )
                             {
                                 fprintf(fp, "#    option %s %s\n", tagList[Index3].cmdstring, domain_str);
@@ -1119,7 +1119,7 @@ OPTIONS:
                             
                         }
                     }
-                    DHCPMGR_LOG_WARNING("Agrata 7:\n");
+                    DHCPMGR_LOG_WARNING("\r\nAgrata 7:\r\n");
                 }
 #elif defined _HUB4_PRODUCT_REQ_
                  /* Static DNS Servers */
