@@ -624,6 +624,9 @@ int is_safe_dnssl_chars(const char *value)
 {
     const unsigned char *p = (const unsigned char *)value;
 
+    DHCPMGR_LOG_DEBUG("Agrata 1: entered inside function \n");
+    if (p == NULL || *p == '\0')
+        DHCPMGR_LOG_DEBUG("Agrata 2: rejected NULL or empty input\n");
     if (p == NULL || *p == '\0')
         return 0;
 
@@ -634,9 +637,12 @@ int is_safe_dnssl_chars(const char *value)
             *p == '.' || *p == ',' || *p == '-')
             continue;
 
+        DHCPMGR_LOG_DEBUG("Agrata 3: is_safe_dnssl_chars rejected byte 0x%02x at offset %zu\n",
+                         (unsigned int)*p, (size_t)(p - (const unsigned char *)value));
         return 0;
     }
 
+    DHCPMGR_LOG_DEBUG("Agrata: is_safe_dnssl_chars accepted input\n");
     return 1;
 }
 
@@ -1094,8 +1100,10 @@ OPTIONS:
                     domain_str[sizeof(domain_str) - 1] = '\0'; //H005 
                     if (domain_str[0] != '\0') {
                         /* H005 H021 H023*/
+                         DHCPMGR_LOG_DEBUG("Agrata 5:\n");
                         if (format_dibbler_option(domain_str) == 0 &&
                             is_safe_dnssl_chars(domain_str)) {
+                                DHCPMGR_LOG_DEBUG("Agrata 6:\n");
                             if( isInCaptivePortal == TRUE )
                             {
                                 fprintf(fp, "#    option %s %s\n", tagList[Index3].cmdstring, domain_str);
@@ -1106,6 +1114,7 @@ OPTIONS:
                             }
                         } else {
                             DHCPMGR_LOG_WARNING("Ignoring invalid DHCPv6 domain search list\n");
+                            DHCPMGR_LOG_DEBUG("Agrata 7:\n");
                         }
                     }
                 }
